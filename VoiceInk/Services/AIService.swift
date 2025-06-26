@@ -99,9 +99,8 @@ enum AIProvider: String, CaseIterable {
                 "claude-opus-4-0",
                 "claude-sonnet-4-0",
                 "claude-3-7-sonnet-latest",
-                "claude-3-5-sonnet-latest",
                 "claude-3-5-haiku-latest",
-                "claude-3-opus-latest"
+                "claude-3-5-sonnet-latest"
             ]
         case .mistral:
             return [

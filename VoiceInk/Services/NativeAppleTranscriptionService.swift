@@ -34,6 +34,7 @@ class NativeAppleTranscriptionService: TranscriptionService {
         case transcriptionFailed
         case localeNotSupported
         case invalidModel
+        case assetAllocationFailed
         
         var errorDescription: String? {
             switch self {
@@ -45,6 +46,8 @@ class NativeAppleTranscriptionService: TranscriptionService {
                 return "The selected language is not supported by SpeechAnalyzer."
             case .invalidModel:
                 return "Invalid model type provided for Native Apple transcription."
+            case .assetAllocationFailed:
+                return "Failed to allocate assets for the selected locale."
             }
         }
     }
@@ -69,16 +72,16 @@ class NativeAppleTranscriptionService: TranscriptionService {
         let appleLocale = mapToAppleLocale(selectedLanguage)
         let locale = Locale(identifier: appleLocale)
 
-        // Check for locale support and asset installation status.
+        // Check for locale support and asset installation status using proper BCP-47 format
         let supportedLocales = await SpeechTranscriber.supportedLocales
         let installedLocales = await SpeechTranscriber.installedLocales
-        let isLocaleSupported = supportedLocales.contains(locale)
-        let isLocaleInstalled = installedLocales.contains(locale)
+        let isLocaleSupported = supportedLocales.map({ $0.identifier(.bcp47) }).contains(locale.identifier(.bcp47))
+        let isLocaleInstalled = installedLocales.map({ $0.identifier(.bcp47) }).contains(locale.identifier(.bcp47))
 
         // Create the detailed log message
-        let supportedIdentifiers = supportedLocales.map { $0.identifier }.sorted().joined(separator: ", ")
-        let installedIdentifiers = installedLocales.map { $0.identifier }.sorted().joined(separator: ", ")
-        let availableForDownload = Set(supportedLocales).subtracting(Set(installedLocales)).map { $0.identifier }.sorted().joined(separator: ", ")
+        let supportedIdentifiers = supportedLocales.map { $0.identifier(.bcp47) }.sorted().joined(separator: ", ")
+        let installedIdentifiers = installedLocales.map { $0.identifier(.bcp47) }.sorted().joined(separator: ", ")
+        let availableForDownload = Set(supportedLocales).subtracting(Set(installedLocales)).map { $0.identifier(.bcp47) }.sorted().joined(separator: ", ")
         
         var statusMessage: String
         if isLocaleInstalled {
@@ -92,7 +95,7 @@ class NativeAppleTranscriptionService: TranscriptionService {
         let logMessage = """
         
         --- Native Speech Transcription ---
-        Selected Language: '\(selectedLanguage)' → Apple Locale: '\(locale.identifier)'
+        Selected Language: '\(selectedLanguage)' → Apple Locale: '\(locale.identifier(.bcp47))'
         Status: \(statusMessage)
         ------------------------------------
         Supported Locales: [\(supportedIdentifiers)]
@@ -103,9 +106,13 @@ class NativeAppleTranscriptionService: TranscriptionService {
         logger.notice("\(logMessage)")
 
         guard isLocaleSupported else {
-            logger.error("Transcription failed: Locale '\(locale.identifier)' is not supported by SpeechTranscriber.")
+            logger.error("Transcription failed: Locale '\(locale.identifier(.bcp47))' is not supported by SpeechTranscriber.")
             throw ServiceError.localeNotSupported
         }
+        
+        // Properly manage asset allocation/deallocation
+        try await deallocateExistingAssets()
+        try await allocateAssetsForLocale(locale)
         
         let transcriber = SpeechTranscriber(
             locale: locale,
@@ -138,18 +145,43 @@ class NativeAppleTranscriptionService: TranscriptionService {
     }
     
     @available(macOS 26, *)
+    private func deallocateExistingAssets() async throws {
+        #if canImport(Speech)
+        // Deallocate any existing allocated locales to avoid conflicts
+        for locale in await AssetInventory.allocatedLocales {
+            await AssetInventory.deallocate(locale: locale)
+        }
+        logger.notice("Deallocated existing asset locales.")
+        #endif
+    }
+    
+    @available(macOS 26, *)
+    private func allocateAssetsForLocale(_ locale: Locale) async throws {
+        #if canImport(Speech)
+        do {
+            try await AssetInventory.allocate(locale: locale)
+            logger.notice("Successfully allocated assets for locale: '\(locale.identifier(.bcp47))'")
+        } catch {
+            logger.error("Failed to allocate assets for locale '\(locale.identifier(.bcp47))': \(error.localizedDescription)")
+            throw ServiceError.assetAllocationFailed
+        }
+        #endif
+    }
+    
+    @available(macOS 26, *)
     private func ensureModelIsAvailable(for transcriber: SpeechTranscriber, locale: Locale) async throws {
         #if canImport(Speech)
-        let isInstalled = await SpeechTranscriber.installedLocales.contains(locale)
+        let installedLocales = await SpeechTranscriber.installedLocales
+        let isInstalled = installedLocales.map({ $0.identifier(.bcp47) }).contains(locale.identifier(.bcp47))
 
         if !isInstalled {
-            logger.notice("Assets for '\(locale.identifier)' not installed. Requesting system download.")
+            logger.notice("Assets for '\(locale.identifier(.bcp47))' not installed. Requesting system download.")
             
             if let request = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
                 try await request.downloadAndInstall()
-                logger.notice("Asset download for '\(locale.identifier)' complete.")
+                logger.notice("Asset download for '\(locale.identifier(.bcp47))' complete.")
             } else {
-                logger.error("Asset download for '\(locale.identifier)' failed: Could not create installation request.")
+                logger.error("Asset download for '\(locale.identifier(.bcp47))' failed: Could not create installation request.")
                 // Note: We don't throw an error here, as transcription might still work with a base model.
             }
         }
