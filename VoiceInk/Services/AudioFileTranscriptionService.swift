@@ -17,8 +17,8 @@ class AudioTranscriptionService: ObservableObject {
     
     // Transcription services
     private let localTranscriptionService: LocalTranscriptionService
-    private let cloudTranscriptionService = CloudTranscriptionService()
-    private let nativeAppleTranscriptionService = NativeAppleTranscriptionService()
+    private lazy var cloudTranscriptionService = CloudTranscriptionService()
+    private lazy var nativeAppleTranscriptionService = NativeAppleTranscriptionService()
     
     enum TranscriptionError: Error {
         case noAudioFile

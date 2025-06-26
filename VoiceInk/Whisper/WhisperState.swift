@@ -58,8 +58,8 @@ class WhisperState: NSObject, ObservableObject, AVAudioRecorderDelegate {
     
     // Transcription Services
     private var localTranscriptionService: LocalTranscriptionService!
-    private let cloudTranscriptionService = CloudTranscriptionService()
-    private let nativeAppleTranscriptionService = NativeAppleTranscriptionService()
+    private lazy var cloudTranscriptionService = CloudTranscriptionService()
+    private lazy var nativeAppleTranscriptionService = NativeAppleTranscriptionService()
     
     private var modelUrl: URL? {
         let possibleURLs = [

@@ -20,8 +20,8 @@ class AudioTranscriptionManager: ObservableObject {
     
     // Transcription services - will be initialized when needed
     private var localTranscriptionService: LocalTranscriptionService?
-    private let cloudTranscriptionService = CloudTranscriptionService()
-    private let nativeAppleTranscriptionService = NativeAppleTranscriptionService()
+    private lazy var cloudTranscriptionService = CloudTranscriptionService()
+    private lazy var nativeAppleTranscriptionService = NativeAppleTranscriptionService()
     
     enum ProcessingPhase {
         case idle

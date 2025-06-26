@@ -35,10 +35,10 @@ enum CloudTranscriptionError: Error, LocalizedError {
 
 class CloudTranscriptionService: TranscriptionService {
     
-    private let groqService = GroqTranscriptionService()
-    private let elevenLabsService = ElevenLabsTranscriptionService()
-    private let deepgramService = DeepgramTranscriptionService()
-    private let openAICompatibleService = OpenAICompatibleTranscriptionService()
+    private lazy var groqService = GroqTranscriptionService()
+    private lazy var elevenLabsService = ElevenLabsTranscriptionService()
+    private lazy var deepgramService = DeepgramTranscriptionService()
+    private lazy var openAICompatibleService = OpenAICompatibleTranscriptionService()
     
     func transcribe(audioURL: URL, model: any TranscriptionModel) async throws -> String {
         switch model.provider {
