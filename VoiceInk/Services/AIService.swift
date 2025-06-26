@@ -54,7 +54,7 @@ enum AIProvider: String, CaseIterable {
         case .gemini:
             return "gemini-2.5-pro"
         case .anthropic:
-            return "claude-3-5-sonnet-20241022"
+            return "claude-sonnet-4-0"
         case .mistral:
             return "mistral-large-latest"
         case .elevenLabs:
@@ -96,9 +96,12 @@ enum AIProvider: String, CaseIterable {
             ]
         case .anthropic:
             return [
+                "claude-opus-4-0",
+                "claude-sonnet-4-0",
                 "claude-3-7-sonnet-latest",
+                "claude-3-5-sonnet-latest",
                 "claude-3-5-haiku-latest",
-                "claude-3-5-sonnet-latest"
+                "claude-3-opus-latest"
             ]
         case .mistral:
             return [
