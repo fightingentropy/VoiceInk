@@ -3,18 +3,28 @@
     <channel>
         <title>VoiceInk Releases</title>
         <item>
-            <title>1.35</title>
-            <pubDate>Sat, 21 June 2025 12:20:00 +0545</pubDate>
-            <sparkle:version>135</sparkle:version>
-            <sparkle:shortVersionString>1.35</sparkle:shortVersionString>
+            <title>1.36</title>
+            <pubDate>Sat, 27 June 2025 12:20:00 +0545</pubDate>
+            <sparkle:version>136</sparkle:version>
+            <sparkle:shortVersionString>1.36</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
-                    <h3>What's New in Version 1.35 🚀⚡</h3>
+                    <h3>What's New in Version 1.36 🚀⚡</h3>
                             <ul>
-                                <li>🚀 Added support for new Apple Transcription APIs in macOS 26</li>
-                             </ul>
+                              <li>🔊 Added audio input detection</li>
+                              <li>🌐 Added support for OpenRouter</li>
+                              <li>🌍 Added more languages to Native Apple Transcription</li>
+                              <li>🧠 Added Enhancement Prompt Toggle when Power Mode is turned off</li>
+                              <li>🔧 Improve Word Replacement Feature</li>
+                              <li>🛠️ Updated Gemini models</li>
+                              <li>🛠️ Updated Anthropic models</li>
+                              <li>🍏 Fixed Issues with Native Apple Transcription</li>
+                              <li>🚀 Fixed Ollama Initialization during app launch</li>
+                              <li>📂 Fixed app detection inside user Application folder (PWA)</li>
+                              <li>🪛 Minor Improvements & Bug fixes</li>
+                            </ul>
             ]]></description>
-           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/1.35/VoiceInk.dmg" length="7400658" type="application/octet-stream" sparkle:edSignature="me5E9T3/ty86yYMXWR3TIhpzkhxeQPBih55YOtOy4xCUcSe6OnvA6hEeitCYe8QyGIRMz8gnwNvkaQs0A9LiAA=="/>
+           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.36/VoiceInk.dmg" length="7464939" type="application/octet-stream" sparkle:edSignature="wU03tzE/YFILaeSKoZsQwZ6rh1CSFANSLIeKk4+OMOhwOXVl8eKPquAThd1SnAC7xvgIqd7bkU/CZBJijOPdDA=="/>
         </item>
     </channel>
 </rss>
