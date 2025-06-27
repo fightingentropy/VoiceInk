@@ -38,7 +38,6 @@ class Recorder: ObservableObject {
         if recorder != nil {
             let currentURL = recorder?.url
             stopRecording()
-            try? await Task.sleep(nanoseconds: 100_000_000)
             
             if let url = currentURL {
                 do {
@@ -52,13 +51,7 @@ class Recorder: ObservableObject {
     }
     
     private func configureAudioSession(with deviceID: AudioDeviceID) async throws {
-        do {
-            _ = try AudioDeviceConfiguration.configureAudioSession(with: deviceID)
-            try AudioDeviceConfiguration.setDefaultInputDevice(deviceID)
-        } catch {
-            logger.error("❌ Failed to configure audio session: \(error.localizedDescription)")
-            throw error
-        }
+        try AudioDeviceConfiguration.setDefaultInputDevice(deviceID)
     }
     
     func startRecording(toOutputFile url: URL) async throws {
@@ -89,10 +82,8 @@ class Recorder: ObservableObject {
         if deviceID != 0 {
             do {
                 try await configureAudioSession(with: deviceID)
-                try? await Task.sleep(nanoseconds: 50_000_000)
             } catch {
                 logger.warning("⚠️ Failed to configure audio session for device \(deviceID), attempting to continue: \(error.localizedDescription)")
-                try? await Task.sleep(nanoseconds: 50_000_000)
             }
         }
         

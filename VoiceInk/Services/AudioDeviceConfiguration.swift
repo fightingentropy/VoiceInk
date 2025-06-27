@@ -7,58 +7,35 @@ class AudioDeviceConfiguration {
     private static let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "AudioDeviceConfiguration")
     
 
-    static func configureAudioSession(with deviceID: AudioDeviceID) throws -> AudioStreamBasicDescription {
-        var propertySize = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
-        var streamFormat = AudioStreamBasicDescription()
-        var propertyAddress = AudioObjectPropertyAddress(
-            mSelector: kAudioDevicePropertyStreamFormat,
-            mScope: kAudioDevicePropertyScopeInput,
-            mElement: kAudioObjectPropertyElementMain
-        )
-        
-        // First, ensure the device is ready
-        var isAlive: UInt32 = 0
-        var aliveSize = UInt32(MemoryLayout<UInt32>.size)
-        var aliveAddress = AudioObjectPropertyAddress(
-            mSelector: kAudioDevicePropertyDeviceIsAlive,
+
+
+    static func getDefaultInputDevice() -> AudioDeviceID? {
+        var defaultDeviceID = AudioDeviceID(0)
+        var propertySize = UInt32(MemoryLayout<AudioDeviceID>.size)
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultInputDevice,
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMain
         )
-        
-        let aliveStatus = AudioObjectGetPropertyData(
-            deviceID,
-            &aliveAddress,
-            0,
-            nil,
-            &aliveSize,
-            &isAlive
-        )
-        
-        if aliveStatus != noErr || isAlive == 0 {
-            logger.error("Device \(deviceID) is not alive or ready")
-            throw AudioConfigurationError.failedToGetDeviceFormat(status: aliveStatus)
-        }
-        
-        // Get the device format
         let status = AudioObjectGetPropertyData(
-            deviceID,
-            &propertyAddress,
+            AudioObjectID(kAudioObjectSystemObject),
+            &address,
             0,
             nil,
             &propertySize,
-            &streamFormat
+            &defaultDeviceID
         )
-        
         if status != noErr {
-            logger.error("Failed to get device format: \(status)")
-            throw AudioConfigurationError.failedToGetDeviceFormat(status: status)
+            logger.error("Failed to get current default input device: \(status)")
+            return nil
         }
-        
-        return streamFormat
+        return defaultDeviceID
     }
     
-
     static func setDefaultInputDevice(_ deviceID: AudioDeviceID) throws {
+        if let currentDefault = getDefaultInputDevice(), currentDefault == deviceID {
+            return
+        }
         var deviceIDCopy = deviceID
         let propertySize = UInt32(MemoryLayout<AudioDeviceID>.size)
         var address = AudioObjectPropertyAddress(
@@ -101,18 +78,12 @@ class AudioDeviceConfiguration {
 }
 
 enum AudioConfigurationError: LocalizedError {
-    case failedToGetDeviceFormat(status: OSStatus)
     case failedToSetInputDevice(status: OSStatus)
-    case failedToGetAudioUnit
     
     var errorDescription: String? {
         switch self {
-        case .failedToGetDeviceFormat(let status):
-            return "Failed to get device format: \(status)"
         case .failedToSetInputDevice(let status):
             return "Failed to set input device: \(status)"
-        case .failedToGetAudioUnit:
-            return "Failed to get audio unit from input node"
         }
     }
 } 

@@ -325,11 +325,11 @@ class AudioDeviceManager: ObservableObject {
                 
                 do {
                     try AudioDeviceConfiguration.setDefaultInputDevice(availableDevice.id)
-                    self.notifyDeviceChange()
                 } catch {
                     logger.error("Failed to set prioritized device: \(error.localizedDescription)")
                     continue
                 }
+                notifyDeviceChange()
                 return
             }
         }
