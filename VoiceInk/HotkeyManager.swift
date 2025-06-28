@@ -57,6 +57,11 @@ class HotkeyManager: ObservableObject {
     private var fnDebounceTask: Task<Void, Never>?
     private var pendingFnKeyState: Bool? = nil
     
+    // Add double-press Escape handling properties
+    private var escFirstPressTime: Date? = nil
+    private let escSecondPressThreshold: TimeInterval = 1.5 // seconds
+    private var isEscapeHandlerSetup = false
+    
     enum PushToTalkKey: String, CaseIterable {
         case rightOption = "rightOption"
         case leftOption = "leftOption"
@@ -250,19 +255,41 @@ class HotkeyManager: ObservableObject {
     
     private func setupEscapeShortcut() {
         KeyboardShortcuts.setShortcut(.init(.escape), for: .escapeRecorder)
+        guard !isEscapeHandlerSetup else { return }
+        isEscapeHandlerSetup = true
         KeyboardShortcuts.onKeyDown(for: .escapeRecorder) { [weak self] in
             Task { @MainActor in
                 guard let self = self,
                       await self.whisperState.isMiniRecorderVisible else { return }
                 
-                SoundManager.shared.playEscSound()
-                await self.whisperState.dismissMiniRecorder()
+                let now = Date()
+                if let firstTime = self.escFirstPressTime,
+                   now.timeIntervalSince(firstTime) <= self.escSecondPressThreshold {
+                    self.escFirstPressTime = nil
+                    SoundManager.shared.playEscSound()
+                    await self.whisperState.dismissMiniRecorder()
+                } else {
+                    self.escFirstPressTime = now
+                    SoundManager.shared.playEscSound()
+                    NotificationManager.shared.showNotification(
+                        title: "Press ESC again to cancel recording",
+                        type: .info,
+                        duration: self.escSecondPressThreshold
+                    )
+                    Task { [weak self] in
+                        try? await Task.sleep(nanoseconds: UInt64((self?.escSecondPressThreshold ?? 1.5) * 1_000_000_000))
+                        await MainActor.run {
+                            self?.escFirstPressTime = nil
+                        }
+                    }
+                }
             }
         }
     }
     
     private func removeEscapeShortcut() {
         KeyboardShortcuts.setShortcut(nil, for: .escapeRecorder)
+        escFirstPressTime = nil
     }
     
     private func setupEnhancementShortcut() {
