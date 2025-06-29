@@ -32,7 +32,7 @@ actor WhisperContext {
         }
     }
 
-    func fullTranscribe(samples: [Float]) {
+    func fullTranscribe(samples: [Float]) async {
         guard let context = context else { return }
         
         // Leave 2 processors free (i.e. the high-efficiency cores).
@@ -76,15 +76,26 @@ actor WhisperContext {
 
         whisper_reset_timings(context)
         logger.notice("⚙️ Starting whisper transcription")
-        samples.withUnsafeBufferPointer { samples in
-            if (whisper_full(context, params, samples.baseAddress, Int32(samples.count)) != 0) {
-                logger.error("❌ Failed to run whisper model")
-            } else {
-                // Print detected language info before timings
-                let langId = whisper_full_lang_id(context)
-                let detectedLang = String(cString: whisper_lang_str(langId))
-                logger.notice("✅ Transcription completed - Language: \(detectedLang)")
-                
+        
+        if let vadModelPath = await VADModelManager.shared.getModelPath() {
+            logger.notice("Successfully retrieved VAD model path.")
+            params.vad = true
+            params.vad_model_path = (vadModelPath as NSString).utf8String
+            
+            var vadParams = whisper_vad_default_params()
+            vadParams.min_speech_duration_ms = 500
+            vadParams.min_silence_duration_ms = 500
+            vadParams.samples_overlap = 0.1
+            params.vad_params = vadParams
+            
+            logger.notice("🎤 VAD configured: min_speech=500ms, min_silence=500ms, overlap=100ms")
+        } else {
+            logger.error("VAD model path not found, proceeding without VAD.")
+        }
+        
+        samples.withUnsafeBufferPointer { samplesBuffer in
+            if whisper_full(context, params, samplesBuffer.baseAddress, Int32(samplesBuffer.count)) != 0 {
+                self.logger.error("Failed to run whisper_full")
             }
         }
         
@@ -140,7 +151,7 @@ actor WhisperContext {
 
     func setPrompt(_ prompt: String?) {
         self.prompt = prompt
-        logger.debug("💬 Prompt set: \(prompt ?? "none")")
+        logger.notice("💬 Prompt set: \(prompt ?? "none")")
     }
 }
 
