@@ -5,7 +5,6 @@ class CursorPaster {
     private static let pasteCompletionDelay: TimeInterval = 0.3
     
     static func pasteAtCursor(_ text: String, shouldPreserveClipboard: Bool = true) {
-        
         let pasteboard = NSPasteboard.general
         
         var savedContents: [(NSPasteboard.PasteboardType, Data)] = []
