@@ -223,7 +223,7 @@ struct AudioTranscribeView: View {
                             .font(.system(size: 32))
                             .foregroundColor(isDropTargeted ? .blue : .gray)
                         
-                        Text("Drop audio file here")
+                        Text("Drop audio or video file here")
                             .font(.headline)
                         
                         Text("or")
@@ -240,12 +240,12 @@ struct AudioTranscribeView: View {
                 .padding(.horizontal)
             }
             
-            Text("Supported formats: WAV, MP3, M4A, AIFF")
+            Text("Supported formats: WAV, MP3, M4A, AIFF, MP4, MOV")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
         .padding()
-        .onDrop(of: [.audio, .fileURL], isTargeted: $isDropTargeted) { providers in
+        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
             Task {
                 await handleDroppedFile(providers)
             }
@@ -273,11 +273,7 @@ struct AudioTranscribeView: View {
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
         panel.allowedContentTypes = [
-            .audio,
-            .wav,
-            .mp3,
-            .mpeg4Audio,
-            .aiff
+            .audio, .movie
         ]
         
         if panel.runModal() == .OK {
@@ -291,14 +287,11 @@ struct AudioTranscribeView: View {
     private func handleDroppedFile(_ providers: [NSItemProvider]) async {
         guard let provider = providers.first else { return }
         
-        if provider.hasItemConformingToTypeIdentifier(UTType.audio.identifier) {
-            try? await provider.loadItem(forTypeIdentifier: UTType.audio.identifier) { item, error in
-                if let url = item as? URL {
-                    Task { @MainActor in
-                        selectedAudioURL = url
-                        isAudioFileSelected = true
-                    }
-                }
+        if let item = try? await provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier),
+           let url = item as? URL {
+            Task { @MainActor in
+                selectedAudioURL = url
+                isAudioFileSelected = true
             }
         }
     }
