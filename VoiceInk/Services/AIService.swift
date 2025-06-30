@@ -174,7 +174,7 @@ class AIService: ObservableObject {
     private let userDefaults = UserDefaults.standard
     private lazy var ollamaService = OllamaService()
     
-    private var openRouterModels: [String] = []
+    @Published private var openRouterModels: [String] = []
     
     var connectedProviders: [AIProvider] {
         AIProvider.allCases.filter { provider in
@@ -223,6 +223,7 @@ class AIService: ObservableObject {
         }
         
         loadSavedModelSelections()
+        loadSavedOpenRouterModels()
     }
     
     private func loadSavedModelSelections() {
@@ -232,6 +233,16 @@ class AIService: ObservableObject {
                 selectedModels[provider] = savedModel
             }
         }
+    }
+    
+    private func loadSavedOpenRouterModels() {
+        if let savedModels = userDefaults.array(forKey: "openRouterModels") as? [String] {
+            openRouterModels = savedModels
+        }
+    }
+    
+    private func saveOpenRouterModels() {
+        userDefaults.set(openRouterModels, forKey: "openRouterModels")
     }
     
     func selectModel(_ model: String) {
@@ -499,6 +510,7 @@ class AIService: ObservableObject {
                 logger.error("Failed to fetch OpenRouter models: Invalid HTTP response")
                 await MainActor.run { 
                     self.openRouterModels = []
+                    self.saveOpenRouterModels()
                     self.objectWillChange.send()
                 }
                 return
@@ -509,6 +521,7 @@ class AIService: ObservableObject {
                 logger.error("Failed to parse OpenRouter models JSON")
                 await MainActor.run { 
                     self.openRouterModels = []
+                    self.saveOpenRouterModels()
                     self.objectWillChange.send()
                 }
                 return
@@ -517,6 +530,7 @@ class AIService: ObservableObject {
             let models = dataArray.compactMap { $0["id"] as? String }
             await MainActor.run { 
                 self.openRouterModels = models.sorted()
+                self.saveOpenRouterModels() // Save to UserDefaults
                 if self.selectedProvider == .openRouter && self.currentModel == self.selectedProvider.defaultModel && !models.isEmpty {
                     self.selectModel(models.sorted().first!)
                 }
@@ -528,12 +542,15 @@ class AIService: ObservableObject {
             logger.error("Error fetching OpenRouter models: \(error.localizedDescription)")
             await MainActor.run { 
                 self.openRouterModels = []
+                self.saveOpenRouterModels()
                 self.objectWillChange.send()
             }
         }
+
     }
 }
 
 extension Notification.Name {
     static let aiProviderKeyChanged = Notification.Name("aiProviderKeyChanged")
 } 
+
