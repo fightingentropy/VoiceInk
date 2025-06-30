@@ -128,7 +128,7 @@ class TranscriptionFallbackManager {
     private func createFallbackPanel(with finalSize: NSSize) -> NSPanel {
         let panel = EditablePanel(
             contentRect: .zero,
-            styleMask: [.borderless],
+            styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
