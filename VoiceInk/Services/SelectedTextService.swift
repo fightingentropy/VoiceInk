@@ -2,51 +2,65 @@ import Foundation
 import AppKit
 
 class SelectedTextService {
+    
+    // Private pasteboard type to avoid clipboard history pollution
+    private static let privatePasteboardType = NSPasteboard.PasteboardType("com.prakashjoshipax.VoiceInk.transient")
+
     static func fetchSelectedText() -> String? {
-        // Do not check for selected text within VoiceInk itself.
+        // Don't check for selected text within VoiceInk itself
         guard let frontmostApp = NSWorkspace.shared.frontmostApplication,
               frontmostApp.bundleIdentifier != "com.prakashjoshipax.VoiceInk" else {
             return nil
         }
 
-        // Get the currently focused UI element system-wide.
-        let systemWideElement = AXUIElementCreateSystemWide()
-        var focusedElement: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(systemWideElement, kAXFocusedUIElementAttribute as CFString, &focusedElement) == .success, focusedElement != nil else {
-            return nil
-        }
-        let element = focusedElement as! AXUIElement
-
-        // First, try the standard attribute, which is the most reliable method.
-        var selectedTextValue: CFTypeRef?
-        if AXUIElementCopyAttributeValue(element, kAXSelectedTextAttribute as CFString, &selectedTextValue) == .success,
-           let selectedText = selectedTextValue as? String, !selectedText.isEmpty {
-            return selectedText
+        let pasteboard = NSPasteboard.general
+        
+        // Save original clipboard content
+        let originalPasteboardItems = pasteboard.pasteboardItems?.map { item in
+            (item.types, item.data(forType: item.types.first ?? .string))
         }
 
-        // If the standard attribute fails, fall back to checking the selection range.
-        // This correctly handles apps that don't support the standard attribute.
-        var selectedRangeValue: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &selectedRangeValue) == .success, selectedRangeValue != nil else {
-            return nil
-        }
-        let axRangeValue = selectedRangeValue as! AXValue
+        // Clear clipboard to prepare for selection detection
+        pasteboard.clearContents()
+        
+        // Simulate Cmd+C to copy any selected text
+        let source = CGEventSource(stateID: .hidSystemState)
+        let cmdDown = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: true)
+        cmdDown?.flags = .maskCommand
+        let cDown = CGEvent(keyboardEventSource: source, virtualKey: 0x08, keyDown: true)
+        cDown?.flags = .maskCommand
+        let cUp = CGEvent(keyboardEventSource: source, virtualKey: 0x08, keyDown: false)
+        cUp?.flags = .maskCommand
+        let cmdUp = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: false)
 
-        var selectedRange: CFRange = .init()
-        AXValueGetValue(axRangeValue, .cfRange, &selectedRange)
+        cmdDown?.post(tap: .cghidEventTap)
+        cDown?.post(tap: .cghidEventTap)
+        cUp?.post(tap: .cghidEventTap)
+        cmdUp?.post(tap: .cghidEventTap)
+        
+        // Wait for copy operation to complete
+        Thread.sleep(forTimeInterval: 0.1)
 
-        // An actual selection must have a length greater than zero.
-        guard selectedRange.length > 0 else {
-            return nil
+        // Read the copied text
+        let selectedText = pasteboard.string(forType: .string)
+        
+        // Restore original clipboard content
+        pasteboard.clearContents()
+        if let originalItems = originalPasteboardItems {
+            for (types, data) in originalItems {
+                if let data = data {
+                    let pasteboardItem = NSPasteboardItem()
+                    pasteboardItem.setData(data, forType: types.first ?? .string)
+                    pasteboard.writeObjects([pasteboardItem])
+                }
+            }
         }
         
-        var fullTextValue: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &fullTextValue) == .success,
-              let fullText = fullTextValue as? String,
-              let subrange = Range(NSRange(location: selectedRange.location, length: selectedRange.length), in: fullText) else {
-            return nil
-        }
-        
-        return String(fullText[subrange])
+        // Clear clipboard history by writing transient data
+        let transientItem = NSPasteboardItem()
+        transientItem.setString("", forType: privatePasteboardType)
+        pasteboard.writeObjects([transientItem])
+
+        return selectedText
     }
-} 
+}
