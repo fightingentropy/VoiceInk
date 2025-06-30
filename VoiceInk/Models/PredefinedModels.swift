@@ -196,7 +196,7 @@ import Foundation
         CloudModel(
             name: "whisper-large-v3-turbo",
             displayName: "Whisper Large v3 Turbo (Groq)",
-            description: "Whisper Large v3 Turbo model with Groq'slightning-speed inference",
+            description: "Whisper Large v3 Turbo model with Groq's lightning-speed inference",
             provider: .groq,
             speed: 0.65,
             accuracy: 0.96,
