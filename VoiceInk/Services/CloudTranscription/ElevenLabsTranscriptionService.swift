@@ -61,6 +61,17 @@ class ElevenLabsTranscriptionService {
         body.append(modelName.data(using: .utf8)!)
         body.append(crlf.data(using: .utf8)!)
         
+        // Disable audio event tagging 
+        body.append("--\(boundary)\(crlf)".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"tag_audio_events\"\(crlf)\(crlf)".data(using: .utf8)!)
+        body.append("false".data(using: .utf8)!)
+        body.append(crlf.data(using: .utf8)!)
+
+        body.append("--\(boundary)\(crlf)".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"temperature\"\(crlf)\(crlf)".data(using: .utf8)!)
+        body.append("0".data(using: .utf8)!)
+        body.append(crlf.data(using: .utf8)!)
+        
         let selectedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "auto"
         if selectedLanguage != "auto", !selectedLanguage.isEmpty {
             body.append("--\(boundary)\(crlf)".data(using: .utf8)!)
