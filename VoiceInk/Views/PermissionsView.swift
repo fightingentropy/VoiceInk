@@ -176,7 +176,7 @@ struct PermissionCard: View {
             }
         }
         .padding()
-        .background(Color(.windowBackgroundColor).opacity(0.9))
+        .background(CardBackground(isSelected: false))
         .cornerRadius(16)
         .shadow(color: Color.black.opacity(0.05), radius: 5, y: 2)
     }

@@ -99,10 +99,7 @@ struct TranscriptionCard: View {
             }
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.windowBackgroundColor).opacity(0.4))
-        )
+        .background(CardBackground(isSelected: false))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2)
         .contextMenu {

@@ -336,10 +336,7 @@ struct SettingsSection<Content: View>: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.windowBackgroundColor).opacity(0.4))
-        )
+        .background(CardBackground(isSelected: showWarning, useAccentGradientWhenSelected: true))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(showWarning ? Color.red.opacity(0.5) : Color.clear, lineWidth: 1)

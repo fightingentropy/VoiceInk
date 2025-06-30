@@ -172,7 +172,7 @@ struct AddReplacementSheet: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 12)
-            .background(Color(.windowBackgroundColor).opacity(0.4))
+            .background(CardBackground(isSelected: false))
             
             Divider()
             

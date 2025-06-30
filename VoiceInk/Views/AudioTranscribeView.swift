@@ -172,10 +172,7 @@ struct AudioTranscribeView: View {
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color(.windowBackgroundColor).opacity(0.4))
-                            )
+                                        .background(CardBackground(isSelected: false))
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
                         .onAppear {

@@ -48,7 +48,7 @@ struct ModelManagementView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.windowBackgroundColor).opacity(0.4))
+        .background(CardBackground(isSelected: false))
         .cornerRadius(10)
     }
     

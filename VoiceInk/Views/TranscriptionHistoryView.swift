@@ -98,8 +98,7 @@ struct TranscriptionHistoryView: View {
                                     }
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 12)
-                                    .background(Color(.windowBackgroundColor).opacity(0.4))
-                                    .cornerRadius(8)
+                                    .background(CardBackground(isSelected: false))
                                 }
                                 .buttonStyle(.plain)
                                 .disabled(isLoading)
@@ -177,8 +176,7 @@ struct TranscriptionHistoryView: View {
                 .textFieldStyle(PlainTextFieldStyle())
         }
         .padding(12)
-        .background(Color(.windowBackgroundColor).opacity(0.4))
-        .cornerRadius(10)
+        .background(CardBackground(isSelected: false))
         .padding(.horizontal, 24)
         .padding(.vertical, 16)
     }
@@ -195,7 +193,7 @@ struct TranscriptionHistoryView: View {
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.windowBackgroundColor).opacity(0.4))
+        .background(CardBackground(isSelected: false))
         .padding(24)
     }
     

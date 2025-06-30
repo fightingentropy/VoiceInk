@@ -105,6 +105,7 @@ struct RecordView: View {
             }
         }
         .padding(24)
+        .background(CardBackground(isSelected: false))
     }
     
     private var shortcutSection: some View {
@@ -193,11 +194,7 @@ struct RecordView: View {
             }
         }
         .padding(28)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.windowBackgroundColor).opacity(0.4))
-                
-        )
+        .background(CardBackground(isSelected: false))
     }
     
     private var afterRecordingSection: some View {

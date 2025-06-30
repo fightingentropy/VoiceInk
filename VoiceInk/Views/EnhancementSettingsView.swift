@@ -60,14 +60,7 @@ struct EnhancementSettingsView: View {
                         }
                     }
                     .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(.windowBackgroundColor).opacity(0.4))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color.blue.opacity(0.2), lineWidth: 1)
-                            )
-                    )
+                    .background(CardBackground(isSelected: false))
                     
                     // 1. AI Provider Integration Section
                     VStack(alignment: .leading, spacing: 16) {
@@ -75,8 +68,7 @@ struct EnhancementSettingsView: View {
                             .font(.headline)
                         
                         APIKeyManagementView()
-                            .background(Color(.windowBackgroundColor).opacity(0.4))
-                            .cornerRadius(10)
+                            .background(CardBackground(isSelected: false))
                     }
                     .padding()
                     .background(Color(.windowBackgroundColor).opacity(0.4))
@@ -109,8 +101,7 @@ struct EnhancementSettingsView: View {
                         }
                     }
                     .padding()
-                    .background(Color(.windowBackgroundColor).opacity(0.4))
-                    .cornerRadius(10)
+                    .background(CardBackground(isSelected: false))
                     .opacity(enhancementService.isEnhancementEnabled ? 1.0 : 0.6)
                 }
             }

@@ -95,12 +95,10 @@ struct DictionarySettingsView: View {
             switch selectedSection {
             case .spellings:
                 DictionaryView(whisperPrompt: whisperPrompt)
-                    .background(Color(.windowBackgroundColor).opacity(0.4))
-                    .cornerRadius(10)
+                    .background(CardBackground(isSelected: false))
             case .replacements:
                 WordReplacementView()
-                    .background(Color(.windowBackgroundColor).opacity(0.4))
-                    .cornerRadius(10)
+                    .background(CardBackground(isSelected: false))
             }
         }
     }
@@ -131,15 +129,7 @@ struct SectionCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(.windowBackgroundColor).opacity(0.4))
-                    .shadow(color: isSelected ? .blue.opacity(0.2) : .clear, radius: 8, y: 4)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(isSelected ? .blue.opacity(0.5) : .clear, lineWidth: 2)
-                    )
-            )
+            .background(CardBackground(isSelected: isSelected))
         }
         .buttonStyle(.plain)
     }

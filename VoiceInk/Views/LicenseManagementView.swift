@@ -50,7 +50,7 @@ struct LicenseManagementView: View {
                 
                 Text(licenseViewModel.licenseState == .licensed ? 
                      "Thank you for supporting VoiceInk" :
-                     "Transform your voice into text with advanced features")
+                     "Transform your voice into text with instantly with AI")
                     .font(.title3)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -138,8 +138,7 @@ struct LicenseManagementView: View {
                 .frame(maxWidth: .infinity, alignment: .center)
             }
             .padding(32)
-            .background(Color(.windowBackgroundColor).opacity(0.4))
-            .cornerRadius(16)
+            .background(CardBackground(isSelected: false))
             .shadow(color: .black.opacity(0.05), radius: 10)
 
             // License Activation
@@ -175,8 +174,7 @@ struct LicenseManagementView: View {
                 }
             }
             .padding(32)
-            .background(Color(.windowBackgroundColor).opacity(0.4))
-            .cornerRadius(16)
+            .background(CardBackground(isSelected: false))
             .shadow(color: .black.opacity(0.05), radius: 10)
         }
     }
@@ -213,8 +211,7 @@ struct LicenseManagementView: View {
                 }
             }
             .padding(32)
-            .background(Color(.windowBackgroundColor).opacity(0.4))
-            .cornerRadius(16)
+            .background(CardBackground(isSelected: false))
             .shadow(color: .black.opacity(0.05), radius: 10)
             
             // Deactivation Card
@@ -232,8 +229,7 @@ struct LicenseManagementView: View {
                 .buttonStyle(.bordered)
             }
             .padding(32)
-            .background(Color(.windowBackgroundColor).opacity(0.4))
-            .cornerRadius(16)
+            .background(CardBackground(isSelected: false))
             .shadow(color: .black.opacity(0.05), radius: 10)
         }
     }
