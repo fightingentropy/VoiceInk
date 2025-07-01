@@ -203,32 +203,13 @@ struct OnboardingPermissionsView: View {
                             
                             // Keyboard shortcut recorder (only shown for keyboard shortcut step)
                             if permissions[currentPermissionIndex].type == .keyboardShortcut {
-                                VStack(spacing: 16) {
-                                    if hotkeyManager.isShortcutConfigured {
-                                        if let shortcut = KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder) {
-                                            KeyboardShortcutView(shortcut: shortcut)
-                                                .scaleEffect(1.2)
-                                        }
-                                    }
-                                    
-                                    VStack(spacing: 16) {
-                                        KeyboardShortcuts.Recorder("Set Shortcut:", name: .toggleMiniRecorder) { newShortcut in
-                                            withAnimation {
-                                                if newShortcut != nil {
-                                                    permissionStates[currentPermissionIndex] = true
-                                                    showAnimation = true
-                                                } else {
-                                                    permissionStates[currentPermissionIndex] = false
-                                                    showAnimation = false
-                                                }
-                                                hotkeyManager.updateShortcutStatus()
-                                            }
-                                        }
-                                        .controlSize(.large)
-                                        
-                                        SkipButton(text: "Skip for now") {
-                                            moveToNext()
-                                        }
+                                hotkeyView(
+                                    binding: $hotkeyManager.selectedHotkey1,
+                                    shortcutName: .toggleMiniRecorder
+                                ) { isConfigured in
+                                    withAnimation {
+                                        permissionStates[currentPermissionIndex] = isConfigured
+                                        showAnimation = isConfigured
                                     }
                                 }
                                 .scaleEffect(scale)
@@ -422,6 +403,75 @@ struct OnboardingPermissionsView: View {
             return "Continue"
         default:
             return permissionStates[currentPermissionIndex] ? "Continue" : "Enable Access"
+        }
+    }
+
+    @ViewBuilder
+    private func hotkeyView(
+        binding: Binding<HotkeyManager.HotkeyOption>,
+        shortcutName: KeyboardShortcuts.Name,
+        onConfigured: @escaping (Bool) -> Void
+    ) -> some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 12) {
+                Spacer()
+                
+                Text("Shortcut:")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.white.opacity(0.8))
+                
+                Menu {
+                    ForEach(HotkeyManager.HotkeyOption.allCases, id: \.self) { option in
+                        if option != .none && option != .custom { // Exclude 'None' and 'Custom' from the list
+                            Button(action: {
+                                binding.wrappedValue = option
+                                onConfigured(option.isModifierKey)
+                            }) {
+                                HStack {
+                                    Text(option.displayName)
+                                    if binding.wrappedValue == option {
+                                        Spacer()
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Text(binding.wrappedValue.displayName)
+                            .foregroundColor(.white)
+                            .font(.system(size: 16, weight: .medium))
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color.white.opacity(0.1))
+                    .cornerRadius(10)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                    )
+                }
+                .menuStyle(.borderlessButton)
+                
+                Spacer()
+            }
+
+            if binding.wrappedValue == .custom {
+                KeyboardShortcuts.Recorder(for: shortcutName) { newShortcut in
+                    onConfigured(newShortcut != nil)
+                }
+                .controlSize(.large)
+            }
+        }
+        .padding()
+        .background(Color.white.opacity(0.05))
+        .cornerRadius(12)
+        .onChange(of: binding.wrappedValue) { newValue in
+            onConfigured(newValue != .none)
         }
     }
 }

@@ -22,18 +22,18 @@ class WindowManager {
     }
     
     func configureOnboardingPanel(_ window: NSWindow) {
-        window.styleMask = [.borderless, .fullSizeContentView, .resizable]
-        window.isMovableByWindowBackground = true
-        window.level = .normal
+        window.styleMask = [.titled, .fullSizeContentView, .resizable]
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
+        window.isMovableByWindowBackground = true
+        window.level = .normal
         window.backgroundColor = .clear
         window.isReleasedWhenClosed = false
-        window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.title = "VoiceInk Onboarding"
         window.isOpaque = false
         window.minSize = NSSize(width: 900, height: 780)
-        window.orderFrontRegardless()
+        window.makeKeyAndOrderFront(nil)
     }
     
     func createMainWindow(contentView: NSView) -> NSWindow {

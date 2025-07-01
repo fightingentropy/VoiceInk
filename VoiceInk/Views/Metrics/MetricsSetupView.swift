@@ -3,6 +3,7 @@ import KeyboardShortcuts
 
 struct MetricsSetupView: View {
     @EnvironmentObject private var whisperState: WhisperState
+    @EnvironmentObject private var hotkeyManager: HotkeyManager
     @State private var isAccessibilityEnabled = AXIsProcessTrusted()
     @State private var isScreenRecordingEnabled = CGPreflightScreenCaptureAccess()
     
@@ -67,7 +68,7 @@ struct MetricsSetupView: View {
         switch index {
         case 0:
             stepInfo = (
-                isCompleted: KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder) != nil,
+                isCompleted: hotkeyManager.selectedHotkey1 != .none,
                 icon: "command",
                 title: "Set Keyboard Shortcut",
                 description: "Use VoiceInk anywhere with a shortcut."
@@ -149,7 +150,7 @@ struct MetricsSetupView: View {
             openModelManagement()
         } else {
             // Handle different permission requests based on which one is missing
-            if KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder) == nil {
+            if hotkeyManager.selectedHotkey1 == .none {
                 openSettings()
             } else if !AXIsProcessTrusted() {
                 if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
@@ -166,7 +167,7 @@ struct MetricsSetupView: View {
     }
     
     private func getActionButtonTitle() -> String {
-        if KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder) == nil {
+        if hotkeyManager.selectedHotkey1 == .none {
             return "Configure Shortcut"
         } else if !AXIsProcessTrusted() {
             return "Enable Accessibility"
@@ -185,7 +186,7 @@ struct MetricsSetupView: View {
     }
     
     private var isShortcutAndAccessibilityGranted: Bool {
-        KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder) != nil && 
+        hotkeyManager.selectedHotkey1 != .none &&
         AXIsProcessTrusted() && 
         CGPreflightScreenCaptureAccess()
     }

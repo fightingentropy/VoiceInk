@@ -6,8 +6,9 @@ import LaunchAtLogin
 
 struct GeneralSettings: Codable {
     let toggleMiniRecorderShortcut: KeyboardShortcuts.Shortcut?
-    let isPushToTalkEnabled: Bool?
-    let pushToTalkKeyRawValue: String?
+    let toggleMiniRecorderShortcut2: KeyboardShortcuts.Shortcut?
+    let selectedHotkey1RawValue: String?
+    let selectedHotkey2RawValue: String?
     let launchAtLoginEnabled: Bool?
     let isMenuBarOnly: Bool?
     let useAppleScriptPaste: Bool?
@@ -37,8 +38,7 @@ class ImportExportService {
     private let dictionaryItemsKey = "CustomDictionaryItems"
     private let wordReplacementsKey = "wordReplacements"
 
-    private let keyIsPushToTalkEnabled = "isPushToTalkEnabled"
-    private let keyPushToTalkKey = "pushToTalkKey"
+
     private let keyIsMenuBarOnly = "IsMenuBarOnly"
     private let keyUseAppleScriptPaste = "UseAppleScriptPaste"
     private let keyRecorderType = "RecorderType"
@@ -79,8 +79,9 @@ class ImportExportService {
 
         let generalSettingsToExport = GeneralSettings(
             toggleMiniRecorderShortcut: KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder),
-            isPushToTalkEnabled: hotkeyManager.isPushToTalkEnabled,
-            pushToTalkKeyRawValue: hotkeyManager.pushToTalkKey.rawValue,
+            toggleMiniRecorderShortcut2: KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder2),
+            selectedHotkey1RawValue: hotkeyManager.selectedHotkey1.rawValue,
+            selectedHotkey2RawValue: hotkeyManager.selectedHotkey2.rawValue,
             launchAtLoginEnabled: LaunchAtLogin.isEnabled,
             isMenuBarOnly: menuBarManager.isMenuBarOnly,
             useAppleScriptPaste: UserDefaults.standard.bool(forKey: keyUseAppleScriptPaste),
@@ -206,12 +207,16 @@ class ImportExportService {
                         if let shortcut = general.toggleMiniRecorderShortcut {
                             KeyboardShortcuts.setShortcut(shortcut, for: .toggleMiniRecorder)
                         }
-                        if let pttEnabled = general.isPushToTalkEnabled {
-                            hotkeyManager.isPushToTalkEnabled = pttEnabled
+                        if let shortcut2 = general.toggleMiniRecorderShortcut2 {
+                            KeyboardShortcuts.setShortcut(shortcut2, for: .toggleMiniRecorder2)
                         }
-                        if let pttKeyRaw = general.pushToTalkKeyRawValue,
-                           let pttKey = HotkeyManager.PushToTalkKey(rawValue: pttKeyRaw) {
-                            hotkeyManager.pushToTalkKey = pttKey
+                        if let hotkeyRaw = general.selectedHotkey1RawValue,
+                           let hotkey = HotkeyManager.HotkeyOption(rawValue: hotkeyRaw) {
+                            hotkeyManager.selectedHotkey1 = hotkey
+                        }
+                        if let hotkeyRaw2 = general.selectedHotkey2RawValue,
+                           let hotkey2 = HotkeyManager.HotkeyOption(rawValue: hotkeyRaw2) {
+                            hotkeyManager.selectedHotkey2 = hotkey2
                         }
                         if let launch = general.launchAtLoginEnabled {
                             LaunchAtLogin.isEnabled = launch

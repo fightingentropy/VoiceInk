@@ -35,13 +35,26 @@ struct OnboardingTutorialView: View {
                         
                         // Keyboard shortcut display
                         VStack(alignment: .leading, spacing: 20) {
-                            Text("Your Shortcut")
-                                .font(.system(size: 28, weight: .semibold, design: .rounded))
-                                .foregroundColor(.white)
+                            HStack {
+                                Text("Your Shortcut")
+                                    .font(.system(size: 28, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white)
+                                
+                                
+                            }
                             
-                            if let shortcut = KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder) {
+                            if hotkeyManager.selectedHotkey1 == .custom,
+                               let shortcut = KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder) {
                                 KeyboardShortcutView(shortcut: shortcut)
                                     .scaleEffect(1.2)
+                            } else if hotkeyManager.selectedHotkey1 != .none && hotkeyManager.selectedHotkey1 != .custom {
+                                Text(hotkeyManager.selectedHotkey1.displayName)
+                                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                                    .foregroundColor(.accentColor)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(Color.white.opacity(0.1))
+                                    .cornerRadius(8)
                             }
                         }
                         
@@ -148,6 +161,7 @@ struct OnboardingTutorialView: View {
             }
         }
         .onAppear {
+            hotkeyManager.startHotkeyMonitoring()
             animateIn()
             isFocused = true
         }
@@ -156,9 +170,9 @@ struct OnboardingTutorialView: View {
     private func getInstructionText(for step: Int) -> String {
         switch step {
         case 1: return "Click the text area on the right"
-        case 2: return "Press your keyboard shortcut"
+        case 2: return "Press your shortcut key"
         case 3: return "Speak something"
-        case 4: return "Press your keyboard shortcut again"
+        case 4: return "Press your shortcut key again"
         default: return ""
         }
     }
