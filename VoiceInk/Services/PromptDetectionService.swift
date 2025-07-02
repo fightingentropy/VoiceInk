@@ -20,20 +20,6 @@ class PromptDetectionService {
         let originalEnhancementState = enhancementService.isEnhancementEnabled
         let originalPromptId = enhancementService.selectedPromptId
 
-        if let selectedText = SelectedTextService.fetchSelectedText(), !selectedText.isEmpty {
-            let wordCount = selectedText.split { $0.isWhitespace || $0.isNewline }.count
-            if wordCount >= 2 {
-                return PromptDetectionResult(
-                    shouldEnableAI: true,
-                    selectedPromptId: PredefinedPrompts.assistantPromptId,
-                    processedText: text, // The user's speech is the prompt for the selected text
-                    detectedTriggerWord: nil,
-                    originalEnhancementState: originalEnhancementState,
-                    originalPromptId: originalPromptId
-                )
-            }
-        }
-
         for prompt in enhancementService.allPrompts {
             if !prompt.triggerWords.isEmpty {
                 if let (detectedWord, processedText) = findMatchingTriggerWord(from: text, triggerWords: prompt.triggerWords) {
