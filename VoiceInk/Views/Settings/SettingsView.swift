@@ -263,7 +263,10 @@ struct SettingsView: View {
         .alert("Reset Onboarding", isPresented: $showResetOnboardingAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Reset", role: .destructive) {
-                hasCompletedOnboarding = false
+                // Defer state change to avoid layout issues while alert dismisses
+                DispatchQueue.main.async {
+                    hasCompletedOnboarding = false
+                }
             }
         } message: {
             Text("Are you sure you want to reset the onboarding? You'll see the introduction screens again the next time you launch the app.")
