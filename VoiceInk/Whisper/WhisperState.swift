@@ -375,12 +375,14 @@ class WhisperState: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
             SoundManager.shared.playStopSound()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                if PasteEligibilityService.isPastePossible() {
-                    CursorPaster.pasteAtCursor(text, shouldPreserveClipboard: !self.isAutoCopyEnabled)
-                } else {
-                    if self.isAutoCopyEnabled {
-                        ClipboardManager.copyToClipboard(text)
-                    }
+                
+                CursorPaster.pasteAtCursor(text, shouldPreserveClipboard: !self.isAutoCopyEnabled)
+                
+                if self.isAutoCopyEnabled {
+                    ClipboardManager.copyToClipboard(text)
+                }
+                
+                if !PasteEligibilityService.isPastePossible() {
                     TranscriptionFallbackManager.shared.showFallback(for: text)
                 }
             }
@@ -477,12 +479,13 @@ class WhisperState: NSObject, ObservableObject, AVAudioRecorderDelegate {
                 
                 let textToPaste = newTranscription.enhancedText ?? newTranscription.text
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    if PasteEligibilityService.isPastePossible() {
-                        CursorPaster.pasteAtCursor(textToPaste + " ", shouldPreserveClipboard: !self.isAutoCopyEnabled)
-                    } else {
-                        if self.isAutoCopyEnabled {
-                            ClipboardManager.copyToClipboard(textToPaste)
-                        }
+                    CursorPaster.pasteAtCursor(textToPaste + " ", shouldPreserveClipboard: !self.isAutoCopyEnabled)
+                    
+                    if self.isAutoCopyEnabled {
+                        ClipboardManager.copyToClipboard(textToPaste)
+                    }
+                    
+                    if !PasteEligibilityService.isPastePossible() {
                         TranscriptionFallbackManager.shared.showFallback(for: textToPaste)
                     }
                 }
