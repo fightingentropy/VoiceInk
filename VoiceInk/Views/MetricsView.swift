@@ -69,7 +69,7 @@ struct MetricsView: View {
     private var isSetupComplete: Bool {
         hasLoadedData &&
         whisperState.currentTranscriptionModel != nil &&
-        KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder) != nil &&
+        hotkeyManager.selectedHotkey1 != .none &&
         AXIsProcessTrusted() &&
         CGPreflightScreenCaptureAccess()
     }

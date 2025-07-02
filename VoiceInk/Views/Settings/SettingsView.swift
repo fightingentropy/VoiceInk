@@ -48,7 +48,7 @@ struct SettingsView: View {
                         }
 
                         // "Add another hotkey" button
-                        if hotkeyManager.selectedHotkey2 == .none {
+                        if hotkeyManager.selectedHotkey1 != .none && hotkeyManager.selectedHotkey2 == .none {
                             HStack {
                                 Spacer()
                                 Button(action: {
