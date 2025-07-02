@@ -14,16 +14,7 @@ struct TranscriptionFallbackView: View {
         VStack(spacing: 0) {
             // Title Bar
             HStack {
-                if isHoveringTitleBar {
-                    Button(action: onClose) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 9, weight: .semibold))
-                    }
-                    .buttonStyle(TitleBarButtonStyle(color: .red))
-                    .keyboardShortcut(.cancelAction)
-                } else {
-                    Spacer().frame(width: 20, height: 20)
-                }
+                Spacer().frame(width: 20, height: 20)
                 
                 Spacer()
                 
@@ -61,7 +52,6 @@ struct TranscriptionFallbackView: View {
                 .scrollContentBackground(.hidden)
                 .background(Color.clear)
                 .padding(.horizontal, 16)
-                .padding(.vertical, 12)
                 .onAppear {
                     editableText = transcriptionText
                 }

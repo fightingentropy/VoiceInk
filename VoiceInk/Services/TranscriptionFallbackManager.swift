@@ -18,6 +18,9 @@ class TranscriptionFallbackManager {
     
     private var fallbackWindow: NSPanel?
     
+    /// Observer that listens for the fallback window losing key status so it can be dismissed automatically.
+    private var windowObserver: Any?
+    
     private init() {}
     
     /// Displays the fallback window with the provided transcription text.
@@ -58,6 +61,15 @@ class TranscriptionFallbackManager {
                 panel.makeFirstResponder(hostingController.view)
             }
         }
+        
+        // Automatically close the window when the user clicks outside of it.
+        windowObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didResignKeyNotification,
+            object: panel,
+            queue: .main
+        ) { [weak self] _ in
+            self?.dismiss()
+        }
     }
     
     /// Dynamically resizes the window based on new text content
@@ -68,9 +80,9 @@ class TranscriptionFallbackManager {
         let newSize = calculateOptimalSize(for: text)
         let currentFrame = window.frame
         
-        // Keep the window centered while resizing
+        // Preserve the bottom anchor and center horizontally while resizing
         let newX = currentFrame.midX - (newSize.width / 2)
-        let newY = currentFrame.midY - (newSize.height / 2)
+        let newY = currentFrame.minY // keep the bottom position constant
         
         let newFrame = NSRect(x: newX, y: newY, width: newSize.width, height: newSize.height)
         
@@ -88,6 +100,12 @@ class TranscriptionFallbackManager {
         guard let window = fallbackWindow else { return }
         
         fallbackWindow = nil
+        
+        // Remove the key-window observer if it exists.
+        if let observer = windowObserver {
+            NotificationCenter.default.removeObserver(observer)
+            windowObserver = nil
+        }
         
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.2
@@ -147,7 +165,8 @@ class TranscriptionFallbackManager {
         if let activeScreen = NSScreen.main {
             let screenRect = activeScreen.visibleFrame
             let xPos = screenRect.midX - (finalSize.width / 2)
-            let yPos = screenRect.midY - (finalSize.height / 2)
+            let padding: CGFloat = 40 // increased distance from bottom of visible frame (above Dock)
+            let yPos = screenRect.minY + padding
             panel.setFrameOrigin(NSPoint(x: xPos, y: yPos))
         }
         
