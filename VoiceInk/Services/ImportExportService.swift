@@ -18,6 +18,7 @@ struct GeneralSettings: Codable {
     let isAutoCopyEnabled: Bool?
     let isSoundFeedbackEnabled: Bool?
     let isSystemMuteEnabled: Bool?
+    let isFallbackWindowEnabled: Bool?
 }
 
 struct VoiceInkExportedSettings: Codable {
@@ -90,7 +91,8 @@ class ImportExportService {
             audioRetentionPeriod: UserDefaults.standard.integer(forKey: keyAudioRetentionPeriod),
             isAutoCopyEnabled: whisperState.isAutoCopyEnabled,
             isSoundFeedbackEnabled: soundManager.isEnabled,
-            isSystemMuteEnabled: mediaController.isSystemMuteEnabled
+            isSystemMuteEnabled: mediaController.isSystemMuteEnabled,
+            isFallbackWindowEnabled: UserDefaults.standard.object(forKey: "isFallbackWindowEnabled") == nil ? true : UserDefaults.standard.bool(forKey: "isFallbackWindowEnabled")
         )
 
         let exportedSettings = VoiceInkExportedSettings(
@@ -244,6 +246,9 @@ class ImportExportService {
                         }
                         if let muteSystem = general.isSystemMuteEnabled {
                             mediaController.isSystemMuteEnabled = muteSystem
+                        }
+                        if let fallbackEnabled = general.isFallbackWindowEnabled {
+                            UserDefaults.standard.set(fallbackEnabled, forKey: "isFallbackWindowEnabled")
                         }
                     }
 
