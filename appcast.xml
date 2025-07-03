@@ -3,28 +3,24 @@
     <channel>
         <title>VoiceInk Releases</title>
         <item>
-            <title>1.36</title>
-            <pubDate>Sat, 27 June 2025 12:20:00 +0545</pubDate>
-            <sparkle:version>136</sparkle:version>
-            <sparkle:shortVersionString>1.36</sparkle:shortVersionString>
+            <title>1.37</title>
+            <pubDate>Sat, 3 June 2025 12:20:00 +0545</pubDate>
+            <sparkle:version>137</sparkle:version>
+            <sparkle:shortVersionString>1.37</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
-                    <h3>What's New in Version 1.36 🚀⚡</h3>
+                    <h3>What's New in Version 1.37 🚀⚡</h3>
                             <ul>
-                              <li>🔊 Added audio input detection</li>
-                              <li>🌐 Added support for OpenRouter</li>
-                              <li>🌍 Added more languages to Native Apple Transcription</li>
-                              <li>🧠 Added Enhancement Prompt Toggle when Power Mode is turned off</li>
-                              <li>🔧 Improve Word Replacement Feature</li>
-                              <li>🛠️ Updated Gemini models</li>
-                              <li>🛠️ Updated Anthropic models</li>
-                              <li>🍏 Fixed Issues with Native Apple Transcription</li>
-                              <li>🚀 Fixed Ollama Initialization during app launch</li>
-                              <li>📂 Fixed app detection inside user Application folder (PWA)</li>
-                              <li>🪛 Minor Improvements & Bug fixes</li>
-                            </ul>
+                                <li>🔧 Fixed text Hallucination Issues with Large models</li>
+                                <li>📚 Unified Hotkey for both custom shortcuts & Push-to-talk.</li>
+                                <li>📋 Added a fallback window to handle paste fails</li>
+                                <li>📹 Added support for Video files for file based transcription</li>
+                                <li>💡 Fixed Mic Blinking Issues</li>
+                                <li>🔌 Fixed openRouter model issues with Power Mode</li>
+                                <li>🔇 Disabled audio tagging with eleven labs scribe</li>
+                          </ul> 
             ]]></description>
-           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.36/VoiceInk.dmg" length="7465309" type="application/octet-stream" sparkle:edSignature="F2IDC6GK6dszJ3wTR0j4KnoNe2ykauJLc3fjtPrR+WPn7Y7mf/ttSQWPFgrOAOLS9OheSHpoYTWGPtCs/rWJCg=="/>
+           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.37/VoiceInk.dmg" length="7525668" type="application/octet-stream" sparkle:edSignature="CLl9q7Tmbw9QZG9AGLo0ne/+zyu+JwVeecqNsvtu/YuIJ6/d7Fh2GlxnBup58QaotRQ7UMMIfui4DM3HknjdDg=="/>
         </item>
     </channel>
 </rss>
