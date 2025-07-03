@@ -75,10 +75,10 @@ actor WhisperContext {
         params.single_segment   = false
 
         whisper_reset_timings(context)
-        logger.notice("⚙️ Starting whisper transcription")
+        logger.notice("⚙️ Starting whisper transcription with VAD: \(params.vad ? "ENABLED" : "DISABLED")")
         
         if let vadModelPath = await VADModelManager.shared.getModelPath() {
-            logger.notice("Successfully retrieved VAD model path.")
+            logger.notice("🎤 VAD is ENABLED - Successfully retrieved VAD model path: \(vadModelPath)")
             params.vad = true
             params.vad_model_path = (vadModelPath as NSString).utf8String
             
@@ -88,14 +88,23 @@ actor WhisperContext {
             vadParams.samples_overlap = 0.1
             params.vad_params = vadParams
             
-            logger.notice("🎤 VAD configured: min_speech=500ms, min_silence=500ms, overlap=100ms")
+            logger.notice("🎤 VAD configured with parameters: min_speech=500ms, min_silence=500ms, overlap=10%")
+            logger.notice("🎤 VAD will be used for voice activity detection during transcription")
         } else {
-            logger.error("VAD model path not found, proceeding without VAD.")
+            logger.notice("🎤 VAD is DISABLED - VAD model path not found, proceeding without VAD")
+            params.vad = false
+            logger.notice("🎤 Transcription will process entire audio without voice activity detection")
         }
         
         samples.withUnsafeBufferPointer { samplesBuffer in
             if whisper_full(context, params, samplesBuffer.baseAddress, Int32(samplesBuffer.count)) != 0 {
                 self.logger.error("Failed to run whisper_full")
+            } else {
+                if params.vad {
+                    self.logger.notice("✅ Whisper transcription completed successfully with VAD processing")
+                } else {
+                    self.logger.notice("✅ Whisper transcription completed successfully without VAD")
+                }
             }
         }
         
