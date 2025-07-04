@@ -96,6 +96,13 @@ struct AudioTranscribeView: View {
                 }
             }
         }
+        .onDrop(of: [.fileURL, .data, .audio, .movie], isTargeted: $isDropTargeted) { providers in
+            if !transcriptionManager.isProcessing && !isAudioFileSelected {
+                handleDroppedFile(providers)
+                return true
+            }
+            return false
+        }
         .alert("Error", isPresented: .constant(transcriptionManager.errorMessage != nil)) {
             Button("OK", role: .cancel) {
                 transcriptionManager.errorMessage = nil
@@ -245,12 +252,6 @@ struct AudioTranscribeView: View {
                 .foregroundColor(.secondary)
         }
         .padding()
-        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-            Task {
-                await handleDroppedFile(providers)
-            }
-            return true
-        }
     }
     
     private var processingView: some View {
@@ -284,16 +285,99 @@ struct AudioTranscribeView: View {
         }
     }
     
-    private func handleDroppedFile(_ providers: [NSItemProvider]) async {
+    private func handleDroppedFile(_ providers: [NSItemProvider]) {
         guard let provider = providers.first else { return }
         
-        if let item = try? await provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier),
-           let url = item as? URL {
-            Task { @MainActor in
-                selectedAudioURL = url
-                isAudioFileSelected = true
+        // List of type identifiers to try
+        let typeIdentifiers = [
+            UTType.fileURL.identifier,
+            UTType.audio.identifier,
+            UTType.movie.identifier,
+            UTType.data.identifier,
+            "public.file-url"
+        ]
+        
+        // Try each type identifier
+        for typeIdentifier in typeIdentifiers {
+            if provider.hasItemConformingToTypeIdentifier(typeIdentifier) {
+                provider.loadItem(forTypeIdentifier: typeIdentifier, options: nil) { (item, error) in
+                    if let error = error {
+                        print("Error loading dropped file with type \(typeIdentifier): \(error)")
+                        return
+                    }
+                    
+                    var fileURL: URL?
+                    
+                    if let url = item as? URL {
+                        fileURL = url
+                    } else if let data = item as? Data {
+                        // Try to create URL from data
+                        if let url = URL(dataRepresentation: data, relativeTo: nil) {
+                            fileURL = url
+                        } else if let urlString = String(data: data, encoding: .utf8),
+                                  let url = URL(string: urlString) {
+                            fileURL = url
+                        }
+                    } else if let urlString = item as? String {
+                        fileURL = URL(string: urlString)
+                    }
+                    
+                    if let finalURL = fileURL {
+                        DispatchQueue.main.async {
+                            self.validateAndSetAudioFile(finalURL)
+                        }
+                        return
+                    }
+                }
+                break // Stop trying other types once we find a compatible one
             }
         }
+    }
+    
+    private func validateAndSetAudioFile(_ url: URL) {
+        print("Attempting to validate file: \(url.path)")
+        
+        // Check if file exists
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            print("File does not exist at path: \(url.path)")
+            return
+        }
+        
+        // Try to access security scoped resource
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer {
+            if accessing {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+        
+        // Validate file type by extension
+        let supportedExtensions = ["wav", "mp3", "m4a", "aiff", "mp4", "mov", "aac", "flac", "caf"]
+        let fileExtension = url.pathExtension.lowercased()
+        
+        // Check file extension first
+        if !fileExtension.isEmpty && supportedExtensions.contains(fileExtension) {
+            print("File type validated by extension: \(fileExtension)")
+        } else {
+            print("Unsupported file extension: \(fileExtension)")
+            // Try to validate by UTType as well
+            if let resourceValues = try? url.resourceValues(forKeys: [.contentTypeKey]),
+               let contentType = resourceValues.contentType {
+                if contentType.conforms(to: .audio) || contentType.conforms(to: .movie) {
+                    print("File type validated by UTType: \(contentType.identifier)")
+                } else {
+                    print("File does not conform to audio or movie type: \(contentType.identifier)")
+                    return
+                }
+            } else {
+                print("Could not validate file type")
+                return
+            }
+        }
+        
+        print("File validated successfully: \(url.lastPathComponent)")
+        selectedAudioURL = url
+        isAudioFileSelected = true
     }
     
     private func formatDuration(_ duration: TimeInterval) -> String {
