@@ -8,6 +8,7 @@ struct TranscriptionHistoryView: View {
     @State private var selectedTranscriptions: Set<Transcription> = []
     @State private var showDeleteConfirmation = false
     @State private var isViewCurrentlyVisible = false
+    @State private var showAnalysisView = false
     
     // Pagination states
     @State private var displayedTranscriptions: [Transcription] = []
@@ -129,6 +130,11 @@ struct TranscriptionHistoryView: View {
         } message: {
             Text("This action cannot be undone. Are you sure you want to delete \(selectedTranscriptions.count) item\(selectedTranscriptions.count == 1 ? "" : "s")?")
         }
+        .sheet(isPresented: $showAnalysisView) {
+            if !selectedTranscriptions.isEmpty {
+                PerformanceAnalysisView(transcriptions: Array(selectedTranscriptions))
+            }
+        }
         .onAppear {
             isViewCurrentlyVisible = true
             Task {
@@ -204,6 +210,16 @@ struct TranscriptionHistoryView: View {
                 .font(.system(size: 14))
             
             Spacer()
+            
+            Button(action: {
+                showAnalysisView = true
+            }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "chart.bar.xaxis")
+                    Text("Analyze")
+                }
+            }
+            .buttonStyle(.borderless)
             
             Button(action: {
                 showDeleteConfirmation = true
