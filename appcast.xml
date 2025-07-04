@@ -3,12 +3,17 @@
     <channel>
         <title>VoiceInk Releases</title>
         <item>
-            <title>1.37</title>
-            <pubDate>Sat, 3 June 2025 12:20:00 +0545</pubDate>
-            <sparkle:version>137</sparkle:version>
-            <sparkle:shortVersionString>1.37</sparkle:shortVersionString>
+            <title>1.38</title>
+            <pubDate>Sat, 4 June 2025 12:20:00 +0545</pubDate>
+            <sparkle:version>138</sparkle:version>
+            <sparkle:shortVersionString>1.38</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
+                <h3>What's New in Version 1.38 🚀⚡</h3>
+                            <ul>
+                                <li>🔧 Fixed fallback window issue</li>
+                                <li>📋 Added toggle for fallback window in the settings</li>
+                            </ul> 
                     <h3>What's New in Version 1.37 🚀⚡</h3>
                             <ul>
                                 <li>🔧 Fixed text Hallucination Issues with Large models</li>
@@ -20,7 +25,7 @@
                                 <li>🔇 Disabled audio tagging with eleven labs scribe</li>
                           </ul> 
             ]]></description>
-           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.37/VoiceInk.dmg" length="7525668" type="application/octet-stream" sparkle:edSignature="CLl9q7Tmbw9QZG9AGLo0ne/+zyu+JwVeecqNsvtu/YuIJ6/d7Fh2GlxnBup58QaotRQ7UMMIfui4DM3HknjdDg=="/>
+           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.38/VoiceInk.dmg" length="7525541" type="application/octet-stream" sparkle:edSignature="nkQboyGzMfa4Kc/Nf6c89mXWsO/hsNsFw+ZPy6b78p3MdDWAHfnjddVdBeygzARud+B/lHlp3eAp7if1ftbeAw=="/>
         </item>
     </channel>
 </rss>
