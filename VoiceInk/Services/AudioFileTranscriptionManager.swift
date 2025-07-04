@@ -11,7 +11,6 @@ class AudioTranscriptionManager: ObservableObject {
     @Published var isProcessing = false
     @Published var processingPhase: ProcessingPhase = .idle
     @Published var currentTranscription: Transcription?
-    @Published var messageLog: String = ""
     @Published var errorMessage: String?
     
     private var currentTask: Task<Void, Error>?
@@ -57,7 +56,6 @@ class AudioTranscriptionManager: ObservableObject {
         
         isProcessing = true
         processingPhase = .loading
-        messageLog = ""
         errorMessage = nil
         
         currentTask = Task {
@@ -92,6 +90,7 @@ class AudioTranscriptionManager: ObservableObject {
                 
                 // Transcribe using appropriate service
                 processingPhase = .transcribing
+                let transcriptionStart = Date()
                 var text: String
                 
                 switch currentModel.provider {
@@ -103,6 +102,7 @@ class AudioTranscriptionManager: ObservableObject {
                     text = try await cloudTranscriptionService.transcribe(audioURL: permanentURL, model: currentModel)
                 }
                 
+                let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
                 text = text.trimmingCharacters(in: .whitespacesAndNewlines)
                 
                 // Apply word replacements if enabled
@@ -116,12 +116,16 @@ class AudioTranscriptionManager: ObservableObject {
                    enhancementService.isConfigured {
                     processingPhase = .enhancing
                     do {
-                        let enhancedText = try await enhancementService.enhance(text)
+                        let (enhancedText, enhancementDuration) = try await enhancementService.enhance(text)
                         let transcription = Transcription(
                             text: text,
                             duration: duration,
                             enhancedText: enhancedText,
-                            audioFileURL: permanentURL.absoluteString
+                            audioFileURL: permanentURL.absoluteString,
+                            transcriptionModelName: currentModel.displayName,
+                            aiEnhancementModelName: enhancementService.getAIService()?.currentModel,
+                            transcriptionDuration: transcriptionDuration,
+                            enhancementDuration: enhancementDuration
                         )
                         modelContext.insert(transcription)
                         try modelContext.save()
@@ -131,7 +135,9 @@ class AudioTranscriptionManager: ObservableObject {
                         let transcription = Transcription(
                             text: text,
                             duration: duration,
-                            audioFileURL: permanentURL.absoluteString
+                            audioFileURL: permanentURL.absoluteString,
+                            transcriptionModelName: currentModel.displayName,
+                            transcriptionDuration: transcriptionDuration
                         )
                         modelContext.insert(transcription)
                         try modelContext.save()
@@ -141,7 +147,9 @@ class AudioTranscriptionManager: ObservableObject {
                     let transcription = Transcription(
                         text: text,
                         duration: duration,
-                        audioFileURL: permanentURL.absoluteString
+                        audioFileURL: permanentURL.absoluteString,
+                        transcriptionModelName: currentModel.displayName,
+                        transcriptionDuration: transcriptionDuration
                     )
                     modelContext.insert(transcription)
                     try modelContext.save()

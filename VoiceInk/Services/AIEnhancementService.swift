@@ -392,14 +392,16 @@ class AIEnhancementService: ObservableObject {
         }
     }
     
-    func enhance(_ text: String) async throws -> String {
+    func enhance(_ text: String) async throws -> (String, TimeInterval) {
+        let startTime = Date()
         let enhancementPrompt: EnhancementPrompt = .transcriptionEnhancement
         
         var retryCount = 0
         while retryCount < maxRetries {
             do {
                 let result = try await makeRequest(text: text, mode: enhancementPrompt, retryCount: retryCount)
-                return result
+                let duration = Date().timeIntervalSince(startTime)
+                return (result, duration)
             } catch let error as EnhancementError {
                 if shouldRetry(error: error, retryCount: retryCount) {
                     retryCount += 1

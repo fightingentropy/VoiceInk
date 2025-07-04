@@ -301,7 +301,10 @@ class WhisperState: NSObject, ObservableObject, AVAudioRecorderDelegate {
                 transcriptionService = cloudTranscriptionService
             }
 
+            let transcriptionStart = Date()
             var text = try await transcriptionService.transcribe(audioURL: url, model: model)
+            let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
+            
             text = text.trimmingCharacters(in: .whitespacesAndNewlines)
             
             if UserDefaults.standard.bool(forKey: "IsWordReplacementEnabled") {
@@ -325,28 +328,32 @@ class WhisperState: NSObject, ObservableObject, AVAudioRecorderDelegate {
                 do {
                     if shouldCancelRecording { return }
                     let textForAI = promptDetectionResult?.processedText ?? text
-                    let enhancedText = try await enhancementService.enhance(textForAI)
+                    let (enhancedText, enhancementDuration) = try await enhancementService.enhance(textForAI)
                     let newTranscription = Transcription(
                         text: originalText,
                         duration: actualDuration,
                         enhancedText: enhancedText,
-                        audioFileURL: permanentURL?.absoluteString
+                        audioFileURL: permanentURL?.absoluteString,
+                        transcriptionModelName: model.displayName,
+                        aiEnhancementModelName: enhancementService.getAIService()?.currentModel,
+                        transcriptionDuration: transcriptionDuration,
+                        enhancementDuration: enhancementDuration
                     )
                     modelContext.insert(newTranscription)
                     try? modelContext.save()
                     text = enhancedText
                 } catch {
-                    // Enhancement failed - save error in enhancedText field and show notification
                     let newTranscription = Transcription(
                         text: originalText,
                         duration: actualDuration,
                         enhancedText: "Enhancement failed: \(error.localizedDescription)",
-                        audioFileURL: permanentURL?.absoluteString
+                        audioFileURL: permanentURL?.absoluteString,
+                        transcriptionModelName: model.displayName,
+                        transcriptionDuration: transcriptionDuration
                     )
                     modelContext.insert(newTranscription)
                     try? modelContext.save()
                     
-                    // Show notification about enhancement failure
                     await MainActor.run {
                         NotificationManager.shared.showNotification(
                             title: "AI enhancement failed",
@@ -358,7 +365,9 @@ class WhisperState: NSObject, ObservableObject, AVAudioRecorderDelegate {
                 let newTranscription = Transcription(
                     text: originalText,
                     duration: actualDuration,
-                    audioFileURL: permanentURL?.absoluteString
+                    audioFileURL: permanentURL?.absoluteString,
+                    transcriptionModelName: model.displayName,
+                    transcriptionDuration: transcriptionDuration
                 )
                 modelContext.insert(newTranscription)
                 try? modelContext.save()

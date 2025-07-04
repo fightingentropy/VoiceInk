@@ -259,10 +259,6 @@ struct AudioTranscribeView: View {
                 .scaleEffect(0.8)
             Text(transcriptionManager.processingPhase.message)
                 .font(.headline)
-            Text(transcriptionManager.messageLog)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
         }
         .padding()
     }

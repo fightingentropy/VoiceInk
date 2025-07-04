@@ -7,7 +7,6 @@ import os
 @MainActor
 class AudioTranscriptionService: ObservableObject {
     @Published var isTranscribing = false
-    @Published var messageLog = ""
     @Published var currentError: TranscriptionError?
     
     private let modelContext: ModelContext
@@ -41,35 +40,28 @@ class AudioTranscriptionService: ObservableObject {
         
         await MainActor.run {
             isTranscribing = true
-            messageLog = "Starting retranscription...\n"
         }
         
         do {
             // Delegate transcription to appropriate service
+            let transcriptionStart = Date()
             var text: String
             
             switch model.provider {
             case .local:
-                messageLog += "Using local transcription service...\n"
                 text = try await localTranscriptionService.transcribe(audioURL: url, model: model)
-                messageLog += "Local transcription completed.\n"
             case .nativeApple:
-                messageLog += "Using Native Apple transcription service...\n"
                 text = try await nativeAppleTranscriptionService.transcribe(audioURL: url, model: model)
-                messageLog += "Native Apple transcription completed.\n"
             default: // Cloud models
-                messageLog += "Using cloud transcription service...\n"
                 text = try await cloudTranscriptionService.transcribe(audioURL: url, model: model)
-                messageLog += "Cloud transcription completed.\n"
             }
             
-            // Common post-processing for both local and cloud transcriptions
+            let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
             text = text.trimmingCharacters(in: .whitespacesAndNewlines)
             
             // Apply word replacements if enabled
             if UserDefaults.standard.bool(forKey: "IsWordReplacementEnabled") {
                 text = WordReplacementService.shared.applyReplacements(to: text)
-                messageLog += "Word replacements applied.\n"
                 logger.notice("✅ Word replacements applied")
             }
             
@@ -89,7 +81,6 @@ class AudioTranscriptionService: ObservableObject {
                 try FileManager.default.copyItem(at: url, to: permanentURL)
             } catch {
                 logger.error("❌ Failed to create permanent copy of audio: \(error.localizedDescription)")
-                messageLog += "Failed to create permanent copy of audio: \(error.localizedDescription)\n"
                 isTranscribing = false
                 throw error
             }
@@ -101,48 +92,47 @@ class AudioTranscriptionService: ObservableObject {
                enhancementService.isEnhancementEnabled,
                enhancementService.isConfigured {
                 do {
-                    messageLog += "Enhancing transcription with AI...\n"
-                    let enhancedText = try await enhancementService.enhance(text)
-                    messageLog += "Enhancement completed.\n"
+                    let (enhancedText, enhancementDuration) = try await enhancementService.enhance(text)
                     
                     let newTranscription = Transcription(
                         text: text,
                         duration: duration,
                         enhancedText: enhancedText,
-                        audioFileURL: permanentURLString
+                        audioFileURL: permanentURLString,
+                        transcriptionModelName: model.displayName,
+                        aiEnhancementModelName: enhancementService.getAIService()?.currentModel,
+                        transcriptionDuration: transcriptionDuration,
+                        enhancementDuration: enhancementDuration
                     )
                     modelContext.insert(newTranscription)
                     do {
                         try modelContext.save()
                     } catch {
                         logger.error("❌ Failed to save transcription: \(error.localizedDescription)")
-                        messageLog += "Failed to save transcription: \(error.localizedDescription)\n"
                     }
                     
                     await MainActor.run {
                         isTranscribing = false
-                        messageLog += "Done: \(enhancedText)\n"
                     }
                     
                     return newTranscription
                 } catch {
-                    messageLog += "Enhancement failed: \(error.localizedDescription). Using original transcription.\n"
                     let newTranscription = Transcription(
                         text: text,
                         duration: duration,
-                        audioFileURL: permanentURLString
+                        audioFileURL: permanentURLString,
+                        transcriptionModelName: model.displayName,
+                        transcriptionDuration: transcriptionDuration
                     )
                     modelContext.insert(newTranscription)
                     do {
                         try modelContext.save()
                     } catch {
                         logger.error("❌ Failed to save transcription: \(error.localizedDescription)")
-                        messageLog += "Failed to save transcription: \(error.localizedDescription)\n"
                     }
                     
                     await MainActor.run {
                         isTranscribing = false
-                        messageLog += "Done: \(text)\n"
                     }
                     
                     return newTranscription
@@ -151,26 +141,25 @@ class AudioTranscriptionService: ObservableObject {
                 let newTranscription = Transcription(
                     text: text,
                     duration: duration,
-                    audioFileURL: permanentURLString
+                    audioFileURL: permanentURLString,
+                    transcriptionModelName: model.displayName,
+                    transcriptionDuration: transcriptionDuration
                 )
                 modelContext.insert(newTranscription)
                 do {
                     try modelContext.save()
                 } catch {
                     logger.error("❌ Failed to save transcription: \(error.localizedDescription)")
-                    messageLog += "Failed to save transcription: \(error.localizedDescription)\n"
                 }
                 
                 await MainActor.run {
                     isTranscribing = false
-                    messageLog += "Done: \(text)\n"
                 }
                 
                 return newTranscription
             }
         } catch {
             logger.error("❌ Transcription failed: \(error.localizedDescription)")
-            messageLog += "Transcription failed: \(error.localizedDescription)\n"
             currentError = .transcriptionFailed
             isTranscribing = false
             throw error
