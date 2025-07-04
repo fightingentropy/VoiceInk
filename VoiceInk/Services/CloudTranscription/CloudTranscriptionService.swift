@@ -41,21 +41,29 @@ class CloudTranscriptionService: TranscriptionService {
     private lazy var openAICompatibleService = OpenAICompatibleTranscriptionService()
     
     func transcribe(audioURL: URL, model: any TranscriptionModel) async throws -> String {
+        var text: String
+        
         switch model.provider {
         case .groq:
-            return try await groqService.transcribe(audioURL: audioURL, model: model)
+            text = try await groqService.transcribe(audioURL: audioURL, model: model)
         case .elevenLabs:
-            return try await elevenLabsService.transcribe(audioURL: audioURL, model: model)
+            text = try await elevenLabsService.transcribe(audioURL: audioURL, model: model)
         case .deepgram:
-            return try await deepgramService.transcribe(audioURL: audioURL, model: model)
+            text = try await deepgramService.transcribe(audioURL: audioURL, model: model)
         case .custom:
             guard let customModel = model as? CustomCloudModel else {
                 throw CloudTranscriptionError.unsupportedProvider
             }
-            return try await openAICompatibleService.transcribe(audioURL: audioURL, model: customModel)
+            text = try await openAICompatibleService.transcribe(audioURL: audioURL, model: customModel)
         default:
             throw CloudTranscriptionError.unsupportedProvider
         }
+        
+        if UserDefaults.standard.object(forKey: "IsTextFormattingEnabled") as? Bool ?? true {
+            text = WhisperTextFormatter.format(text)
+        }
+        
+        return text
     }
 
     

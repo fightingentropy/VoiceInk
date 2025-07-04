@@ -134,7 +134,10 @@ class NativeAppleTranscriptionService: TranscriptionService {
         }
         
         var finalTranscription = String(transcript.characters).trimmingCharacters(in: .whitespacesAndNewlines)
-        finalTranscription = WhisperTextFormatter.format(finalTranscription)
+        
+        if UserDefaults.standard.object(forKey: "IsTextFormattingEnabled") as? Bool ?? true {
+            finalTranscription = WhisperTextFormatter.format(finalTranscription)
+        }
         
         logger.notice("Native transcription successful. Length: \(finalTranscription.count) characters.")
         return finalTranscription
