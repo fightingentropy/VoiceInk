@@ -18,7 +18,6 @@ struct GeneralSettings: Codable {
     let isAutoCopyEnabled: Bool?
     let isSoundFeedbackEnabled: Bool?
     let isSystemMuteEnabled: Bool?
-    let isFallbackWindowEnabled: Bool?
     let isTextFormattingEnabled: Bool?
 }
 
@@ -94,7 +93,6 @@ class ImportExportService {
             isAutoCopyEnabled: whisperState.isAutoCopyEnabled,
             isSoundFeedbackEnabled: soundManager.isEnabled,
             isSystemMuteEnabled: mediaController.isSystemMuteEnabled,
-            isFallbackWindowEnabled: UserDefaults.standard.object(forKey: "isFallbackWindowEnabled") == nil ? true : UserDefaults.standard.bool(forKey: "isFallbackWindowEnabled"),
             isTextFormattingEnabled: UserDefaults.standard.object(forKey: keyIsTextFormattingEnabled) as? Bool ?? true
         )
 
@@ -249,9 +247,6 @@ class ImportExportService {
                         }
                         if let muteSystem = general.isSystemMuteEnabled {
                             mediaController.isSystemMuteEnabled = muteSystem
-                        }
-                        if let fallbackEnabled = general.isFallbackWindowEnabled {
-                            UserDefaults.standard.set(fallbackEnabled, forKey: "isFallbackWindowEnabled")
                         }
                         if let textFormattingEnabled = general.isTextFormattingEnabled {
                             UserDefaults.standard.set(textFormattingEnabled, forKey: self.keyIsTextFormattingEnabled)
