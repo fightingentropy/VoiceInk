@@ -58,9 +58,6 @@ struct LanguageSelectionView: View {
     private var fullView: some View {
         VStack(alignment: .leading, spacing: 16) {
             languageSelectionSection
-            
-            // Add prompt customization view below language selection
-            PromptCustomizationView(whisperPrompt: whisperPrompt)
         }
     }
     

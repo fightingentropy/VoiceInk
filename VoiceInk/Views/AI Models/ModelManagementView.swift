@@ -1,6 +1,14 @@
 import SwiftUI
 import SwiftData
 
+enum ModelFilter: String, CaseIterable, Identifiable {
+    case recommended = "Recommended"
+    case local = "Local"
+    case cloud = "Cloud"
+    case custom = "Custom"
+    var id: String { self.rawValue }
+}
+
 struct ModelManagementView: View {
     @ObservedObject var whisperState: WhisperState
     @State private var customModelToEdit: CustomCloudModel?
@@ -10,6 +18,9 @@ struct ModelManagementView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var whisperPrompt = WhisperPrompt()
 
+    @State private var selectedFilter: ModelFilter = .recommended
+    @State private var isShowingSettings = false
+    
     // State for the unified alert
     @State private var isShowingDeleteAlert = false
     @State private var alertTitle = ""
@@ -59,74 +70,132 @@ struct ModelManagementView: View {
     private var availableModelsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Available Models")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                
-                Text("(\(whisperState.allAvailableModels.count))")
-                    .foregroundColor(.secondary)
-                    .font(.subheadline)
-                
-                Spacer()
-            }
-            
-            VStack(spacing: 12) {
-                ForEach(whisperState.allAvailableModels, id: \.id) { model in
-                    ModelCardRowView(
-                        model: model,
-                        isDownloaded: whisperState.availableModels.contains { $0.name == model.name },
-                        isCurrent: whisperState.currentTranscriptionModel?.name == model.name,
-                        downloadProgress: whisperState.downloadProgress,
-                        modelURL: whisperState.availableModels.first { $0.name == model.name }?.url,
-                        deleteAction: {
-                            if let customModel = model as? CustomCloudModel {
-                                alertTitle = "Delete Custom Model"
-                                alertMessage = "Are you sure you want to delete the custom model '\(customModel.displayName)'?"
-                                deleteActionClosure = {
-                                    customModelManager.removeCustomModel(withId: customModel.id)
-                                    whisperState.refreshAllAvailableModels()
-                                }
-                                isShowingDeleteAlert = true
-                            } else if let downloadedModel = whisperState.availableModels.first(where: { $0.name == model.name }) {
-                                alertTitle = "Delete Model"
-                                alertMessage = "Are you sure you want to delete the model '\(downloadedModel.name)'?"
-                                deleteActionClosure = {
-                                    Task {
-                                        await whisperState.deleteModel(downloadedModel)
-                                    }
-                                }
-                                isShowingDeleteAlert = true
+                // Modern compact pill switcher
+                HStack(spacing: 12) {
+                    ForEach(ModelFilter.allCases, id: \.self) { filter in
+                        Button(action: {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                selectedFilter = filter
+                                isShowingSettings = false
                             }
-                        },
-                        setDefaultAction: {
-                            Task {
-                                await whisperState.setDefaultTranscriptionModel(model)
-                            }
-                        },
-                        downloadAction: {
-                            if let localModel = model as? LocalModel {
-                                Task {
-                                    await whisperState.downloadModel(localModel)
-                                }
-                            }
-                        },
-                        editAction: model.provider == .custom ? { customModel in
-                            customModelToEdit = customModel
-                        } : nil
-                    )
+                        }) {
+                            Text(filter.rawValue)
+                                .font(.system(size: 14, weight: selectedFilter == filter ? .semibold : .medium))
+                                .foregroundColor(selectedFilter == filter ? .primary : .primary.opacity(0.7))
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(
+                                    CardBackground(isSelected: selectedFilter == filter, cornerRadius: 22)
+                                )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
                 }
                 
-                // Add Custom Model Card at the bottom
-                AddCustomModelCardView(
-                    customModelManager: customModelManager,
-                    editingModel: customModelToEdit
-                ) {
-                    // Refresh the models when a new custom model is added
-                    whisperState.refreshAllAvailableModels()
-                    customModelToEdit = nil // Clear editing state
+                Spacer()
+                
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isShowingSettings.toggle()
+                    }
+                }) {
+                    Image(systemName: "gear")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(isShowingSettings ? .accentColor : .primary.opacity(0.7))
+                        .padding(12)
+                        .background(
+                            CardBackground(isSelected: isShowingSettings, cornerRadius: 22)
+                        )
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .padding(.bottom, 12)
+            
+            if isShowingSettings {
+                PromptCustomizationView(whisperPrompt: whisperPrompt)
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(filteredModels, id: \.id) { model in
+                        ModelCardRowView(
+                            model: model,
+                            isDownloaded: whisperState.availableModels.contains { $0.name == model.name },
+                            isCurrent: whisperState.currentTranscriptionModel?.name == model.name,
+                            downloadProgress: whisperState.downloadProgress,
+                            modelURL: whisperState.availableModels.first { $0.name == model.name }?.url,
+                            deleteAction: {
+                                if let customModel = model as? CustomCloudModel {
+                                    alertTitle = "Delete Custom Model"
+                                    alertMessage = "Are you sure you want to delete the custom model '\(customModel.displayName)'?"
+                                    deleteActionClosure = {
+                                        customModelManager.removeCustomModel(withId: customModel.id)
+                                        whisperState.refreshAllAvailableModels()
+                                    }
+                                    isShowingDeleteAlert = true
+                                } else if let downloadedModel = whisperState.availableModels.first(where: { $0.name == model.name }) {
+                                    alertTitle = "Delete Model"
+                                    alertMessage = "Are you sure you want to delete the model '\(downloadedModel.name)'?"
+                                    deleteActionClosure = {
+                                        Task {
+                                            await whisperState.deleteModel(downloadedModel)
+                                        }
+                                    }
+                                    isShowingDeleteAlert = true
+                                }
+                            },
+                            setDefaultAction: {
+                                Task {
+                                    await whisperState.setDefaultTranscriptionModel(model)
+                                }
+                            },
+                            downloadAction: {
+                                if let localModel = model as? LocalModel {
+                                    Task {
+                                        await whisperState.downloadModel(localModel)
+                                    }
+                                }
+                            },
+                            editAction: model.provider == .custom ? { customModel in
+                                customModelToEdit = customModel
+                            } : nil
+                        )
+                    }
+                    
+                    if selectedFilter == .custom {
+                        // Add Custom Model Card at the bottom
+                        AddCustomModelCardView(
+                            customModelManager: customModelManager,
+                            editingModel: customModelToEdit
+                        ) {
+                            // Refresh the models when a new custom model is added
+                            whisperState.refreshAllAvailableModels()
+                            customModelToEdit = nil // Clear editing state
+                        }
+                    }
                 }
             }
         }
         .padding()
+    }
+
+    private var filteredModels: [any TranscriptionModel] {
+        switch selectedFilter {
+        case .recommended:
+            return whisperState.allAvailableModels.filter {
+                let recommendedNames = ["ggml-base.en", "ggml-large-v3-turbo-q5_0", "ggml-large-v3-turbo", "whisper-large-v3-turbo"]
+                return recommendedNames.contains($0.name)
+            }.sorted { model1, model2 in
+                let recommendedOrder = ["ggml-base.en", "ggml-large-v3-turbo-q5_0", "ggml-large-v3-turbo", "whisper-large-v3-turbo"]
+                let index1 = recommendedOrder.firstIndex(of: model1.name) ?? Int.max
+                let index2 = recommendedOrder.firstIndex(of: model2.name) ?? Int.max
+                return index1 < index2
+            }
+        case .local:
+            return whisperState.allAvailableModels.filter { $0.provider == .local || $0.provider == .nativeApple }
+        case .cloud:
+            let cloudProviders: [ModelProvider] = [.groq, .elevenLabs, .deepgram]
+            return whisperState.allAvailableModels.filter { cloudProviders.contains($0.provider) }
+        case .custom:
+            return whisperState.allAvailableModels.filter { $0.provider == .custom }
+        }
     }
 }
