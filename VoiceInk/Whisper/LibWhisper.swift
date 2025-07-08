@@ -6,9 +6,6 @@ import whisper
 #endif
 import os
 
-enum WhisperError: Error {
-    case couldNotInitializeContext
-}
 
 // Meet Whisper C++ constraint: Don't access from more than one thread at a time.
 actor WhisperContext {
@@ -126,7 +123,7 @@ actor WhisperContext {
             self.context = context
         } else {
             logger.error("❌ Couldn't load model at \(path)")
-            throw WhisperError.couldNotInitializeContext
+            throw WhisperStateError.modelLoadFailed
         }
     }
 

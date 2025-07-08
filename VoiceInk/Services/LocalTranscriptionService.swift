@@ -16,7 +16,7 @@ class LocalTranscriptionService: TranscriptionService {
     
     func transcribe(audioURL: URL, model: any TranscriptionModel) async throws -> String {
         guard let localModel = model as? LocalModel else {
-            throw WhisperError.couldNotInitializeContext
+            throw WhisperStateError.modelLoadFailed
         }
         
         logger.notice("Initiating local transcription for model: \(localModel.displayName)")
@@ -37,7 +37,7 @@ class LocalTranscriptionService: TranscriptionService {
             
             guard FileManager.default.fileExists(atPath: modelURL.path) else {
                 logger.error("Model file not found at path: \(modelURL.path)")
-                throw WhisperError.couldNotInitializeContext
+                throw WhisperStateError.modelLoadFailed
             }
             
             logger.notice("Loading model: \(localModel.name)")
@@ -45,13 +45,13 @@ class LocalTranscriptionService: TranscriptionService {
                 whisperContext = try await WhisperContext.createContext(path: modelURL.path)
             } catch {
                 logger.error("Failed to load model: \(localModel.name) - \(error.localizedDescription)")
-                throw WhisperError.couldNotInitializeContext
+                throw WhisperStateError.modelLoadFailed
             }
         }
         
         guard let whisperContext = whisperContext else {
             logger.error("Cannot transcribe: Model could not be loaded")
-            throw WhisperError.couldNotInitializeContext
+            throw WhisperStateError.modelLoadFailed
         }
         
         // Read audio data

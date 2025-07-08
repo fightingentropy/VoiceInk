@@ -413,8 +413,12 @@ class WhisperState: NSObject, ObservableObject, AVAudioRecorderDelegate {
                     let duration = CMTimeGetSeconds(try await audioAsset.load(.duration))
                     
                     await MainActor.run {
+                        let errorDescription = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                        let recoverySuggestion = (error as? LocalizedError)?.recoverySuggestion ?? ""
+                        let fullErrorText = recoverySuggestion.isEmpty ? errorDescription : "\(errorDescription) \(recoverySuggestion)"
+                        
                         let failedTranscription = Transcription(
-                            text: "Transcription Failed: \(error.localizedDescription)",
+                            text: "Transcription Failed: \(fullErrorText)",
                             duration: duration,
                             enhancedText: nil,
                             audioFileURL: permanentURL.absoluteString
