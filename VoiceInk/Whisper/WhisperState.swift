@@ -7,7 +7,7 @@ import KeyboardShortcuts
 import os
 
 @MainActor
-class WhisperState: NSObject, ObservableObject, AVAudioRecorderDelegate {
+class WhisperState: NSObject, ObservableObject {
     @Published var isModelLoaded = false
     @Published var canTranscribe = false
     @Published var isRecording = false
@@ -227,32 +227,6 @@ class WhisperState: NSObject, ObservableObject, AVAudioRecorderDelegate {
 #endif
     }
     
-    // MARK: AVAudioRecorderDelegate
-    
-    nonisolated func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
-        if let error {
-            Task {
-                await handleRecError(error)
-            }
-        }
-    }
-    
-    private func handleRecError(_ error: Error) {
-        logger.error("Recording error: \(error.localizedDescription)")
-        isRecording = false
-    }
-    
-    nonisolated func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
-        Task {
-            await onDidFinishRecording(success: flag)
-        }
-    }
-    
-    private func onDidFinishRecording(success: Bool) {
-        if !success {
-            logger.error("Recording did not finish successfully")
-        }
-    }
 
     private func transcribeAudio(_ url: URL) async {
         if shouldCancelRecording {
