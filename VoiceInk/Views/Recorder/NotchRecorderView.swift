@@ -91,21 +91,34 @@ struct NotchRecorderView: View {
                         Spacer()
                         
                         Group {
-                            if whisperState.isProcessing {
-                                StaticVisualizer(color: .white)
-                            } else {
+                            if whisperState.isEnhancing {
+                                Text("Enhancing")
+                                    .foregroundColor(.white)
+                                    .font(.system(size: 10, weight: .medium, design: .default))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.5)
+                            } else if whisperState.isTranscribing {
+                                Text("Transcribing")
+                                    .foregroundColor(.white)
+                                    .font(.system(size: 10, weight: .medium, design: .default))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.5)
+                            } else if whisperState.isRecording {
                                 AudioVisualizer(
                                     audioMeter: recorder.audioMeter,
                                     color: .white,
                                     isActive: whisperState.isRecording
                                 )
+                                .scaleEffect(y: min(1.0, (menuBarHeight - 8) / 25), anchor: .center)
+                            } else {
+                                StaticVisualizer(color: .white)
+                                    .scaleEffect(y: min(1.0, (menuBarHeight - 8) / 25), anchor: .center)
                             }
                         }
-                        .scaleEffect(y: min(1.0, (menuBarHeight - 8) / 25), anchor: .center)
-                        .frame(width: 30)
+                        .frame(width: 70)
                         .padding(.trailing, 8)
                     }
-                    .frame(width: 64)
+                    .frame(width: 84)
                     .padding(.trailing, 16)
                 }
                 .frame(height: menuBarHeight)

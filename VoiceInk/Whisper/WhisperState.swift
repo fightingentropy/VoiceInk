@@ -21,6 +21,7 @@ class WhisperState: NSObject, ObservableObject {
     @Published var isProcessing = false
     @Published var shouldCancelRecording = false
     @Published var isTranscribing = false
+    @Published var isEnhancing = false
     @Published var isAutoCopyEnabled: Bool = UserDefaults.standard.object(forKey: "IsAutoCopyEnabled") as? Bool ?? true {
         didSet {
             UserDefaults.standard.set(isAutoCopyEnabled, forKey: "IsAutoCopyEnabled")
@@ -279,6 +280,8 @@ class WhisperState: NSObject, ObservableObject {
             var text = try await transcriptionService.transcribe(audioURL: url, model: model)
             let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
             
+            await MainActor.run { self.isTranscribing = false }
+
             if await checkCancellationAndCleanup() { return }
             
             text = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -304,7 +307,13 @@ class WhisperState: NSObject, ObservableObject {
                 do {
                     if await checkCancellationAndCleanup() { return }
 
+                    await MainActor.run { self.isEnhancing = true }
                     let textForAI = promptDetectionResult?.processedText ?? text
+                    defer {
+                        Task { @MainActor in
+                            self.isEnhancing = false
+                        }
+                    }
                     let (enhancedText, enhancementDuration) = try await enhancementService.enhance(textForAI)
                     let newTranscription = Transcription(
                         text: originalText,

@@ -47,14 +47,26 @@ struct MiniRecorderView: View {
                             .padding(.leading, 8)
                             
                             Group {
-                                if whisperState.isProcessing {
-                                    StaticVisualizer(color: .white)
-                                } else {
+                                if whisperState.isEnhancing {
+                                    Text("Enhancing")
+                                        .foregroundColor(.white)
+                                        .font(.system(size: 10, weight: .medium, design: .default))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.5)
+                                } else if whisperState.isTranscribing {
+                                    Text("Transcribing")
+                                        .foregroundColor(.white)
+                                        .font(.system(size: 10, weight: .medium, design: .default))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.5)
+                                } else if whisperState.isRecording {
                                     AudioVisualizer(
                                         audioMeter: recorder.audioMeter,
                                         color: .white,
                                         isActive: whisperState.isRecording
                                     )
+                                } else {
+                                    StaticVisualizer(color: .white)
                                 }
                             }
                             .frame(maxWidth: .infinity)

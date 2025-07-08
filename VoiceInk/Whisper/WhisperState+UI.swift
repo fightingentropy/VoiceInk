@@ -70,6 +70,7 @@ extension WhisperState {
             isRecording = false
             isVisualizerActive = false
             isProcessing = false
+            isEnhancing = false
             isTranscribing = false
             canTranscribe = true
             isMiniRecorderVisible = false
