@@ -281,7 +281,7 @@ class WhisperState: NSObject, ObservableObject {
             let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
             
             await MainActor.run { self.isTranscribing = false }
-
+            
             if await checkCancellationAndCleanup() { return }
             
             text = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -387,7 +387,10 @@ class WhisperState: NSObject, ObservableObject {
                 await promptDetectionService.restoreOriginalSettings(result, to: enhancementService)
             }
             
-            await cleanupAndDismiss()
+            await self.dismissMiniRecorder()
+            Task.detached(priority: .background) {
+                await self.cleanupModelResources()
+            }
             
         } catch {
             if let permanentURL = permanentURL {
@@ -434,7 +437,10 @@ class WhisperState: NSObject, ObservableObject {
                 }
             }
             
-            await cleanupAndDismiss()
+            await self.dismissMiniRecorder()
+            Task.detached(priority: .background) {
+                await self.cleanupModelResources()
+            }
         }
     }
 
@@ -548,8 +554,10 @@ class WhisperState: NSObject, ObservableObject {
     }
     
     private func cleanupAndDismiss() async {
-        await cleanupModelResources()
         await dismissMiniRecorder()
+        Task.detached(priority: .background) {
+            await self.cleanupModelResources()
+        }
     }
 }
 

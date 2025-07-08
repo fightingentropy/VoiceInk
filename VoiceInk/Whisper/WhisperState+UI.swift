@@ -75,8 +75,6 @@ extension WhisperState {
             canTranscribe = true
             isMiniRecorderVisible = false
         }
-
-        await cleanupModelResources()
     }
     
     func cancelRecording() async {
