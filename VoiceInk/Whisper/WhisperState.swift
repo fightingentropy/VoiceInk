@@ -305,6 +305,8 @@ class WhisperState: NSObject, ObservableObject, AVAudioRecorderDelegate {
             var text = try await transcriptionService.transcribe(audioURL: url, model: model)
             let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
             
+            if await checkCancellationAndCleanup() { return }
+            
             text = text.trimmingCharacters(in: .whitespacesAndNewlines)
             
             if UserDefaults.standard.bool(forKey: "IsWordReplacementEnabled") {
@@ -326,7 +328,8 @@ class WhisperState: NSObject, ObservableObject, AVAudioRecorderDelegate {
                enhancementService.isEnhancementEnabled,
                enhancementService.isConfigured {
                 do {
-                    if shouldCancelRecording { return }
+                    if await checkCancellationAndCleanup() { return }
+
                     let textForAI = promptDetectionResult?.processedText ?? text
                     let (enhancedText, enhancementDuration) = try await enhancementService.enhance(textForAI)
                     let newTranscription = Transcription(
@@ -382,6 +385,8 @@ class WhisperState: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
             text += " "
 
+            if await checkCancellationAndCleanup() { return }
+
             SoundManager.shared.playStopSound()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 
@@ -399,8 +404,7 @@ class WhisperState: NSObject, ObservableObject, AVAudioRecorderDelegate {
                 await promptDetectionService.restoreOriginalSettings(result, to: enhancementService)
             }
             
-            await dismissMiniRecorder()
-            await cleanupModelResources()
+            await cleanupAndDismiss()
             
         } catch {
             if let permanentURL = permanentURL {
@@ -443,8 +447,7 @@ class WhisperState: NSObject, ObservableObject, AVAudioRecorderDelegate {
                 }
             }
             
-            await cleanupModelResources()
-            await dismissMiniRecorder()
+            await cleanupAndDismiss()
         }
     }
 
@@ -547,6 +550,19 @@ class WhisperState: NSObject, ObservableObject, AVAudioRecorderDelegate {
         {
             setDefaultTranscriptionModel(updatedModel)
         }
+    }
+    
+    private func checkCancellationAndCleanup() async -> Bool {
+        if shouldCancelRecording {
+            await cleanupAndDismiss()
+            return true
+        }
+        return false
+    }
+    
+    private func cleanupAndDismiss() async {
+        await cleanupModelResources()
+        await dismissMiniRecorder()
     }
 }
 
