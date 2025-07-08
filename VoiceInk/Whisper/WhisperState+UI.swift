@@ -59,8 +59,6 @@ extension WhisperState {
             NotificationManager.shared.dismissNotification()
         }
         
-        shouldCancelRecording = true
-
         if isRecording {
             await recorder.stopRecording()
         }
@@ -77,7 +75,6 @@ extension WhisperState {
             isMiniRecorderVisible = false
         }
 
-        try? await Task.sleep(nanoseconds: 150_000_000)
         await cleanupModelResources()
     }
     

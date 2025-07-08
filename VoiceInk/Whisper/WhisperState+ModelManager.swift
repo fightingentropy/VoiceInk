@@ -290,8 +290,6 @@ extension WhisperState {
     // MARK: - Resource Management
     
     func cleanupModelResources() async {
-        try? await Task.sleep(nanoseconds: 300_000_000)
-        
         await whisperContext?.releaseResources()
         whisperContext = nil
         isModelLoaded = false
