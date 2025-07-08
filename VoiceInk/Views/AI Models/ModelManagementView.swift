@@ -112,7 +112,7 @@ struct ModelManagementView: View {
             .padding(.bottom, 12)
             
             if isShowingSettings {
-                PromptCustomizationView(whisperPrompt: whisperPrompt)
+                ModelSettingsView(whisperPrompt: whisperPrompt)
             } else {
                 VStack(spacing: 12) {
                     ForEach(filteredModels, id: \.id) { model in

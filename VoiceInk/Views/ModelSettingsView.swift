@@ -1,8 +1,9 @@
 import SwiftUI
 
-struct PromptCustomizationView: View {
+struct ModelSettingsView: View {
     @ObservedObject var whisperPrompt: WhisperPrompt
     @AppStorage("SelectedLanguage") private var selectedLanguage: String = "en"
+    @AppStorage("IsTextFormattingEnabled") private var isTextFormattingEnabled = true
     @State private var customPrompt: String = ""
     @State private var isEditing: Bool = false
     
@@ -61,6 +62,21 @@ struct PromptCustomizationView: View {
                             .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
                     )
             }
+
+            Divider().padding(.vertical, 4)
+
+            HStack {
+                Toggle(isOn: $isTextFormattingEnabled) {
+                    Text("Automatic text formatting")
+                }
+                .toggleStyle(.switch)
+                
+                InfoTip(
+                    title: "Automatic Text Formatting",
+                    message: "Apply intelligent text formatting to break large block of text into paragraphs."
+                )
+            }
+
         }
         .padding()
         .background(Color(NSColor.controlBackgroundColor))
