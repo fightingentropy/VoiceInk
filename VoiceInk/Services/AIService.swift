@@ -410,23 +410,20 @@ class AIService: ObservableObject {
     
     private func verifyElevenLabsAPIKey(_ key: String, completion: @escaping (Bool) -> Void) {
         let url = URL(string: "https://api.elevenlabs.io/v1/user")!
+
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue(key, forHTTPHeaderField: "xi-api-key")
-        
-        URLSession.shared.dataTask(with: request) { _, response, error in
-            if let error = error {
-                self.logger.error("ElevenLabs API key verification failed: \(error.localizedDescription)")
-                completion(false)
-                return
+
+        URLSession.shared.dataTask(with: request) { data, response, _ in
+            let isValid = (response as? HTTPURLResponse)?.statusCode == 200
+
+            if let data = data, let body = String(data: data, encoding: .utf8) {
+                self.logger.info("ElevenLabs verification response: \(body)")
             }
-            
-            if let httpResponse = response as? HTTPURLResponse {
-                completion(httpResponse.statusCode == 200)
-            } else {
-                completion(false)
-            }
+
+            completion(isValid)
         }.resume()
     }
     

@@ -9,6 +9,7 @@ class ElevenLabsTranscriptionService {
         var request = URLRequest(url: config.url)
         request.httpMethod = "POST"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue(config.apiKey, forHTTPHeaderField: "xi-api-key")
         
         let body = try createElevenLabsRequestBody(audioURL: audioURL, modelName: config.modelName, boundary: boundary)

@@ -59,10 +59,8 @@ class DeepgramTranscriptionService {
         
         queryItems.append(contentsOf: [
             URLQueryItem(name: "smart_format", value: "true"),
-            URLQueryItem(name: "dictation", value: "true"),
             URLQueryItem(name: "punctuate", value: "true"),
-            URLQueryItem(name: "paragraphs", value: "true"),
-            URLQueryItem(name: "filler_words", value: "false")
+            URLQueryItem(name: "paragraphs", value: "true")
         ])
         
         if selectedLanguage != "auto" && !selectedLanguage.isEmpty {
