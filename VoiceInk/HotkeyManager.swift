@@ -26,6 +26,11 @@ class HotkeyManager: ObservableObject {
     private var whisperState: WhisperState
     private var miniRecorderShortcutManager: MiniRecorderShortcutManager
     
+    // MARK: - Helper Properties
+    private var canProcessHotkeyAction: Bool {
+        whisperState.recordingState != .transcribing && whisperState.recordingState != .enhancing
+    }
+    
     // NSEvent monitoring for modifier keys
     private var globalEventMonitor: Any?
     private var localEventMonitor: Any?
@@ -246,7 +251,7 @@ class HotkeyManager: ObservableObject {
             if isHandsFreeMode {
                 isHandsFreeMode = false
                 Task { @MainActor in
-                    guard !whisperState.isTranscribing && !whisperState.isProcessing else { return }
+                    guard canProcessHotkeyAction else { return }
                     await whisperState.handleToggleMiniRecorder()
                 }
                 return
@@ -254,7 +259,7 @@ class HotkeyManager: ObservableObject {
             
             if !whisperState.isMiniRecorderVisible {
                 Task { @MainActor in
-                    guard !whisperState.isTranscribing && !whisperState.isProcessing else { return }
+                    guard canProcessHotkeyAction else { return }
                     await whisperState.handleToggleMiniRecorder()
                 }
             }
@@ -268,7 +273,7 @@ class HotkeyManager: ObservableObject {
                     isHandsFreeMode = true
                 } else {
                     Task { @MainActor in
-                        guard !whisperState.isTranscribing && !whisperState.isProcessing else { return }
+                        guard canProcessHotkeyAction else { return }
                         await whisperState.handleToggleMiniRecorder()
                     }
                 }
@@ -291,13 +296,13 @@ class HotkeyManager: ObservableObject {
         
         if isShortcutHandsFreeMode {
             isShortcutHandsFreeMode = false
-            guard !whisperState.isTranscribing && !whisperState.isProcessing else { return }
+            guard canProcessHotkeyAction else { return }
             await whisperState.handleToggleMiniRecorder()
             return
         }
         
         if !whisperState.isMiniRecorderVisible {
-            guard !whisperState.isTranscribing && !whisperState.isProcessing else { return }
+            guard canProcessHotkeyAction else { return }
             await whisperState.handleToggleMiniRecorder()
         }
     }
@@ -314,7 +319,7 @@ class HotkeyManager: ObservableObject {
             if pressDuration < briefPressThreshold {
                 isShortcutHandsFreeMode = true
             } else {
-                guard !whisperState.isTranscribing && !whisperState.isProcessing else { return }
+                guard canProcessHotkeyAction else { return }
                 await whisperState.handleToggleMiniRecorder()
             }
         }

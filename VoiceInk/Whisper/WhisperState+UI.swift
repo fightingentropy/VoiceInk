@@ -36,7 +36,7 @@ extension WhisperState {
     
     func toggleMiniRecorder() async {
         if isMiniRecorderVisible {
-            if isRecording {
+            if recordingState == .recording {
                 await toggleRecord()
             } else {
                 await cancelRecording()
@@ -59,7 +59,7 @@ extension WhisperState {
             NotificationManager.shared.dismissNotification()
         }
         
-        if isRecording {
+        if recordingState == .recording {
             await recorder.stopRecording()
         }
 
@@ -67,12 +67,7 @@ extension WhisperState {
         hideRecorderPanel()
         
         await MainActor.run {
-            isRecording = false
-            isVisualizerActive = false
-            isProcessing = false
-            isEnhancing = false
-            isTranscribing = false
-            canTranscribe = true
+            recordingState = .idle
             isMiniRecorderVisible = false
         }
     }

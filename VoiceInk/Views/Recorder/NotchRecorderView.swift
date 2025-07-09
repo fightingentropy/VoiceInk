@@ -31,95 +31,119 @@ struct NotchRecorderView: View {
         return 200
     }
     
+    private var leftSection: some View {
+        HStack(spacing: 8) {
+            let isRecording = whisperState.recordingState == .recording
+            let isProcessing = whisperState.recordingState == .transcribing || whisperState.recordingState == .enhancing
+            
+            NotchRecordButton(
+                isRecording: isRecording,
+                isProcessing: isProcessing
+            ) {
+                Task { await whisperState.toggleRecord() }
+            }
+            .frame(width: 22)
+            
+            rightToggleButton
+            
+            Spacer()
+        }
+        .frame(width: 64)
+        .padding(.leading, 16)
+    }
+    
+    private var rightToggleButton: some View {
+        Group {
+            if powerModeManager.isPowerModeEnabled {
+                NotchToggleButton(
+                    isEnabled: powerModeManager.isPowerModeEnabled,
+                    icon: powerModeManager.currentActiveConfiguration.emoji,
+                    color: .orange,
+                    disabled: false
+                ) {
+                    showPowerModePopover.toggle()
+                }
+                .frame(width: 22)
+                .popover(isPresented: $showPowerModePopover, arrowEdge: .bottom) {
+                    PowerModePopover()
+                }
+            } else {
+                NotchToggleButton(
+                    isEnabled: enhancementService.isEnhancementEnabled,
+                    icon: enhancementService.activePrompt?.icon.rawValue ?? "brain",
+                    color: .blue,
+                    disabled: false
+                ) {
+                    if enhancementService.isEnhancementEnabled {
+                        showEnhancementPromptPopover.toggle()
+                    } else {
+                        enhancementService.isEnhancementEnabled = true
+                    }
+                }
+                .frame(width: 22)
+                .popover(isPresented: $showEnhancementPromptPopover, arrowEdge: .bottom) {
+                    EnhancementPromptPopover()
+                        .environmentObject(enhancementService)
+                }
+            }
+        }
+    }
+    
+    private var centerSection: some View {
+        Rectangle()
+            .fill(Color.clear)
+            .frame(width: exactNotchWidth)
+            .contentShape(Rectangle())
+    }
+    
+    private var rightSection: some View {
+        HStack(spacing: 0) {
+            Spacer()
+            statusDisplay
+        }
+        .frame(width: 84)
+        .padding(.trailing, 16)
+    }
+    
+    private var statusDisplay: some View {
+        Group {
+            let currentState = whisperState.recordingState
+            
+            if currentState == .enhancing {
+                Text("Enhancing")
+                    .foregroundColor(.white)
+                    .font(.system(size: 10, weight: .medium, design: .default))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            } else if currentState == .transcribing {
+                Text("Transcribing")
+                    .foregroundColor(.white)
+                    .font(.system(size: 10, weight: .medium, design: .default))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            } else if currentState == .recording {
+                AudioVisualizer(
+                    audioMeter: recorder.audioMeter,
+                    color: .white,
+                    isActive: currentState == .recording
+                )
+                .scaleEffect(y: min(1.0, (menuBarHeight - 8) / 25), anchor: .center)
+            } else {
+                StaticVisualizer(color: .white)
+                    .scaleEffect(y: min(1.0, (menuBarHeight - 8) / 25), anchor: .center)
+            }
+        }
+        .frame(width: 70)
+        .padding(.trailing, 8)
+    }
+    
     var body: some View {
         Group {
             if windowManager.isVisible {
                 HStack(spacing: 0) {
-                    HStack(spacing: 8) {
-                        NotchRecordButton(
-                            isRecording: whisperState.isRecording,
-                            isProcessing: whisperState.isProcessing
-                        ) {
-                            Task { await whisperState.toggleRecord() }
-                        }
-                        .frame(width: 22)
-                        
-                        if powerModeManager.isPowerModeEnabled {
-                            NotchToggleButton(
-                                isEnabled: powerModeManager.isPowerModeEnabled,
-                                icon: powerModeManager.currentActiveConfiguration.emoji,
-                                color: .orange,
-                                disabled: false
-                            ) {
-                                showPowerModePopover.toggle()
-                            }
-                            .frame(width: 22)
-                            .popover(isPresented: $showPowerModePopover, arrowEdge: .bottom) {
-                                PowerModePopover()
-                            }
-                        } else {
-                            NotchToggleButton(
-                                isEnabled: enhancementService.isEnhancementEnabled,
-                                icon: enhancementService.activePrompt?.icon.rawValue ?? "brain",
-                                color: .blue,
-                                disabled: false
-                            ) {
-                                if enhancementService.isEnhancementEnabled {
-                                    showEnhancementPromptPopover.toggle()
-                                } else {
-                                    enhancementService.isEnhancementEnabled = true
-                                }
-                            }
-                            .frame(width: 22)
-                            .popover(isPresented: $showEnhancementPromptPopover, arrowEdge: .bottom) {
-                                EnhancementPromptPopover()
-                                    .environmentObject(enhancementService)
-                            }
-                        }
-                        
-                        Spacer()
-                    }
-                    .frame(width: 64)
-                    .padding(.leading, 16)
-                    
-                    Rectangle()
-                        .fill(Color.clear)
-                        .frame(width: exactNotchWidth)
-                        .contentShape(Rectangle())
-                    
-                    HStack(spacing: 0) {
-                        Spacer()
-                        
-                        Group {
-                            if whisperState.isEnhancing {
-                                Text("Enhancing")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 10, weight: .medium, design: .default))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.5)
-                            } else if whisperState.isTranscribing {
-                                Text("Transcribing")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 10, weight: .medium, design: .default))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.5)
-                            } else if whisperState.isRecording {
-                                AudioVisualizer(
-                                    audioMeter: recorder.audioMeter,
-                                    color: .white,
-                                    isActive: whisperState.isRecording
-                                )
-                                .scaleEffect(y: min(1.0, (menuBarHeight - 8) / 25), anchor: .center)
-                            } else {
-                                StaticVisualizer(color: .white)
-                                    .scaleEffect(y: min(1.0, (menuBarHeight - 8) / 25), anchor: .center)
-                            }
-                        }
-                        .frame(width: 70)
-                        .padding(.trailing, 8)
-                    }
-                    .frame(width: 84)
-                    .padding(.trailing, 16)
+                    leftSection
+                    centerSection
+                    rightSection
                 }
                 .frame(height: menuBarHeight)
                 .frame(maxWidth: windowManager.isVisible ? .infinity : 0)
