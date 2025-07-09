@@ -62,7 +62,13 @@ class LocalTranscriptionService: TranscriptionService {
         await whisperContext.setPrompt(currentPrompt)
         
         // Transcribe
-        await whisperContext.fullTranscribe(samples: data)
+        let success = await whisperContext.fullTranscribe(samples: data)
+        
+        guard success else {
+            logger.error("Core transcription engine failed (whisper_full).")
+            throw WhisperStateError.whisperCoreFailed
+        }
+        
         var text = await whisperContext.getTranscription()
         
         if UserDefaults.standard.object(forKey: "IsTextFormattingEnabled") as? Bool ?? true {

@@ -13,6 +13,7 @@ actor WhisperContext {
     private var languageCString: [CChar]?
     private var prompt: String?
     private var promptCString: [CChar]?
+    private var vadModelPath: String?
     private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "WhisperContext")
 
     private init() {}
@@ -27,12 +28,13 @@ actor WhisperContext {
         }
     }
 
-    func fullTranscribe(samples: [Float]) async {
-        guard let context = context else { return }
+    func fullTranscribe(samples: [Float]) -> Bool {
+        guard let context = context else { return false }
         
         let maxThreads = max(1, min(8, cpuCount() - 2))
         var params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY)
         
+        // Read language directly from UserDefaults
         let selectedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "auto"
         if selectedLanguage != "auto" {
             languageCString = Array(selectedLanguage.utf8CString)
@@ -70,7 +72,7 @@ actor WhisperContext {
 
         whisper_reset_timings(context)
         
-        if let vadModelPath = await VADModelManager.shared.getModelPath() {
+        if let vadModelPath = self.vadModelPath {
             params.vad = true
             params.vad_model_path = (vadModelPath as NSString).utf8String
             
@@ -86,14 +88,18 @@ actor WhisperContext {
             params.vad = false
         }
         
+        var success = true
         samples.withUnsafeBufferPointer { samplesBuffer in
             if whisper_full(context, params, samplesBuffer.baseAddress, Int32(samplesBuffer.count)) != 0 {
-                self.logger.error("Failed to run whisper_full")
+                self.logger.error("Failed to run whisper_full. VAD enabled: \(params.vad, privacy: .public)")
+                success = false
             }
         }
         
         languageCString = nil
         promptCString = nil
+        
+        return success
     }
 
     func getTranscription() -> String {
@@ -109,6 +115,13 @@ actor WhisperContext {
     static func createContext(path: String) async throws -> WhisperContext {
         let whisperContext = WhisperContext()
         try await whisperContext.initializeModel(path: path)
+        
+        // Asynchronously prepare VAD model path in the background
+        Task.detached(priority: .background) {
+            let path = await VADModelManager.shared.getModelPath()
+            await whisperContext.setVADModelPath(path)
+        }
+        
         return whisperContext
     }
     
@@ -125,6 +138,10 @@ actor WhisperContext {
             logger.error("❌ Couldn't load model at \(path)")
             throw WhisperStateError.modelLoadFailed
         }
+    }
+    
+    private func setVADModelPath(_ path: String?) {
+        self.vadModelPath = path
     }
 
     func releaseResources() {
