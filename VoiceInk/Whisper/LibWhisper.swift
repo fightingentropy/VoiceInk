@@ -72,7 +72,9 @@ actor WhisperContext {
 
         whisper_reset_timings(context)
         
-        if let vadModelPath = self.vadModelPath {
+        // Configure VAD if enabled by user and model is available
+        let isVADEnabled = UserDefaults.standard.object(forKey: "IsVADEnabled") as? Bool ?? true
+        if isVADEnabled, let vadModelPath = self.vadModelPath {
             params.vad = true
             params.vad_model_path = (vadModelPath as NSString).utf8String
             
@@ -91,7 +93,7 @@ actor WhisperContext {
         var success = true
         samples.withUnsafeBufferPointer { samplesBuffer in
             if whisper_full(context, params, samplesBuffer.baseAddress, Int32(samplesBuffer.count)) != 0 {
-                self.logger.error("Failed to run whisper_full. VAD enabled: \(params.vad, privacy: .public)")
+                logger.error("Failed to run whisper_full. VAD enabled: \(params.vad)")
                 success = false
             }
         }
@@ -116,11 +118,9 @@ actor WhisperContext {
         let whisperContext = WhisperContext()
         try await whisperContext.initializeModel(path: path)
         
-        // Asynchronously prepare VAD model path in the background
-        Task.detached(priority: .background) {
-            let path = await VADModelManager.shared.getModelPath()
-            await whisperContext.setVADModelPath(path)
-        }
+        // Load VAD model from bundle resources
+        let vadModelPath = await VADModelManager.shared.getModelPath()
+        await whisperContext.setVADModelPath(vadModelPath)
         
         return whisperContext
     }
@@ -135,13 +135,16 @@ actor WhisperContext {
         if let context {
             self.context = context
         } else {
-            logger.error("❌ Couldn't load model at \(path)")
+            logger.error("Couldn't load model at \(path)")
             throw WhisperStateError.modelLoadFailed
         }
     }
     
     private func setVADModelPath(_ path: String?) {
         self.vadModelPath = path
+        if path != nil {
+            logger.info("VAD model loaded from bundle resources")
+        }
     }
 
     func releaseResources() {

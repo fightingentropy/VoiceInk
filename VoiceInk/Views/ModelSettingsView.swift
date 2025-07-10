@@ -4,6 +4,7 @@ struct ModelSettingsView: View {
     @ObservedObject var whisperPrompt: WhisperPrompt
     @AppStorage("SelectedLanguage") private var selectedLanguage: String = "en"
     @AppStorage("IsTextFormattingEnabled") private var isTextFormattingEnabled = true
+    @AppStorage("IsVADEnabled") private var isVADEnabled = true
     @State private var customPrompt: String = ""
     @State private var isEditing: Bool = false
     
@@ -74,6 +75,18 @@ struct ModelSettingsView: View {
                 InfoTip(
                     title: "Automatic Text Formatting",
                     message: "Apply intelligent text formatting to break large block of text into paragraphs."
+                )
+            }
+
+            HStack {
+                Toggle(isOn: $isVADEnabled) {
+                    Text("Voice Activity Detection (VAD)")
+                }
+                .toggleStyle(.switch)
+                
+                InfoTip(
+                    title: "Voice Activity Detection",
+                    message: "Detects speech segments and filters out silence to reduce hallucinations in local Whisper models."
                 )
             }
 
