@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "mcp__tavily-mcp__tavily-extract",
-      "mcp__tavily-mcp__tavily-search"
-    ],
-    "deny": []
-  }
-}
