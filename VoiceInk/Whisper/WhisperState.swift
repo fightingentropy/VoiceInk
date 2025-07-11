@@ -375,6 +375,13 @@ class WhisperState: NSObject, ObservableObject {
                 logger.error("❌ Could not create a record for the failed transcription: \(error.localizedDescription)")
             }
             
+            await MainActor.run {
+                NotificationManager.shared.showNotification(
+                    title: "Transcription Failed",
+                    type: .error
+                )
+            }
+            
             await self.dismissMiniRecorder()
         }
     }
