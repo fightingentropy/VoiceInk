@@ -4,6 +4,7 @@ import AppKit
 
 extension KeyboardShortcuts.Name {
     static let escapeRecorder = Self("escapeRecorder")
+    static let cancelRecorder = Self("cancelRecorder")
     static let toggleEnhancement = Self("toggleEnhancement")
     // Power Mode selection shortcuts
     static let selectPowerMode1 = Self("selectPowerMode1")
@@ -22,26 +23,33 @@ class MiniRecorderShortcutManager: ObservableObject {
     private var whisperState: WhisperState
     private var visibilityTask: Task<Void, Never>?
     
-    // Add double-press Escape handling properties
+    private var isCancelHandlerSetup = false
+    
+    // Double-tap Escape handling (default behavior)
     private var escFirstPressTime: Date? = nil
     private let escSecondPressThreshold: TimeInterval = 1.5 // seconds
     private var isEscapeHandlerSetup = false
+    private var escapeTimeoutTask: Task<Void, Never>?
     
     init(whisperState: WhisperState) {
         self.whisperState = whisperState
         setupVisibilityObserver()
         setupEnhancementShortcut()
+        setupEscapeHandlerOnce() // Set up handler once and never remove it
+        setupCancelHandlerOnce() // Set up handler once and never remove it
     }
     
     private func setupVisibilityObserver() {
         visibilityTask = Task { @MainActor in
             for await isVisible in whisperState.$isMiniRecorderVisible.values {
                 if isVisible {
-                    setupEscapeShortcut()
+                    activateEscapeShortcut() // Only manage shortcut binding, not handler
+                    activateCancelShortcut() // Only manage shortcut binding, not handler  
                     KeyboardShortcuts.setShortcut(.init(.e, modifiers: .command), for: .toggleEnhancement)
                     setupPowerModeShortcuts()
                 } else {
-                    removeEscapeShortcut()
+                    deactivateEscapeShortcut()
+                    deactivateCancelShortcut()
                     removeEnhancementShortcut()
                     removePowerModeShortcuts()
                 }
@@ -49,14 +57,18 @@ class MiniRecorderShortcutManager: ObservableObject {
         }
     }
     
-    private func setupEscapeShortcut() {
-        KeyboardShortcuts.setShortcut(.init(.escape), for: .escapeRecorder)
+    // Set up escape handler ONCE and never remove it
+    private func setupEscapeHandlerOnce() {
         guard !isEscapeHandlerSetup else { return }
         isEscapeHandlerSetup = true
+        
         KeyboardShortcuts.onKeyDown(for: .escapeRecorder) { [weak self] in
             Task { @MainActor in
                 guard let self = self,
                       await self.whisperState.isMiniRecorderVisible else { return }
+                
+                // Don't process escape if custom shortcut is configured (mutually exclusive)
+                guard KeyboardShortcuts.getShortcut(for: .cancelRecorder) == nil else { return }
                 
                 let now = Date()
                 if let firstTime = self.escFirstPressTime,
@@ -72,7 +84,7 @@ class MiniRecorderShortcutManager: ObservableObject {
                         type: .info,
                         duration: self.escSecondPressThreshold
                     )
-                    Task { [weak self] in
+                    self.escapeTimeoutTask = Task { [weak self] in
                         try? await Task.sleep(nanoseconds: UInt64((self?.escSecondPressThreshold ?? 1.5) * 1_000_000_000))
                         await MainActor.run {
                             self?.escFirstPressTime = nil
@@ -83,9 +95,59 @@ class MiniRecorderShortcutManager: ObservableObject {
         }
     }
     
-    private func removeEscapeShortcut() {
+    // Only manage shortcut binding, never touch the handler
+    private func activateEscapeShortcut() {
+        // Don't activate escape if custom shortcut is configured (mutually exclusive)
+        guard KeyboardShortcuts.getShortcut(for: .cancelRecorder) == nil else { 
+            return 
+        }
+        KeyboardShortcuts.setShortcut(.init(.escape), for: .escapeRecorder)
+    }
+    
+    // Set up cancel handler ONCE and never remove it
+    private func setupCancelHandlerOnce() {
+        guard !isCancelHandlerSetup else { return }
+        isCancelHandlerSetup = true
+        
+        KeyboardShortcuts.onKeyDown(for: .cancelRecorder) { [weak self] in
+            Task { @MainActor in
+                guard let self = self,
+                      await self.whisperState.isMiniRecorderVisible else { return }
+                
+                // Only process if custom shortcut is actually configured
+                guard KeyboardShortcuts.getShortcut(for: .cancelRecorder) != nil else { return }
+                
+                SoundManager.shared.playEscSound()
+                await self.whisperState.dismissMiniRecorder()
+            }
+        }
+    }
+    
+    // Only manage whether shortcut should be active, never touch the handler
+    private func activateCancelShortcut() {
+        // Nothing to do - shortcut is set by user in settings
+        // Handler is already set up permanently and will check if shortcut exists
+    }
+    
+    // Only remove shortcut binding, never touch the handler
+    private func deactivateEscapeShortcut() {
         KeyboardShortcuts.setShortcut(nil, for: .escapeRecorder)
-        escFirstPressTime = nil
+        escFirstPressTime = nil // Reset state for next session
+        escapeTimeoutTask?.cancel()
+        escapeTimeoutTask = nil
+    }
+    
+    // Only deactivate, never remove the handler
+    private func deactivateCancelShortcut() {
+        // Don't remove the shortcut itself - that's managed by user settings
+        // Handler remains active but will check if shortcut exists
+    }
+    
+    // Public method to refresh cancel shortcut when settings change
+    func refreshCancelShortcut() {
+        // Handlers are set up once and never removed
+        // They check internally whether they should process based on shortcut existence
+        // This maintains mutually exclusive behavior without handler duplication
     }
     
     private func setupEnhancementShortcut() {
@@ -174,7 +236,8 @@ class MiniRecorderShortcutManager: ObservableObject {
     deinit {
         visibilityTask?.cancel()
         Task { @MainActor in
-            removeEscapeShortcut()
+            deactivateEscapeShortcut()
+            deactivateCancelShortcut()
             removeEnhancementShortcut()
             removePowerModeShortcuts()
         }
