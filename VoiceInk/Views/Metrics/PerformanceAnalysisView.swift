@@ -21,6 +21,8 @@ struct PerformanceAnalysisView: View {
                 VStack(alignment: .leading, spacing: 30) {
                     summarySection
                     
+                    systemInfoSection
+                    
                     if !analysis.transcriptionModels.isEmpty {
                         transcriptionPerformanceSection
                     }
@@ -32,13 +34,13 @@ struct PerformanceAnalysisView: View {
                 .padding()
             }
         }
-        .frame(minWidth: 550, idealWidth: 600, maxWidth: 700, minHeight: 450, idealHeight: 600, maxHeight: 800)
+        .frame(minWidth: 550, idealWidth: 600, maxWidth: 700, minHeight: 600, idealHeight: 750, maxHeight: 900)
         .background(Color(.windowBackgroundColor))
     }
 
     private var header: some View {
         HStack {
-            Text("Performance Benchmark")
+            Text("Performance Analysis")
                 .font(.title2)
                 .fontWeight(.bold)
             Spacer()
@@ -71,6 +73,20 @@ struct PerformanceAnalysisView: View {
                 label: "Enhanced",
                 color: .mint
             )
+        }
+    }
+
+    private var systemInfoSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("System Information")
+                .font(.system(.title2, design: .default, weight: .bold))
+                .foregroundColor(.primary)
+
+            HStack(spacing: 12) {
+                SystemInfoCard(label: "Device", value: getMacModel())
+                SystemInfoCard(label: "Processor", value: getCPUInfo())
+                SystemInfoCard(label: "Memory", value: getMemoryInfo())
+            }
         }
     }
 
@@ -193,6 +209,30 @@ struct PerformanceAnalysisView: View {
     }
 }
 
+// MARK: - Helper Functions for System Info
+
+private func getMacModel() -> String {
+    var size = 0
+    sysctlbyname("hw.model", nil, &size, nil, 0)
+    var machine = [CChar](repeating: 0, count: size)
+    sysctlbyname("hw.model", &machine, &size, nil, 0)
+    return String(cString: machine)
+}
+
+private func getCPUInfo() -> String {
+    var size = 0
+    sysctlbyname("machdep.cpu.brand_string", nil, &size, nil, 0)
+    var buffer = [CChar](repeating: 0, count: size)
+    sysctlbyname("machdep.cpu.brand_string", &buffer, &size, nil, 0)
+    return String(cString: buffer)
+}
+
+private func getMemoryInfo() -> String {
+    let totalMemory = ProcessInfo.processInfo.physicalMemory
+    return ByteCountFormatter.string(fromByteCount: Int64(totalMemory), countStyle: .memory)
+}
+
+
 // MARK: - Subviews
 
 struct SummaryCard: View {
@@ -212,6 +252,47 @@ struct SummaryCard: View {
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+struct InfoRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.headline)
+                .foregroundColor(.secondary)
+            Spacer()
+            Text(value)
+                .font(.body)
+                .foregroundColor(.primary)
+        }
+    }
+}
+
+struct SystemInfoCard: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.caption.weight(.medium))
+                .foregroundColor(.secondary)
+                .textCase(.uppercase)
+            
+            Text(value)
+                .font(.system(.body, design: .default, weight: .semibold))
+                .foregroundColor(.primary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
+        .background(CardBackground(isSelected: false))
+        .cornerRadius(8)
     }
 }
 
