@@ -4,28 +4,21 @@
         <title>VoiceInk Releases</title>
         <item>
             <title>1.38</title>
-            <pubDate>Sat, 4 June 2025 12:20:00 +0545</pubDate>
-            <sparkle:version>138</sparkle:version>
-            <sparkle:shortVersionString>1.38</sparkle:shortVersionString>
+            <pubDate>Sat, 11 June 2025 12:20:00 +0545</pubDate>
+            <sparkle:version>140</sparkle:version>
+            <sparkle:shortVersionString>1.40</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
-                <h3>What's New in Version 1.38 🚀⚡</h3>
+                <h3>What's New in Version 1.40 🚀⚡</h3>
                             <ul>
-                                <li>🔧 Fixed fallback window issue</li>
-                                <li>📋 Added toggle for fallback window in the settings</li>
-                            </ul> 
-                    <h3>What's New in Version 1.37 🚀⚡</h3>
-                            <ul>
-                                <li>🔧 Fixed text Hallucination Issues with Large models</li>
-                                <li>📚 Unified Hotkey for both custom shortcuts & Push-to-talk.</li>
-                                <li>📋 Added a fallback window to handle paste fails</li>
-                                <li>📹 Added support for Video files for file based transcription</li>
-                                <li>💡 Fixed Mic Blinking Issues</li>
-                                <li>🔌 Fixed openRouter model issues with Power Mode</li>
-                                <li>🔇 Disabled audio tagging with eleven labs scribe</li>
-                          </ul> 
+                              <li>Fixed transcription failing due to VAD model</li>
+                              <li>Added toggle for auto-text formatting</li>
+                              <li>Added time logging for transcripts in History</li>
+                              <li>Added Transcription states in recorder view</li>
+                              <li>Custom shortcut for cancelling recording</li>
+                            </ul>
             ]]></description>
-           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.38/VoiceInk.dmg" length="7525541" type="application/octet-stream" sparkle:edSignature="nkQboyGzMfa4Kc/Nf6c89mXWsO/hsNsFw+ZPy6b78p3MdDWAHfnjddVdBeygzARud+B/lHlp3eAp7if1ftbeAw=="/>
+           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.40/VoiceInk.dmg" length="8464160" type="application/octet-stream" sparkle:edSignature="TgGHoSYQ2vLrd6hizpLlIOqT1axqrluoz+/AHLwk4vVlzS0eMuCFXRfYqkVGrrFXq2taFf3s4u5ugeiEMY9ABA=="/>
         </item>
     </channel>
 </rss>
