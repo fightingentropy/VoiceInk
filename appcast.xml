@@ -3,10 +3,10 @@
     <channel>
         <title>VoiceInk Releases</title>
         <item>
-            <title>1.38</title>
+            <title>1.40</title>
             <pubDate>Sat, 11 June 2025 12:20:00 +0545</pubDate>
-            <sparkle:version>138</sparkle:version>
-            <sparkle:shortVersionString>1.38</sparkle:shortVersionString>
+            <sparkle:version>140</sparkle:version>
+            <sparkle:shortVersionString>1.40</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
                 <h3>What's New in Version 1.40 🚀⚡</h3>
