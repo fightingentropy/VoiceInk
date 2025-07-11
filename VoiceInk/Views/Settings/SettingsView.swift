@@ -16,6 +16,7 @@ struct SettingsView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
     @State private var showResetOnboardingAlert = false
     @State private var currentShortcut = KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder)
+    @State private var isCustomCancelEnabled = false
     
     var body: some View {
         ScrollView {
@@ -60,12 +61,50 @@ struct SettingsView: View {
                                 .foregroundColor(.accentColor)
                             }
                         }
-                        
+
                         Text("Quick tap to start hands-free recording (tap again to stop). Press and hold for push-to-talk (release to stop recording).")
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
-                            .padding(.top, 8)
+
+                        Divider()
+
+                        // Cancel Recording Override Toggle
+                        Toggle(isOn: $isCustomCancelEnabled) {
+                            Text("Override default double-tap Escape cancellation")
+                        }
+                        .toggleStyle(.switch)
+                        .onChange(of: isCustomCancelEnabled) { _, newValue in
+                            if !newValue {
+                                KeyboardShortcuts.setShortcut(nil, for: .cancelRecorder)
+                            }
+                        }
+                        
+                        // Show shortcut recorder only when override is enabled
+                        if isCustomCancelEnabled {
+                            HStack(spacing: 12) {
+                                Text("Custom Cancel Shortcut")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.secondary)
+                                
+                                KeyboardShortcuts.Recorder(for: .cancelRecorder)
+                                    .controlSize(.small)
+                                    .onChange(of: KeyboardShortcuts.getShortcut(for: .cancelRecorder)) { _, _ in
+                                        // Refresh the shortcut handler when it changes
+                                        hotkeyManager.refreshCancelRecordingShortcut()
+                                    }
+                                
+                                Spacer()
+                            }
+                            .padding(.leading, 16)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+
+                            Text("By default, double-tap Escape to cancel recordings. Enable override above for single-press custom cancellation (useful for Vim users).")
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.top, 8)
                     }
                 }
 
@@ -260,6 +299,10 @@ struct SettingsView: View {
             .padding(.vertical, 6)
         }
         .background(Color(NSColor.controlBackgroundColor))
+        .onAppear {
+            // Initialize custom cancel shortcut state from stored preferences
+            isCustomCancelEnabled = KeyboardShortcuts.getShortcut(for: .cancelRecorder) != nil
+        }
         .alert("Reset Onboarding", isPresented: $showResetOnboardingAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Reset", role: .destructive) {
