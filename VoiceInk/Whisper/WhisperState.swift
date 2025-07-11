@@ -12,6 +12,7 @@ enum RecordingState: Equatable {
     case recording
     case transcribing
     case enhancing
+    case busy
 }
 
 @MainActor
@@ -349,9 +350,6 @@ class WhisperState: NSObject, ObservableObject {
             }
             
             await self.dismissMiniRecorder()
-            Task.detached(priority: .background) {
-                await self.cleanupModelResources()
-            }
             
         } catch {
             do {
@@ -377,17 +375,7 @@ class WhisperState: NSObject, ObservableObject {
                 logger.error("❌ Could not create a record for the failed transcription: \(error.localizedDescription)")
             }
             
-            await MainActor.run {
-                NotificationManager.shared.showNotification(
-                    title: "Transcription Failed",
-                    type: .error
-                )
-            }
-            
             await self.dismissMiniRecorder()
-            Task.detached(priority: .background) {
-                await self.cleanupModelResources()
-            }
         }
     }
 
@@ -397,7 +385,7 @@ class WhisperState: NSObject, ObservableObject {
     
     private func checkCancellationAndCleanup() async -> Bool {
         if shouldCancelRecording {
-            await cleanupAndDismiss()
+            await dismissMiniRecorder()
             return true
         }
         return false
@@ -405,9 +393,6 @@ class WhisperState: NSObject, ObservableObject {
     
     private func cleanupAndDismiss() async {
         await dismissMiniRecorder()
-        Task.detached(priority: .background) {
-            await self.cleanupModelResources()
-        }
     }
 }
 

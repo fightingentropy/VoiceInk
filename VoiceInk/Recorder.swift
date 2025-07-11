@@ -153,7 +153,7 @@ class Recorder: ObservableObject {
         }
         deviceManager.isRecordingActive = false
     }
-    
+
     private func updateAudioMeter() {
         guard let recorder = recorder else { return }
         recorder.updateMeters()
