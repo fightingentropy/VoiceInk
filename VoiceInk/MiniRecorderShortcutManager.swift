@@ -32,7 +32,6 @@ class MiniRecorderShortcutManager: ObservableObject {
     private var escapeTimeoutTask: Task<Void, Never>?
     
     init(whisperState: WhisperState) {
-        print("🔍 DEBUG: MiniRecorderShortcutManager INIT called")
         self.whisperState = whisperState
         setupVisibilityObserver()
         setupEnhancementShortcut()
@@ -62,7 +61,6 @@ class MiniRecorderShortcutManager: ObservableObject {
     private func setupEscapeHandlerOnce() {
         guard !isEscapeHandlerSetup else { return }
         isEscapeHandlerSetup = true
-        print("🔍 DEBUG: setupEscapeHandlerOnce - Setting up PERMANENT escape handler")
         
         KeyboardShortcuts.onKeyDown(for: .escapeRecorder) { [weak self] in
             Task { @MainActor in
@@ -73,15 +71,12 @@ class MiniRecorderShortcutManager: ObservableObject {
                 guard KeyboardShortcuts.getShortcut(for: .cancelRecorder) == nil else { return }
                 
                 let now = Date()
-                print("🔍 DEBUG: Escape handler fired. escFirstPressTime: \(String(describing: self.escFirstPressTime))")
                 if let firstTime = self.escFirstPressTime,
                    now.timeIntervalSince(firstTime) <= self.escSecondPressThreshold {
-                    print("🔍 DEBUG: SECOND PRESS detected - dismissing")
                     self.escFirstPressTime = nil
                     SoundManager.shared.playEscSound()
                     await self.whisperState.dismissMiniRecorder()
                 } else {
-                    print("🔍 DEBUG: FIRST PRESS detected - setting timer")
                     self.escFirstPressTime = now
                     SoundManager.shared.playEscSound()
                     NotificationManager.shared.showNotification(
@@ -104,10 +99,8 @@ class MiniRecorderShortcutManager: ObservableObject {
     private func activateEscapeShortcut() {
         // Don't activate escape if custom shortcut is configured (mutually exclusive)
         guard KeyboardShortcuts.getShortcut(for: .cancelRecorder) == nil else { 
-            print("🔍 DEBUG: activateEscapeShortcut SKIPPED - custom shortcut exists")
             return 
         }
-        print("🔍 DEBUG: activateEscapeShortcut - Setting shortcut binding")
         KeyboardShortcuts.setShortcut(.init(.escape), for: .escapeRecorder)
     }
     
@@ -115,7 +108,6 @@ class MiniRecorderShortcutManager: ObservableObject {
     private func setupCancelHandlerOnce() {
         guard !isCancelHandlerSetup else { return }
         isCancelHandlerSetup = true
-        print("🔍 DEBUG: setupCancelHandlerOnce - Setting up PERMANENT cancel handler")
         
         KeyboardShortcuts.onKeyDown(for: .cancelRecorder) { [weak self] in
             Task { @MainActor in
@@ -125,7 +117,6 @@ class MiniRecorderShortcutManager: ObservableObject {
                 // Only process if custom shortcut is actually configured
                 guard KeyboardShortcuts.getShortcut(for: .cancelRecorder) != nil else { return }
                 
-                print("🔍 DEBUG: Custom cancel handler fired")
                 SoundManager.shared.playEscSound()
                 await self.whisperState.dismissMiniRecorder()
             }
@@ -136,12 +127,10 @@ class MiniRecorderShortcutManager: ObservableObject {
     private func activateCancelShortcut() {
         // Nothing to do - shortcut is set by user in settings
         // Handler is already set up permanently and will check if shortcut exists
-        print("🔍 DEBUG: activateCancelShortcut - shortcut managed by settings")
     }
     
     // Only remove shortcut binding, never touch the handler
     private func deactivateEscapeShortcut() {
-        print("🔍 DEBUG: deactivateEscapeShortcut - Removing shortcut binding")
         KeyboardShortcuts.setShortcut(nil, for: .escapeRecorder)
         escFirstPressTime = nil // Reset state for next session
         escapeTimeoutTask?.cancel()
@@ -150,14 +139,12 @@ class MiniRecorderShortcutManager: ObservableObject {
     
     // Only deactivate, never remove the handler
     private func deactivateCancelShortcut() {
-        print("🔍 DEBUG: deactivateCancelShortcut - Nothing to do (shortcut managed by settings)")
         // Don't remove the shortcut itself - that's managed by user settings
         // Handler remains active but will check if shortcut exists
     }
     
     // Public method to refresh cancel shortcut when settings change
     func refreshCancelShortcut() {
-        print("🔍 DEBUG: refreshCancelShortcut called - handlers are permanent, no action needed")
         // Handlers are set up once and never removed
         // They check internally whether they should process based on shortcut existence
         // This maintains mutually exclusive behavior without handler duplication
