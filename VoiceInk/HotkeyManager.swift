@@ -341,11 +341,6 @@ class HotkeyManager: ObservableObject {
         }
     }
     
-    func refreshCancelRecordingShortcut() {
-        // Called when cancel recording shortcut settings change
-        miniRecorderShortcutManager.refreshCancelShortcut()
-    }
-    
     deinit {
         Task { @MainActor in
             removeAllMonitoring()

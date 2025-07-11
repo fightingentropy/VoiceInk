@@ -89,10 +89,6 @@ struct SettingsView: View {
                                 
                                 KeyboardShortcuts.Recorder(for: .cancelRecorder)
                                     .controlSize(.small)
-                                    .onChange(of: KeyboardShortcuts.getShortcut(for: .cancelRecorder)) { _, _ in
-                                        // Refresh the shortcut handler when it changes
-                                        hotkeyManager.refreshCancelRecordingShortcut()
-                                    }
                                 
                                 Spacer()
                             }
@@ -100,11 +96,11 @@ struct SettingsView: View {
                             .transition(.opacity.combined(with: .move(edge: .top)))
                         }
 
-                            Text("By default, double-tap Escape to cancel recordings. Enable override above for single-press custom cancellation (useful for Vim users).")
-                                .font(.system(size: 12))
-                                .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .padding(.top, 8)
+                        Text("By default, double-tap Escape to cancel recordings. Enable override above for single-press custom cancellation (useful for Vim users).")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, 8)
                     }
                 }
 
