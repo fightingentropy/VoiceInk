@@ -65,10 +65,6 @@ actor WhisperContext {
         params.offset_ms = 0
         params.no_context = true
         params.single_segment = false
-        params.suppress_nst = true
-        params.entropy_thold = 2.0
-        params.logprob_thold = -0.8
-        params.no_speech_thold = 0.6
 
         whisper_reset_timings(context)
         
