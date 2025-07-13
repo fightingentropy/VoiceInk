@@ -190,9 +190,8 @@ class WhisperState: NSObject, ObservableObject {
         
                         } catch {
                             self.logger.error("❌ Failed to start recording: \(error.localizedDescription)")
-                            await MainActor.run {
-                                self.recordingState = .idle
-                            }
+                            await NotificationManager.shared.showNotification(title: "Recording failed to start", type: .error)
+                            await self.dismissMiniRecorder()
                             // Do not remove the file on a failed start, to preserve all recordings.
                             self.recordedFile = nil
                         }
