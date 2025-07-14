@@ -76,7 +76,8 @@ enum AIProvider: String, CaseIterable {
             return [
                 "llama-3.3-70b-versatile",
                 "llama-3.1-8b-instant",
-                "qwen/qwen3-32b"
+                "qwen/qwen3-32b",
+                "meta-llama/llama-4-maverick-17b-128e-instruct"
             ]
         case .openAI:
             return [
