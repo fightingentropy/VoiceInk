@@ -161,7 +161,6 @@ struct OnboardingTutorialView: View {
             }
         }
         .onAppear {
-            hotkeyManager.startHotkeyMonitoring()
             animateIn()
             isFocused = true
         }

@@ -191,8 +191,6 @@ struct ContentView: View {
         .frame(minWidth: 940, minHeight: 730)
         .onAppear {
             hasLoadedData = true
-            // Initialize hotkey monitoring after the app is ready
-            hotkeyManager.startHotkeyMonitoring()
         }
         .onReceive(NotificationCenter.default.publisher(for: .navigateToDestination)) { notification in
             print("ContentView: Received navigation notification")

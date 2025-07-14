@@ -116,10 +116,11 @@ class HotkeyManager: ObservableObject {
         self.selectedHotkey2 = HotkeyOption(rawValue: UserDefaults.standard.string(forKey: "selectedHotkey2") ?? "") ?? .none
         self.whisperState = whisperState
         self.miniRecorderShortcutManager = MiniRecorderShortcutManager(whisperState: whisperState)
-    }
-    
-    func startHotkeyMonitoring() {
-        setupHotkeyMonitoring()
+        
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            self.setupHotkeyMonitoring()
+        }
     }
     
     private func setupHotkeyMonitoring() {
