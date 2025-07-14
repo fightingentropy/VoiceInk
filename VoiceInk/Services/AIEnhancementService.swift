@@ -181,7 +181,8 @@ class AIEnhancementService: ObservableObject {
         if aiService.selectedProvider == .ollama {
             do {
                 let result = try await aiService.enhanceWithOllama(text: formattedText, systemPrompt: systemMessage)
-                return result
+                let filteredResult = AIEnhancementOutputFilter.filter(result)
+                return filteredResult
             } catch let error as LocalAIError {
                 switch error {
                 case .serviceUnavailable:
@@ -251,7 +252,8 @@ class AIEnhancementService: ObservableObject {
                         throw EnhancementError.enhancementFailed
                     }
                     
-                    return enhancedText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let filteredText = AIEnhancementOutputFilter.filter(enhancedText.trimmingCharacters(in: .whitespacesAndNewlines))
+                    return filteredText
                     
                 case 401:
                     throw EnhancementError.authenticationFailed
@@ -306,7 +308,8 @@ class AIEnhancementService: ObservableObject {
                         throw EnhancementError.enhancementFailed
                     }
                     
-                    return enhancedText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let filteredText = AIEnhancementOutputFilter.filter(enhancedText.trimmingCharacters(in: .whitespacesAndNewlines))
+                    return filteredText
                     
                 case 401:
                     throw EnhancementError.authenticationFailed
@@ -368,7 +371,8 @@ class AIEnhancementService: ObservableObject {
                         throw EnhancementError.enhancementFailed
                     }
                     
-                    return enhancedText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let filteredText = AIEnhancementOutputFilter.filter(enhancedText.trimmingCharacters(in: .whitespacesAndNewlines))
+                    return filteredText
                     
                 case 401:
                     throw EnhancementError.authenticationFailed

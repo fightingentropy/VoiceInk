@@ -52,7 +52,7 @@ enum AIProvider: String, CaseIterable {
         case .deepSeek:
             return "deepseek-chat"
         case .gemini:
-            return "gemini-2.5-pro"
+            return "gemini-2.0-flash-lite"
         case .anthropic:
             return "claude-sonnet-4-0"
         case .mistral:
@@ -75,7 +75,8 @@ enum AIProvider: String, CaseIterable {
         case .groq:
             return [
                 "llama-3.3-70b-versatile",
-                "llama-3.1-8b-instant"
+                "llama-3.1-8b-instant",
+                "qwen/qwen3-32b"
             ]
         case .openAI:
             return [
