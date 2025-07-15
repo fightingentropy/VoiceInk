@@ -83,6 +83,15 @@ struct LicenseManagementView: View {
                         .buttonStyle(.plain)
                         
                         Button {
+                            if let url = URL(string: "https://tryvoiceink.com/docs") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        } label: {
+                            featureItem(icon: "book.fill", title: "Docs", color: .indigo)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Button {
                             if let url = URL(string: "https://github.com/Beingpax/VoiceInk/issues") {
                                 NSWorkspace.shared.open(url)
                             }
