@@ -147,30 +147,23 @@ struct OnboardingPermissionsView: View {
                                         }
                                         .padding()
                                     } else {
-                                        Picker("Select Microphone", selection: Binding(
-                                            get: { 
-                                                audioDeviceManager.selectedDeviceID ?? 
-                                                audioDeviceManager.availableDevices.first?.id ?? 0
+                                        styledPicker(
+                                            label: "Microphone:",
+                                            selectedValue: audioDeviceManager.selectedDeviceID ?? 0,
+                                            displayValue: audioDeviceManager.availableDevices.first { $0.id == audioDeviceManager.selectedDeviceID }?.name ?? "Select Device",
+                                            options: audioDeviceManager.availableDevices.map { $0.id },
+                                            optionDisplayName: { deviceId in
+                                                audioDeviceManager.availableDevices.first { $0.id == deviceId }?.name ?? "Unknown Device"
                                             },
-                                            set: { newValue in
-                                                audioDeviceManager.selectDevice(id: newValue)
+                                            onSelection: { deviceId in
+                                                audioDeviceManager.selectDevice(id: deviceId)
                                                 audioDeviceManager.selectInputMode(.custom)
                                                 withAnimation {
                                                     permissionStates[currentPermissionIndex] = true
                                                     showAnimation = true
                                                 }
                                             }
-                                        )) {
-                                            ForEach(audioDeviceManager.availableDevices, id: \.id) { device in
-                                                Text(device.name).tag(device.id)
-                                            }
-                                        }
-                                        .pickerStyle(.menu)
-                                        .labelsHidden()
-                                        .frame(maxWidth: 300)
-                                        .padding(8)
-                                        .background(Color.white.opacity(0.1))
-                                        .cornerRadius(8)
+                                        )
                                         .onAppear {
                                             // Auto-select built-in microphone if no device is selected
                                             if audioDeviceManager.selectedDeviceID == nil && !audioDeviceManager.availableDevices.isEmpty {
@@ -407,39 +400,39 @@ struct OnboardingPermissionsView: View {
     }
 
     @ViewBuilder
-    private func hotkeyView(
-        binding: Binding<HotkeyManager.HotkeyOption>,
-        shortcutName: KeyboardShortcuts.Name,
-        onConfigured: @escaping (Bool) -> Void
+    private func styledPicker<T: Hashable>(
+        label: String,
+        selectedValue: T,
+        displayValue: String,
+        options: [T],
+        optionDisplayName: @escaping (T) -> String,
+        onSelection: @escaping (T) -> Void
     ) -> some View {
         VStack(spacing: 16) {
             HStack(spacing: 12) {
                 Spacer()
                 
-                Text("Shortcut:")
+                Text(label)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.white.opacity(0.8))
                 
                 Menu {
-                    ForEach(HotkeyManager.HotkeyOption.allCases, id: \.self) { option in
-                        if option != .none && option != .custom { // Exclude 'None' and 'Custom' from the list
-                            Button(action: {
-                                binding.wrappedValue = option
-                                onConfigured(option.isModifierKey)
-                            }) {
-                                HStack {
-                                    Text(option.displayName)
-                                    if binding.wrappedValue == option {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                    }
+                    ForEach(options, id: \.self) { option in
+                        Button(action: {
+                            onSelection(option)
+                        }) {
+                            HStack {
+                                Text(optionDisplayName(option))
+                                if selectedValue == option {
+                                    Spacer()
+                                    Image(systemName: "checkmark")
                                 }
                             }
                         }
                     }
                 } label: {
                     HStack(spacing: 8) {
-                        Text(binding.wrappedValue.displayName)
+                        Text(displayValue)
                             .foregroundColor(.white)
                             .font(.system(size: 16, weight: .medium))
                         Image(systemName: "chevron.up.chevron.down")
@@ -459,6 +452,30 @@ struct OnboardingPermissionsView: View {
                 
                 Spacer()
             }
+        }
+        .padding()
+        .background(Color.white.opacity(0.05))
+        .cornerRadius(12)
+    }
+
+    @ViewBuilder
+    private func hotkeyView(
+        binding: Binding<HotkeyManager.HotkeyOption>,
+        shortcutName: KeyboardShortcuts.Name,
+        onConfigured: @escaping (Bool) -> Void
+    ) -> some View {
+        VStack(spacing: 16) {
+            styledPicker(
+                label: "Shortcut:",
+                selectedValue: binding.wrappedValue,
+                displayValue: binding.wrappedValue.displayName,
+                options: HotkeyManager.HotkeyOption.allCases.filter { $0 != .none && $0 != .custom },
+                optionDisplayName: { $0.displayName },
+                onSelection: { option in
+                    binding.wrappedValue = option
+                    onConfigured(option.isModifierKey)
+                }
+            )
 
             if binding.wrappedValue == .custom {
                 KeyboardShortcuts.Recorder(for: shortcutName) { newShortcut in
@@ -467,9 +484,6 @@ struct OnboardingPermissionsView: View {
                 .controlSize(.large)
             }
         }
-        .padding()
-        .background(Color.white.opacity(0.05))
-        .cornerRadius(12)
         .onChange(of: binding.wrappedValue) { newValue in
             onConfigured(newValue != .none)
         }
