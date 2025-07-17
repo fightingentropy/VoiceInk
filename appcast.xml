@@ -3,22 +3,22 @@
     <channel>
         <title>VoiceInk Releases</title>
         <item>
-            <title>1.40</title>
-            <pubDate>Sat, 11 June 2025 12:20:00 +0545</pubDate>
+            <title>1.41</title>
+            <pubDate>Sat, 17 June 2025 12:20:00 +0545</pubDate>
             <sparkle:version>140</sparkle:version>
-            <sparkle:shortVersionString>1.40</sparkle:shortVersionString>
+            <sparkle:shortVersionString>1.41</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
-                <h3>What's New in Version 1.40 🚀⚡</h3>
+                <h3>What's New in Version 1.41 🚀⚡</h3>
                             <ul>
-                              <li>Fixed transcription failing due to VAD model</li>
-                              <li>Added toggle for auto-text formatting</li>
-                              <li>Added time logging for transcripts in History</li>
-                              <li>Added Transcription states in recorder view</li>
-                              <li>Custom shortcut for cancelling recording</li>
-                            </ul>
+                                <li>📈 Added new models for Groq provider, including kimi k2, qwen, and llama-4 maverick</li>
+                                <li>💻 Added support for Voxtral Mini from Mistral for Transcription on API</li>
+                                <li>📝 Added auto send/enter option in Power mode</li>
+                                <li>🚫 Remove think tokens when enhancing using reasoning models</li>
+                                <li>🛠️ Fixed an issue with hotkey not working randomly</li>
+                            </ul> 
             ]]></description>
-           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.40/VoiceInk.dmg" length="8464160" type="application/octet-stream" sparkle:edSignature="TgGHoSYQ2vLrd6hizpLlIOqT1axqrluoz+/AHLwk4vVlzS0eMuCFXRfYqkVGrrFXq2taFf3s4u5ugeiEMY9ABA=="/>
+           <enclosure url="https://beingpax.github.io/VoiceInk/VoiceInk.dmg" length="8495755" type="application/octet-stream" sparkle:edSignature="6wdrtalZ2U+cgU83jQBXKzOM2qX/+CUMM4S03kEQaVCcSETGag4pUBNrJYlS8Oa3XEyZj4M6TJ52hdltqg/JDg=="/>
         </item>
     </channel>
 </rss>
