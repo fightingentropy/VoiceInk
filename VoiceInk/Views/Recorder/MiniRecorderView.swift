@@ -28,37 +28,16 @@ struct MiniRecorderView: View {
     }
     
     private var statusView: some View {
-        Group {
-            let currentState = whisperState.recordingState
-            
-            if currentState == .enhancing {
-                Text("Enhancing")
-                    .foregroundColor(.white)
-                    .font(.system(size: 10, weight: .medium, design: .default))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-            } else if currentState == .transcribing {
-                Text("Transcribing")
-                    .foregroundColor(.white)
-                    .font(.system(size: 10, weight: .medium, design: .default))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-            } else if currentState == .recording {
-                AudioVisualizer(
-                    audioMeter: recorder.audioMeter,
-                    color: .white,
-                    isActive: currentState == .recording
-                )
-            } else {
-                StaticVisualizer(color: .white)
-            }
-        }
+        RecorderStatusDisplay(
+            currentState: whisperState.recordingState,
+            audioMeter: recorder.audioMeter
+        )
     }
     
     private var rightButton: some View {
         Group {
             if powerModeManager.isPowerModeEnabled {
-                NotchToggleButton(
+                RecorderToggleButton(
                     isEnabled: powerModeManager.isPowerModeEnabled,
                     icon: powerModeManager.currentActiveConfiguration.emoji,
                     color: .orange,
@@ -72,7 +51,7 @@ struct MiniRecorderView: View {
                     PowerModePopover()
                 }
             } else {
-                NotchToggleButton(
+                RecorderToggleButton(
                     isEnabled: enhancementService.isEnhancementEnabled,
                     icon: enhancementService.activePrompt?.icon.rawValue ?? "brain",
                     color: .blue,
@@ -109,7 +88,7 @@ struct MiniRecorderView: View {
                             let isRecording = whisperState.recordingState == .recording
                             let isProcessing = whisperState.recordingState == .transcribing || whisperState.recordingState == .enhancing
                             
-                            NotchRecordButton(
+                            RecorderRecordButton(
                                 isRecording: isRecording,
                                 isProcessing: isProcessing
                             ) {
