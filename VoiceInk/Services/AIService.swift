@@ -106,7 +106,9 @@ enum AIProvider: String, CaseIterable {
             ]
         case .mistral:
             return [
-                "voxtral-mini-2507"
+                "mistral-large-latest",
+                "mistral-small-latest",
+                "mistral-saba-latest"
             ]
         case .elevenLabs:
             return ["scribe_v1", "scribe_v1_experimental"]
