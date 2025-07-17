@@ -1,25 +1,27 @@
 import Foundation
 
 struct AIEnhancementOutputFilter {
-    private static let reasoningPatterns = [
-        #"(?s)<think>.*?</think>"#,
-        #"(?s)<reasoning>.*?</reasoning>"#,
-        #"(?s)<analysis>.*?</analysis>"#,
-    ]
-    
     static func filter(_ text: String) -> String {
-        var filteredText = text
-        
-        for pattern in reasoningPatterns {
+        let patterns = [
+            #"(?s)<thinking>(.*?)</thinking>"#,
+            #"(?s)<think>(.*?)</think>"#,
+            #"(?s)<reasoning>(.*?)</reasoning>"#
+        ]
+
+        for pattern in patterns {
             if let regex = try? NSRegularExpression(pattern: pattern) {
-                let range = NSRange(filteredText.startIndex..., in: filteredText)
-                filteredText = regex.stringByReplacingMatches(in: filteredText, options: [], range: range, withTemplate: "")
+                let range = NSRange(text.startIndex..., in: text)
+                if let match = regex.firstMatch(in: text, options: [], range: range) {
+                    // Extract content from the first capturing group
+                    if match.numberOfRanges > 1, let contentRange = Range(match.range(at: 1), in: text) {
+                        let extractedText = String(text[contentRange])
+                        return extractedText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+                }
             }
         }
         
-        filteredText = filteredText.replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression)
-        filteredText = filteredText.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        return filteredText
+        // If no tags are found, return the original text as is.
+        return text
     }
 } 
