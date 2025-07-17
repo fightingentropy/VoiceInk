@@ -23,7 +23,6 @@ extension WhisperState {
         
         // Enable transcription for cloud models immediately since they don't need loading
         if model.provider != .local {
-            self.recordingState = .idle
             self.isModelLoaded = true
         }
         
