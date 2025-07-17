@@ -37,6 +37,11 @@ struct TranscriptionCard: View {
                 
                 // Original text section
                 VStack(alignment: .leading, spacing: 8) {
+                    Text(transcription.text)
+                        .font(.system(size: 15, weight: .regular, design: .default))
+                        .lineLimit(isExpanded ? nil : 2)
+                        .lineSpacing(2)
+                    
                     if isExpanded {
                         HStack {
                             Text("Original")
@@ -46,11 +51,6 @@ struct TranscriptionCard: View {
                             AnimatedCopyButton(textToCopy: transcription.text)
                         }
                     }
-                    
-                    Text(transcription.text)
-                        .font(.system(size: 15, weight: .regular, design: .default))
-                        .lineLimit(isExpanded ? nil : 2)
-                        .lineSpacing(2)
                 }
                 
                 // Enhanced text section (only when expanded)
@@ -59,6 +59,10 @@ struct TranscriptionCard: View {
                         .padding(.vertical, 8)
                     
                     VStack(alignment: .leading, spacing: 8) {
+                        Text(enhancedText)
+                            .font(.system(size: 15, weight: .regular, design: .default))
+                            .lineSpacing(2)
+                        
                         HStack {
                             HStack(spacing: 4) {
                                 Image(systemName: "sparkles")
@@ -70,10 +74,6 @@ struct TranscriptionCard: View {
                             Spacer()
                             AnimatedCopyButton(textToCopy: enhancedText)
                         }
-                        
-                        Text(enhancedText)
-                            .font(.system(size: 15, weight: .regular, design: .default))
-                            .lineSpacing(2)
                     }
                 }
                 
