@@ -340,6 +340,15 @@ class WhisperState: NSObject, ObservableObject {
                 if self.isAutoCopyEnabled {
                     ClipboardManager.copyToClipboard(text)
                 }
+
+                // Automatically press Enter if the active Power Mode configuration allows it.
+                let powerMode = PowerModeManager.shared
+                if powerMode.isPowerModeEnabled && powerMode.currentActiveConfiguration.isAutoSendEnabled {
+                    // Slight delay to ensure the paste operation completes
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        CursorPaster.pressEnter()
+                    }
+                }
             }
             
             if let result = promptDetectionResult,

@@ -80,4 +80,14 @@ class CursorPaster {
         vUp?.post(tap: .cghidEventTap)
         cmdUp?.post(tap: .cghidEventTap)
     }
+
+    // Simulate pressing the Return / Enter key
+    static func pressEnter() {
+        guard AXIsProcessTrusted() else { return }
+        let source = CGEventSource(stateID: .hidSystemState)
+        let enterDown = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: true)
+        let enterUp = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: false)
+        enterDown?.post(tap: .cghidEventTap)
+        enterUp?.post(tap: .cghidEventTap)
+    }
 }

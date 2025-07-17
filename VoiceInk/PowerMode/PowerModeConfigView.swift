@@ -35,6 +35,8 @@ struct ConfigurationView: View {
     
     // New state for screen capture toggle
     @State private var useScreenCapture = false
+    // NEW: Auto-send toggle state
+    @State private var isAutoSendEnabled = false
     
     // State for prompt editing (similar to EnhancementSettingsView)
     @State private var isEditingPrompt = false
@@ -75,6 +77,7 @@ struct ConfigurationView: View {
             _configName = State(initialValue: "")
             _selectedEmoji = State(initialValue: "✏️")
             _useScreenCapture = State(initialValue: false)
+            _isAutoSendEnabled = State(initialValue: false)
             // Default to current global AI provider/model for new configurations - use UserDefaults only
             _selectedAIProvider = State(initialValue: UserDefaults.standard.string(forKey: "selectedAIProvider"))
             _selectedAIModel = State(initialValue: nil) // Initialize to nil and set it after view appears
@@ -90,6 +93,7 @@ struct ConfigurationView: View {
             _selectedAppConfigs = State(initialValue: latestConfig.appConfigs ?? [])
             _websiteConfigs = State(initialValue: latestConfig.urlConfigs ?? [])
             _useScreenCapture = State(initialValue: latestConfig.useScreenCapture)
+            _isAutoSendEnabled = State(initialValue: latestConfig.isAutoSendEnabled)
             _selectedAIProvider = State(initialValue: latestConfig.selectedAIProvider)
             _selectedAIModel = State(initialValue: latestConfig.selectedAIModel)
         case .editDefault(let config):
@@ -102,6 +106,7 @@ struct ConfigurationView: View {
             _configName = State(initialValue: latestConfig.name)
             _selectedEmoji = State(initialValue: latestConfig.emoji)
             _useScreenCapture = State(initialValue: latestConfig.useScreenCapture)
+            _isAutoSendEnabled = State(initialValue: latestConfig.isAutoSendEnabled)
             _selectedAIProvider = State(initialValue: latestConfig.selectedAIProvider)
             _selectedAIModel = State(initialValue: latestConfig.selectedAIModel)
         }
@@ -588,6 +593,25 @@ struct ConfigurationView: View {
                     .background(CardBackground(isSelected: false))
                     .padding(.horizontal)
                     
+                    // SECTION 4: ADVANCED
+                    VStack(spacing: 16) {
+                        SectionHeader(title: "Advanced")
+
+                        HStack {
+                            Toggle("Auto Send", isOn: $isAutoSendEnabled)
+                            
+                            InfoTip(
+                                title: "Auto Send",
+                                message: "Automatically presses the Return/Enter key after pasting text. This is useful for chat applications or forms where its not necessary to to make changes to the transcribed text"
+                            )
+                            
+                            Spacer()
+                        }
+                    }
+                    .padding()
+                    .background(CardBackground(isSelected: false))
+                    .padding(.horizontal)
+                    
                     // Save Button
                     VoiceInkButton(
                         title: mode.isAdding ? "Add New Power Mode" : "Save Changes",
@@ -671,7 +695,8 @@ struct ConfigurationView: View {
                     selectedLanguage: selectedLanguage,
                     useScreenCapture: useScreenCapture,
                     selectedAIProvider: selectedAIProvider,
-                    selectedAIModel: selectedAIModel
+                    selectedAIModel: selectedAIModel,
+                    isAutoSendEnabled: isAutoSendEnabled
                 )
         case .edit(let config):
             var updatedConfig = config
@@ -684,6 +709,7 @@ struct ConfigurationView: View {
             updatedConfig.appConfigs = selectedAppConfigs.isEmpty ? nil : selectedAppConfigs
             updatedConfig.urlConfigs = websiteConfigs.isEmpty ? nil : websiteConfigs
             updatedConfig.useScreenCapture = useScreenCapture
+            updatedConfig.isAutoSendEnabled = isAutoSendEnabled
             updatedConfig.selectedAIProvider = selectedAIProvider
             updatedConfig.selectedAIModel = selectedAIModel
             return updatedConfig
@@ -697,6 +723,7 @@ struct ConfigurationView: View {
             updatedConfig.selectedTranscriptionModelName = selectedTranscriptionModelName
             updatedConfig.selectedLanguage = selectedLanguage
             updatedConfig.useScreenCapture = useScreenCapture
+            updatedConfig.isAutoSendEnabled = isAutoSendEnabled
             updatedConfig.selectedAIProvider = selectedAIProvider
             updatedConfig.selectedAIModel = selectedAIModel
             return updatedConfig
