@@ -18,7 +18,7 @@
                                 <li>🛠️ Fixed an issue with hotkey not working randomly</li>
                             </ul> 
             ]]></description>
-           <enclosure url="https://beingpax.github.io/VoiceInk/VoiceInk.dmg" length="8495755" type="application/octet-stream" sparkle:edSignature="6wdrtalZ2U+cgU83jQBXKzOM2qX/+CUMM4S03kEQaVCcSETGag4pUBNrJYlS8Oa3XEyZj4M6TJ52hdltqg/JDg=="/>
+           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.41/VoiceInk.dmg" length="8495755" type="application/octet-stream" sparkle:edSignature="6wdrtalZ2U+cgU83jQBXKzOM2qX/+CUMM4S03kEQaVCcSETGag4pUBNrJYlS8Oa3XEyZj4M6TJ52hdltqg/JDg=="/>
         </item>
     </channel>
 </rss>
