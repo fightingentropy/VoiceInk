@@ -6,7 +6,6 @@ class PolarService {
     private let apiToken = "Token"
     private let baseURL = "https://api.polar.sh"
     
-    
     struct LicenseValidationResponse: Codable {
         let status: String
         let limit_activations: Int?
@@ -195,4 +194,4 @@ enum LicenseError: Error, LocalizedError {
             return "This license does not require activation."
         }
     }
-} 
+}
