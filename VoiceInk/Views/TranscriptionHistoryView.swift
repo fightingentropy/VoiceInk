@@ -19,8 +19,6 @@ struct TranscriptionHistoryView: View {
     @State private var lastTimestamp: Date?
     private let pageSize = 20
     
-    // New query: Fetches only the ID of the most recent transcription to minimize data loading.
-    // Renamed to latestTranscriptionIndicator to reflect its purpose.
     @Query(Self.createLatestTranscriptionIndicatorDescriptor()) private var latestTranscriptionIndicator: [Transcription]
     
     // Static function to create the FetchDescriptor for the latest transcription indicator
@@ -70,47 +68,62 @@ struct TranscriptionHistoryView: View {
                 if displayedTranscriptions.isEmpty && !isLoading {
                     emptyStateView
                 } else {
-                    ScrollView {
-                        LazyVStack(spacing: 10) {
-                            ForEach(displayedTranscriptions) { transcription in
-                                TranscriptionCard(
-                                    transcription: transcription, 
-                                    isExpanded: expandedTranscription == transcription,
-                                    isSelected: selectedTranscriptions.contains(transcription),
-                                    onDelete: { deleteTranscription(transcription) },
-                                    onToggleSelection: { toggleSelection(transcription) }
-                                )
-                                .onTapGesture {
-                                    expandedTranscription = expandedTranscription == transcription ? nil : transcription
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            LazyVStack(spacing: 10) {
+                                ForEach(displayedTranscriptions) { transcription in
+                                    TranscriptionCard(
+                                        transcription: transcription,
+                                        isExpanded: expandedTranscription == transcription,
+                                        isSelected: selectedTranscriptions.contains(transcription),
+                                        onDelete: { deleteTranscription(transcription) },
+                                        onToggleSelection: { toggleSelection(transcription) }
+                                    )
+                                    .id(transcription) // Using the object as its own ID
+                                    .onTapGesture {
+                                        withAnimation(.easeInOut(duration: 0.25)) {
+                                            if expandedTranscription == transcription {
+                                                expandedTranscription = nil
+                                            } else {
+                                                expandedTranscription = transcription
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                if hasMoreContent {
+                                    Button(action: {
+                                        loadMoreContent()
+                                    }) {
+                                        HStack(spacing: 8) {
+                                            if isLoading {
+                                                ProgressView()
+                                                    .controlSize(.small)
+                                            }
+                                            Text(isLoading ? "Loading..." : "Load More")
+                                                .font(.system(size: 14, weight: .medium))
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                        .background(CardBackground(isSelected: false))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(isLoading)
+                                    .padding(.top, 12)
                                 }
                             }
-                            
-                            if hasMoreContent {
-                                Button(action: {
-                                    loadMoreContent()
-                                }) {
-                                    HStack(spacing: 8) {
-                                        if isLoading {
-                                            ProgressView()
-                                                .controlSize(.small)
-                                        }
-                                        Text(isLoading ? "Loading..." : "Load More")
-                                            .font(.system(size: 14, weight: .medium))
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(CardBackground(isSelected: false))
-                                }
-                                .buttonStyle(.plain)
-                                .disabled(isLoading)
-                                .padding(.top, 12)
+                            .animation(.easeInOut(duration: 0.3), value: expandedTranscription)
+                            .padding(24)
+                            // Add bottom padding to ensure content is not hidden by the toolbar when visible
+                            .padding(.bottom, !selectedTranscriptions.isEmpty ? 60 : 0)
+                        }
+                        .padding(.vertical, 16)
+                        .onChange(of: expandedTranscription) { old, new in
+                            if let transcription = new {
+                                proxy.scrollTo(transcription, anchor: nil)
                             }
                         }
-                        .padding(24)
-                        // Add bottom padding to ensure content is not hidden by the toolbar when visible
-                        .padding(.bottom, !selectedTranscriptions.isEmpty ? 60 : 0)
                     }
-                    .padding(.vertical, 16)
                 }
             }
             .background(Color(NSColor.controlBackgroundColor))
@@ -160,6 +173,7 @@ struct TranscriptionHistoryView: View {
                 // or if the view is active and new content is relevant.
                 if lastTimestamp == nil {
                     Task {
+                        await resetPagination()
                         await loadInitialContent()
                     }
                 } else {
