@@ -223,6 +223,16 @@ import Foundation
            isMultilingual: true,
            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .deepgram)
        ),
+        CloudModel(
+            name: "voxtral-mini-2507",
+            displayName: "Voxtral Mini (Mistral)",
+            description: "Mistral's latest SOTA transcription model.",
+            provider: .mistral,
+            speed: 0.8,
+            accuracy: 0.97,
+            isMultilingual: true,
+            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .mistral)
+        )
      ]
  
      static let allLanguages = [

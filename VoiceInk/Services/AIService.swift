@@ -30,7 +30,7 @@ enum AIProvider: String, CaseIterable {
         case .openRouter:
             return "https://openrouter.ai/api/v1/chat/completions"
         case .mistral:
-            return "https://api.mistral.ai/v1/chat/completions"
+            return "https://api.mistral.ai/v1/audio/transcriptions"
         case .elevenLabs:
             return "https://api.elevenlabs.io/v1/speech-to-text"
         case .ollama:
@@ -106,9 +106,7 @@ enum AIProvider: String, CaseIterable {
             ]
         case .mistral:
             return [
-                "mistral-large-latest",
-                "mistral-small-latest",
-                "mistral-saba-latest"
+                "voxtral-mini-2507"
             ]
         case .elevenLabs:
             return ["scribe_v1", "scribe_v1_experimental"]
@@ -298,6 +296,8 @@ class AIService: ObservableObject {
             verifyElevenLabsAPIKey(key, completion: completion)
         case .deepgram:
             verifyDeepgramAPIKey(key, completion: completion)
+        case .mistral:
+            verifyMistralAPIKey(key, completion: completion)
         default:
             verifyOpenAICompatibleAPIKey(key, completion: completion)
         }
@@ -429,6 +429,37 @@ class AIService: ObservableObject {
         }.resume()
     }
     
+    private func verifyMistralAPIKey(_ key: String, completion: @escaping (Bool) -> Void) {
+        let url = URL(string: "https://api.mistral.ai/v1/models")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.addValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                self.logger.error("Mistral API key verification failed: \(error.localizedDescription)")
+                completion(false)
+                return
+            }
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                if httpResponse.statusCode == 200 {
+                    completion(true)
+                } else {
+                    if let data = data, let body = String(data: data, encoding: .utf8) {
+                        self.logger.error("Mistral API key verification failed with status code \(httpResponse.statusCode): \(body)")
+                    } else {
+                        self.logger.error("Mistral API key verification failed with status code \(httpResponse.statusCode) and no response body.")
+                    }
+                    completion(false)
+                }
+            } else {
+                self.logger.error("Mistral API key verification failed: Invalid response from server.")
+                completion(false)
+            }
+        }.resume()
+    }
+
     private func verifyDeepgramAPIKey(_ key: String, completion: @escaping (Bool) -> Void) {
         let url = URL(string: "https://api.deepgram.com/v1/auth/token")!
         var request = URLRequest(url: url)

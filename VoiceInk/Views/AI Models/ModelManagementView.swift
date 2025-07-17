@@ -192,7 +192,7 @@ struct ModelManagementView: View {
         case .local:
             return whisperState.allAvailableModels.filter { $0.provider == .local || $0.provider == .nativeApple }
         case .cloud:
-            let cloudProviders: [ModelProvider] = [.groq, .elevenLabs, .deepgram]
+            let cloudProviders: [ModelProvider] = [.groq, .elevenLabs, .deepgram, .mistral]
             return whisperState.allAvailableModels.filter { cloudProviders.contains($0.provider) }
         case .custom:
             return whisperState.allAvailableModels.filter { $0.provider == .custom }

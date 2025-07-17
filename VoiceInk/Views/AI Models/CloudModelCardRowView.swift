@@ -34,6 +34,8 @@ struct CloudModelCardView: View {
             return "ElevenLabs"
         case .deepgram:
             return "Deepgram"
+        case .mistral:
+            return "Mistral"
         default:
             return model.provider.rawValue
         }
@@ -266,17 +268,24 @@ struct CloudModelCardView: View {
         isVerifying = true
         verificationStatus = .verifying
         
-        // Set the provider in AIService temporarily for verification
-        let originalProvider = aiService.selectedProvider
-        if model.provider == .groq {
+        switch model.provider {
+        case .groq:
             aiService.selectedProvider = .groq
-        } else if model.provider == .elevenLabs {
+        case .elevenLabs:
             aiService.selectedProvider = .elevenLabs
-        } else if model.provider == .deepgram {
+        case .deepgram:
             aiService.selectedProvider = .deepgram
+        case .mistral:
+            aiService.selectedProvider = .mistral
+        default:
+            // This case should ideally not be hit for cloud models in this view
+            print("Warning: verifyAPIKey called for unsupported provider \(model.provider.rawValue)")
+            isVerifying = false
+            verificationStatus = .failure
+            return
         }
         
-        aiService.verifyAPIKey(apiKey) { [self] isValid in
+        aiService.saveAPIKey(apiKey) { isValid in
             DispatchQueue.main.async {
                 self.isVerifying = false
                 if isValid {
@@ -294,7 +303,7 @@ struct CloudModelCardView: View {
                 }
                 
                 // Restore original provider
-                aiService.selectedProvider = originalProvider
+                // aiService.selectedProvider = originalProvider // This line was removed as per the new_code
             }
         }
     }
