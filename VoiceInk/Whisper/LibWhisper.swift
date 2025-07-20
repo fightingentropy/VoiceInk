@@ -65,6 +65,7 @@ actor WhisperContext {
         params.offset_ms = 0
         params.no_context = true
         params.single_segment = false
+        params.temperature = 0.2
 
         whisper_reset_timings(context)
         
