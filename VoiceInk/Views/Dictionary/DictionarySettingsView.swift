@@ -1,12 +1,12 @@
 import SwiftUI
 
 struct DictionarySettingsView: View {
-    @State private var selectedSection: DictionarySection = .spellings
+    @State private var selectedSection: DictionarySection = .replacements
     let whisperPrompt: WhisperPrompt
     
     enum DictionarySection: String, CaseIterable {
-        case spellings = "Correct Spellings"
         case replacements = "Word Replacements"
+        case spellings = "Correct Spellings"
         
         var description: String {
             switch self {
