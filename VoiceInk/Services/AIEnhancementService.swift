@@ -277,7 +277,7 @@ class AIEnhancementService: ObservableObject {
         case .anthropic:
             let requestBody: [String: Any] = [
                 "model": aiService.currentModel,
-                "max_tokens": 1024,
+                "max_tokens": 8192,
                 "system": systemMessage,
                 "messages": [
                     ["role": "user", "content": formattedText]
