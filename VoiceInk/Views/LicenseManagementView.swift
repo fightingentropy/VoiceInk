@@ -50,7 +50,7 @@ struct LicenseManagementView: View {
                 
                 Text(licenseViewModel.licenseState == .licensed ? 
                      "Thank you for supporting VoiceInk" :
-                     "Transform your voice into text with instantly with AI")
+                     "Transcribe what you say to text instantly with AI")
                     .font(.title3)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
