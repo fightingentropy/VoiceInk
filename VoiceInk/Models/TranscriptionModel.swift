@@ -96,3 +96,28 @@ struct CustomCloudModel: TranscriptionModel, Codable {
         self.supportedLanguages = supportedLanguages ?? PredefinedModels.getLanguageDictionary(isMultilingual: isMultilingual)
     }
 } 
+
+struct LocalModel: TranscriptionModel {
+    let id = UUID()
+    let name: String
+    let displayName: String
+    let size: String
+    let supportedLanguages: [String: String]
+    let description: String
+    let speed: Double
+    let accuracy: Double
+    let ramUsage: Double
+    let provider: ModelProvider = .local
+
+    var downloadURL: String {
+        "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/\(filename)"
+    }
+
+    var filename: String {
+        "\(name).bin"
+    }
+
+    var isMultilingualModel: Bool {
+        supportedLanguages.count > 1
+    }
+} 
