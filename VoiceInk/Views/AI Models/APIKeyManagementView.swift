@@ -250,14 +250,14 @@ struct APIKeyManagementView: View {
                     // Configuration Fields
                     VStack(alignment: .leading, spacing: 8) {
                         if !aiService.isAPIKeyValid {
-                            TextField("Base URL (e.g., https://api.example.com/v1/chat/completions)", text: $aiService.customBaseURL)
+                            TextField("API Endpoint URL (e.g., https://api.example.com/v1/chat/completions)", text: $aiService.customBaseURL)
                                 .textFieldStyle(.roundedBorder)
                             
                             TextField("Model Name (e.g., gpt-4o-mini, claude-3-5-sonnet-20240620)", text: $aiService.customModel)
                                 .textFieldStyle(.roundedBorder)
                         } else {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Base URL")
+                                Text("API Endpoint URL")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                 Text(aiService.customBaseURL)
