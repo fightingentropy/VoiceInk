@@ -3,9 +3,9 @@ import NaturalLanguage
 
 struct WhisperTextFormatter {
     static func format(_ text: String) -> String {
-        let TARGET_WORD_COUNT = 30
+        let TARGET_WORD_COUNT = 50
         let MAX_SENTENCES_PER_CHUNK = 4
-        let MIN_WORDS_FOR_SIGNIFICANT_SENTENCE = 3
+        let MIN_WORDS_FOR_SIGNIFICANT_SENTENCE = 4
 
         var finalFormattedText = ""
         
