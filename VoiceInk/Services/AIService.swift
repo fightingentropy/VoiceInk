@@ -49,7 +49,7 @@ enum AIProvider: String, CaseIterable {
     var defaultModel: String {
         switch self {
         case .groq:
-            return "llama-3.3-70b-versatile"
+            return "qwen/qwen3-32b"
         case .openAI:
             return "gpt-4.1-mini"
         case .deepSeek:
@@ -71,7 +71,7 @@ enum AIProvider: String, CaseIterable {
         case .openRouter:
             return "openai/gpt-4o"
         case .cerebras:
-            return "llama-4-scout-17b-16e-instruct"
+            return "qwen-3-32b"
         }
     }
     
@@ -81,7 +81,6 @@ enum AIProvider: String, CaseIterable {
             return [
                 "llama-3.3-70b-versatile",
                 "moonshotai/kimi-k2-instruct",
-                "llama-3.1-8b-instant",
                 "qwen/qwen3-32b",
                 "meta-llama/llama-4-maverick-17b-128e-instruct"
             ]
@@ -129,7 +128,6 @@ enum AIProvider: String, CaseIterable {
         case .cerebras:
             return [
                 "llama-4-scout-17b-16e-instruct",
-                "llama3.1-8b",
                 "llama-3.3-70b",
                 "qwen-3-32b"
             ]
