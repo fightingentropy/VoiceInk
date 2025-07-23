@@ -13,6 +13,7 @@ enum AIProvider: String, CaseIterable {
     case elevenLabs = "ElevenLabs"
     case deepgram = "Deepgram"
     case custom = "Custom"
+    case cerebras = "Cerebras"
     
     
     var baseURL: String {
@@ -39,6 +40,8 @@ enum AIProvider: String, CaseIterable {
             return "https://api.deepgram.com/v1/listen"
         case .custom:
             return UserDefaults.standard.string(forKey: "customProviderBaseURL") ?? ""
+        case .cerebras:
+            return "https://api.cerebras.ai/v1/chat/completions"
         
         }
     }
@@ -67,6 +70,8 @@ enum AIProvider: String, CaseIterable {
             return UserDefaults.standard.string(forKey: "customProviderModel") ?? ""
         case .openRouter:
             return "openai/gpt-4o"
+        case .cerebras:
+            return "llama-4-scout-17b-16e-instruct"
         }
     }
     
@@ -121,6 +126,13 @@ enum AIProvider: String, CaseIterable {
             return []
         case .openRouter:
             return []
+        case .cerebras:
+            return [
+                "llama-4-scout-17b-16e-instruct",
+                "llama3.1-8b",
+                "llama-3.3-70b",
+                "qwen-3-32b"
+            ]
         }
     }
     

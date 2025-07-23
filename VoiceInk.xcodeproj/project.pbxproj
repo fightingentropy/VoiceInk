@@ -9,9 +9,9 @@
 /* Begin PBXBuildFile section */
 		E1A261122CC143AC00B233D1 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = E1A261112CC143AC00B233D1 /* KeyboardShortcuts */; };
 		E1A8C8CB2E1257B7003E58EC /* whisper.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1A8C8CA2E1257B7003E58EC /* whisper.xcframework */; };
-		E1A8C8CC2E1257B7003E58EC /* whisper.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E1A8C8CA2E1257B7003E58EC /* whisper.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		E1ADD45A2CC5352A00303ECB /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = E1ADD4592CC5352A00303ECB /* LaunchAtLogin */; };
 		E1ADD45F2CC544F100303ECB /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = E1ADD45E2CC544F100303ECB /* Sparkle */; };
+		E1E0B9622E3133EF00C10E20 /* whisper.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E1A8C8CA2E1257B7003E58EC /* whisper.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		E1F5FA7A2DA6CBF900B1FD8A /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = E1F5FA792DA6CBF900B1FD8A /* Zip */; };
 /* End PBXBuildFile section */
 
@@ -39,7 +39,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				E1A8C8CC2E1257B7003E58EC /* whisper.xcframework in Embed Frameworks */,
+				E1E0B9622E3133EF00C10E20 /* whisper.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;

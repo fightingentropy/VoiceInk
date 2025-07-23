@@ -424,6 +424,8 @@ struct APIKeyManagementView: View {
                                             URL(string: "")! // This case should never be reached
                                         case .openRouter:
                                             URL(string: "https://openrouter.ai/keys")!
+                                        case .cerebras:
+                                            URL(string: "https://cloud.cerebras.ai/")!
                                         }
                                         NSWorkspace.shared.open(url)
                                     } label: {
