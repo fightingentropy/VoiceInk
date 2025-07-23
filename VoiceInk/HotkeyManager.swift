@@ -18,6 +18,9 @@ class HotkeyManager: ObservableObject {
     }
     @Published var selectedHotkey2: HotkeyOption {
         didSet {
+            if selectedHotkey2 == .none {
+                KeyboardShortcuts.setShortcut(nil, for: .toggleMiniRecorder2)
+            }
             UserDefaults.standard.set(selectedHotkey2.rawValue, forKey: "selectedHotkey2")
             setupHotkeyMonitoring()
         }
