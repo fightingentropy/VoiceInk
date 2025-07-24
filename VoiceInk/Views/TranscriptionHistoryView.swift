@@ -10,6 +10,8 @@ struct TranscriptionHistoryView: View {
     @State private var isViewCurrentlyVisible = false
     @State private var showAnalysisView = false
     
+    private let exportService = VoiceInkCSVExportService()
+    
     // Pagination states
     @State private var displayedTranscriptions: [Transcription] = []
     @State private var isLoading = false
@@ -231,6 +233,16 @@ struct TranscriptionHistoryView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "chart.bar.xaxis")
                     Text("Analyze")
+                }
+            }
+            .buttonStyle(.borderless)
+            
+            Button(action: {
+                exportService.exportTranscriptionsToCSV(transcriptions: Array(selectedTranscriptions))
+            }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "square.and.arrow.up")
+                    Text("Export")
                 }
             }
             .buttonStyle(.borderless)
