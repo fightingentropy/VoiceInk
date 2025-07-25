@@ -129,7 +129,8 @@ enum AIProvider: String, CaseIterable {
             return [
                 "llama-4-scout-17b-16e-instruct",
                 "llama-3.3-70b",
-                "qwen-3-32b"
+                "qwen-3-32b",
+                "qwen-3-235b-a22b"
             ]
         }
     }
