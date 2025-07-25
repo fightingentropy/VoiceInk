@@ -9,14 +9,12 @@ class CursorPaster {
         
         var savedContents: [(NSPasteboard.PasteboardType, Data)] = []
         
-        if shouldPreserveClipboard {
-            let currentItems = pasteboard.pasteboardItems ?? []
-            
-            for item in currentItems {
-                for type in item.types {
-                    if let data = item.data(forType: type) {
-                        savedContents.append((type, data))
-                    }
+        let currentItems = pasteboard.pasteboardItems ?? []
+        
+        for item in currentItems {
+            for type in item.types {
+                if let data = item.data(forType: type) {
+                    savedContents.append((type, data))
                 }
             }
         }

@@ -335,10 +335,14 @@ class WhisperState: NSObject, ObservableObject {
             SoundManager.shared.playStopSound()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 
+                let originalClipboardContent = ClipboardManager.getClipboardContent()
+                
                 CursorPaster.pasteAtCursor(text, shouldPreserveClipboard: !self.isAutoCopyEnabled)
                 
-                if self.isAutoCopyEnabled {
-                    ClipboardManager.copyToClipboard(text)
+                if self.isAutoCopyEnabled, let originalContent = originalClipboardContent {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        ClipboardManager.copyToClipboard(originalContent)
+                    }
                 }
 
                 // Automatically press Enter if the active Power Mode configuration allows it.
