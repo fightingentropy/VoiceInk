@@ -9,6 +9,7 @@ class MediaController: ObservableObject {
     static let shared = MediaController()
     private var didMuteAudio = false
     private var wasAudioMutedBeforeRecording = false
+    private var currentMuteTask: Task<Bool, Never>?
     
     @Published var isSystemMuteEnabled: Bool = UserDefaults.standard.bool(forKey: "isSystemMuteEnabled") {
         didSet {
@@ -49,23 +50,36 @@ class MediaController: ObservableObject {
     func muteSystemAudio() async -> Bool {
         guard isSystemMuteEnabled else { return false }
         
-        // First check if audio is already muted
-        wasAudioMutedBeforeRecording = isSystemAudioMuted()
+        // Cancel any existing mute task and create a new one
+        currentMuteTask?.cancel()
         
-        // If already muted, no need to mute it again
-        if wasAudioMutedBeforeRecording {
-            return true
+        let task = Task<Bool, Never> {
+            // First check if audio is already muted
+            wasAudioMutedBeforeRecording = isSystemAudioMuted()
+            
+            // If already muted, no need to mute it again
+            if wasAudioMutedBeforeRecording {
+                return true
+            }
+            
+            // Otherwise mute the audio
+            let success = executeAppleScript(command: "set volume with output muted")
+            didMuteAudio = success
+            return success
         }
         
-        // Otherwise mute the audio
-        let success = executeAppleScript(command: "set volume with output muted")
-        didMuteAudio = success
-        return success
+        currentMuteTask = task
+        return await task.value
     }
     
     /// Restores system audio after recording
     func unmuteSystemAudio() async {
         guard isSystemMuteEnabled else { return }
+        
+        // Wait for any pending mute operation to complete first
+        if let muteTask = currentMuteTask {
+            _ = await muteTask.value
+        }
         
         // Only unmute if we actually muted it (and it wasn't already muted)
         if didMuteAudio && !wasAudioMutedBeforeRecording {
@@ -73,6 +87,7 @@ class MediaController: ObservableObject {
         }
         
         didMuteAudio = false
+        currentMuteTask = nil
     }
     
     /// Executes an AppleScript command
