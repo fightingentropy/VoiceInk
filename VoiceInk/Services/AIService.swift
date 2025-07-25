@@ -7,7 +7,6 @@ enum AIProvider: String, CaseIterable {
     case gemini = "Gemini"
     case anthropic = "Anthropic"
     case openAI = "OpenAI"
-    case deepSeek = "DeepSeek"
     case openRouter = "OpenRouter"
     case mistral = "Mistral"
     case elevenLabs = "ElevenLabs"
@@ -28,8 +27,6 @@ enum AIProvider: String, CaseIterable {
             return "https://api.anthropic.com/v1/messages"
         case .openAI:
             return "https://api.openai.com/v1/chat/completions"
-        case .deepSeek:
-            return "https://api.deepseek.com/v1/chat/completions"
         case .openRouter:
             return "https://openrouter.ai/api/v1/chat/completions"
         case .mistral:
@@ -57,8 +54,6 @@ enum AIProvider: String, CaseIterable {
             return "claude-sonnet-4-0"
         case .openAI:
             return "gpt-4.1-mini"
-        case .deepSeek:
-            return "deepseek-chat"
         case .mistral:
             return "mistral-large-latest"
         case .elevenLabs:
@@ -109,11 +104,6 @@ enum AIProvider: String, CaseIterable {
             return [
                 "gpt-4.1",
                 "gpt-4.1-mini"
-            ]
-        case .deepSeek:
-            return [
-                "deepseek-chat",
-                "deepseek-reasoner"
             ]
         case .mistral:
             return [
