@@ -351,8 +351,8 @@ struct ConfigurationView: View {
                         SectionHeader(title: "Transcription")
                         
                         // Whisper Model Selection Subsection
-                        if whisperState.availableModels.isEmpty {
-                            Text("No Whisper models available. Download models in the AI Models tab.")
+                        if whisperState.usableModels.isEmpty {
+                            Text("No transcription models available. Please connect to a cloud service or download a local model in the AI Models tab.")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .padding()
