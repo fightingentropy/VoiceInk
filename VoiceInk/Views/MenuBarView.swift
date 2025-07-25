@@ -159,6 +159,10 @@ struct MenuBarView: View {
             
             Divider()
             
+            Button("Copy Last Transcription") {
+                LastTranscriptionService.copyLastTranscription(from: whisperState.modelContext)
+            }
+            
             Button("History") {
                 menuBarManager.openMainWindowAndNavigate(to: "History")
             }
