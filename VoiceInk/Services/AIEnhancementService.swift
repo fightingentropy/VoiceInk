@@ -224,8 +224,7 @@ class AIEnhancementService: ObservableObject {
                     throw EnhancementError.invalidResponse
                 }
                 
-                switch httpResponse.statusCode {
-                case 200:
+                if httpResponse.statusCode == 200 {
                     guard let jsonResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                           let content = jsonResponse["content"] as? [[String: Any]],
                           let firstContent = content.first,
@@ -235,15 +234,9 @@ class AIEnhancementService: ObservableObject {
                     
                     let filteredText = AIEnhancementOutputFilter.filter(enhancedText.trimmingCharacters(in: .whitespacesAndNewlines))
                     return filteredText
-                    
-                case 401:
-                    throw EnhancementError.authenticationFailed
-                case 429:
-                    throw EnhancementError.rateLimitExceeded
-                case 500...599:
-                    throw EnhancementError.serverError
-                default:
-                    throw EnhancementError.apiError
+                } else {
+                    let errorString = String(data: data, encoding: .utf8) ?? "Could not decode error response."
+                    throw EnhancementError.customError("HTTP \(httpResponse.statusCode): \(errorString)")
                 }
                 
             } catch let error as EnhancementError {
@@ -383,10 +376,6 @@ enum EnhancementError: Error {
     case emptyText
     case invalidResponse
     case enhancementFailed
-    case authenticationFailed
-    case rateLimitExceeded
-    case serverError
-    case apiError
     case networkError
     case customError(String)
 }
@@ -402,14 +391,6 @@ extension EnhancementError: LocalizedError {
             return "Invalid response from AI provider."
         case .enhancementFailed:
             return "AI enhancement failed to process the text."
-        case .authenticationFailed:
-            return "API key is invalid. Please check your credentials."
-        case .rateLimitExceeded:
-            return "Rate limit exceeded. Please try again later."
-        case .serverError:
-            return "AI provider server error. Please try again."
-        case .apiError:
-            return "AI provider API error. Please try again."
         case .networkError:
             return "Network connection failed. Check your internet."
         case .customError(let message):
