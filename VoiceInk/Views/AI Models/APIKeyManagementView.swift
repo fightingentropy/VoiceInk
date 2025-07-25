@@ -393,7 +393,7 @@ struct APIKeyManagementView: View {
                             Spacer()
                             
                             HStack(spacing: 8) {
-                                Text(aiService.selectedProvider == .groq || aiService.selectedProvider == .gemini ? "Free" : "Paid")
+                                Text((aiService.selectedProvider == .groq || aiService.selectedProvider == .gemini || aiService.selectedProvider == .cerebras) ? "Free" : "Paid")
                                     .font(.caption2)
                                     .foregroundColor(.secondary)
                                     .padding(.horizontal, 6)
