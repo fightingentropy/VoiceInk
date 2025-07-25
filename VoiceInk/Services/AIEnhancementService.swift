@@ -182,17 +182,8 @@ class AIEnhancementService: ObservableObject {
                 let result = try await aiService.enhanceWithOllama(text: formattedText, systemPrompt: systemMessage)
                 let filteredResult = AIEnhancementOutputFilter.filter(result)
                 return filteredResult
-            } catch let error as LocalAIError {
-                switch error {
-                case .serviceUnavailable:
-                    throw EnhancementError.notConfigured
-                case .modelNotFound:
-                    throw EnhancementError.enhancementFailed
-                case .serverError:
-                    throw EnhancementError.serverError
-                default:
-                    throw EnhancementError.enhancementFailed
-                }
+            } catch {
+                throw EnhancementError.customError(error.localizedDescription)
             }
         }
         
