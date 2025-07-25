@@ -183,7 +183,11 @@ class AIEnhancementService: ObservableObject {
                 let filteredResult = AIEnhancementOutputFilter.filter(result)
                 return filteredResult
             } catch {
-                throw EnhancementError.customError(error.localizedDescription)
+                if let localError = error as? LocalAIError {
+                    throw EnhancementError.customError(localError.errorDescription ?? "An unknown Ollama error occurred.")
+                } else {
+                    throw EnhancementError.customError(error.localizedDescription)
+                }
             }
         }
         
