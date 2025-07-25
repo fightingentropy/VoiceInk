@@ -22,7 +22,7 @@ enum AIProvider: String, CaseIterable {
         case .groq:
             return "https://api.groq.com/openai/v1/chat/completions"
         case .gemini:
-            return "https://generativelanguage.googleapis.com/v1beta/models"
+            return "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
         case .anthropic:
             return "https://api.anthropic.com/v1/messages"
         case .openAI:
@@ -291,8 +291,6 @@ class AIService: ObservableObject {
         }
         
         switch selectedProvider {
-        case .gemini:
-            verifyGeminiAPIKey(key, completion: completion)
         case .anthropic:
             verifyAnthropicAPIKey(key, completion: completion)
         case .elevenLabs:
@@ -351,49 +349,6 @@ class AIService: ObservableObject {
             "system": "You are a test system.",
             "messages": [
                 ["role": "user", "content": "test"]
-            ]
-        ]
-        
-        request.httpBody = try? JSONSerialization.data(withJSONObject: testBody)
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                completion(false)
-                return
-            }
-            
-            if let httpResponse = response as? HTTPURLResponse {
-                completion(httpResponse.statusCode == 200)
-            } else {
-                completion(false)
-            }
-        }.resume()
-    }
-    
-    private func verifyGeminiAPIKey(_ key: String, completion: @escaping (Bool) -> Void) {
-        let baseEndpoint = "https://generativelanguage.googleapis.com/v1beta/models"
-        let model = currentModel
-        let fullURL = "\(baseEndpoint)/\(model):generateContent"
-        
-        var urlComponents = URLComponents(string: fullURL)!
-        urlComponents.queryItems = [URLQueryItem(name: "key", value: key)]
-        
-        guard let url = urlComponents.url else {
-            completion(false)
-            return
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let testBody: [String: Any] = [
-            "contents": [
-                [
-                    "parts": [
-                        ["text": "test"]
-                    ]
-                ]
             ]
         ]
         

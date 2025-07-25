@@ -294,7 +294,7 @@ class WhisperState: NSObject, ObservableObject {
                     let newTranscription = Transcription(
                         text: originalText,
                         duration: actualDuration,
-                        enhancedText: "Enhancement failed: \(error.localizedDescription)",
+                        enhancedText: "Enhancement failed: \(error)",
                         audioFileURL: url.absoluteString,
                         transcriptionModelName: model.displayName,
                         transcriptionDuration: transcriptionDuration
