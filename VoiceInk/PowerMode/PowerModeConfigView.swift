@@ -352,7 +352,7 @@ struct ConfigurationView: View {
                         
                         // Whisper Model Selection Subsection
                         if whisperState.usableModels.isEmpty {
-                            Text("No transcription models available. Download models or configure API keys in the AI Models tab.")
+                            Text("No transcription models available. Please connect to a cloud service or download a local model in the AI Models tab.")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .padding()
