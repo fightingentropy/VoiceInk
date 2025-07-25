@@ -408,8 +408,6 @@ struct APIKeyManagementView: View {
                                             URL(string: "https://console.groq.com/keys")!
                                         case .openAI:
                                             URL(string: "https://platform.openai.com/api-keys")!
-                                        case .deepSeek:
-                                            URL(string: "https://platform.deepseek.com/api-keys")!
                                         case .gemini:
                                             URL(string: "https://makersuite.google.com/app/apikey")!
                                         case .anthropic:
