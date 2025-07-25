@@ -2,97 +2,93 @@ import Foundation
 import os
 
 enum AIProvider: String, CaseIterable {
+    case cerebras = "Cerebras"
     case groq = "GROQ"
-    case openAI = "OpenAI"
-    case deepSeek = "DeepSeek"
     case gemini = "Gemini"
     case anthropic = "Anthropic"
+    case openAI = "OpenAI"
+    case deepSeek = "DeepSeek"
     case openRouter = "OpenRouter"
     case mistral = "Mistral"
-    case ollama = "Ollama"
     case elevenLabs = "ElevenLabs"
     case deepgram = "Deepgram"
+    case ollama = "Ollama"
     case custom = "Custom"
-    case cerebras = "Cerebras"
     
     
     var baseURL: String {
         switch self {
+        case .cerebras:
+            return "https://api.cerebras.ai/v1/chat/completions"
         case .groq:
             return "https://api.groq.com/openai/v1/chat/completions"
-        case .openAI:
-            return "https://api.openai.com/v1/chat/completions"
-        case .deepSeek:
-            return "https://api.deepseek.com/v1/chat/completions"
         case .gemini:
             return "https://generativelanguage.googleapis.com/v1beta/models"
         case .anthropic:
             return "https://api.anthropic.com/v1/messages"
+        case .openAI:
+            return "https://api.openai.com/v1/chat/completions"
+        case .deepSeek:
+            return "https://api.deepseek.com/v1/chat/completions"
         case .openRouter:
             return "https://openrouter.ai/api/v1/chat/completions"
         case .mistral:
             return "https://api.mistral.ai/v1/audio/transcriptions"
         case .elevenLabs:
             return "https://api.elevenlabs.io/v1/speech-to-text"
-        case .ollama:
-            return UserDefaults.standard.string(forKey: "ollamaBaseURL") ?? "http://localhost:11434"
         case .deepgram:
             return "https://api.deepgram.com/v1/listen"
+        case .ollama:
+            return UserDefaults.standard.string(forKey: "ollamaBaseURL") ?? "http://localhost:11434"
         case .custom:
             return UserDefaults.standard.string(forKey: "customProviderBaseURL") ?? ""
-        case .cerebras:
-            return "https://api.cerebras.ai/v1/chat/completions"
-        
         }
     }
     
     var defaultModel: String {
         switch self {
+        case .cerebras:
+            return "qwen-3-32b"
         case .groq:
             return "qwen/qwen3-32b"
-        case .openAI:
-            return "gpt-4.1-mini"
-        case .deepSeek:
-            return "deepseek-chat"
         case .gemini:
             return "gemini-2.0-flash-lite"
         case .anthropic:
             return "claude-sonnet-4-0"
+        case .openAI:
+            return "gpt-4.1-mini"
+        case .deepSeek:
+            return "deepseek-chat"
         case .mistral:
             return "mistral-large-latest"
         case .elevenLabs:
             return "scribe_v1"
-        case .ollama:
-            return UserDefaults.standard.string(forKey: "ollamaSelectedModel") ?? "mistral"
         case .deepgram:
             return "whisper-1"
+        case .ollama:
+            return UserDefaults.standard.string(forKey: "ollamaSelectedModel") ?? "mistral"
         case .custom:
             return UserDefaults.standard.string(forKey: "customProviderModel") ?? ""
         case .openRouter:
             return "openai/gpt-4o"
-        case .cerebras:
-            return "qwen-3-32b"
         }
     }
     
     var availableModels: [String] {
         switch self {
+        case .cerebras:
+            return [
+                "llama-4-scout-17b-16e-instruct",
+                "llama-3.3-70b",
+                "qwen-3-32b",
+                "qwen-3-235b-a22b"
+            ]
         case .groq:
             return [
                 "llama-3.3-70b-versatile",
                 "moonshotai/kimi-k2-instruct",
                 "qwen/qwen3-32b",
                 "meta-llama/llama-4-maverick-17b-128e-instruct"
-            ]
-        case .openAI:
-            return [
-                "gpt-4.1",
-                "gpt-4.1-mini"
-            ]
-        case .deepSeek:
-            return [
-                "deepseek-chat",
-                "deepseek-reasoner"
             ]
         case .gemini:
             return [
@@ -109,6 +105,16 @@ enum AIProvider: String, CaseIterable {
                 "claude-3-5-haiku-latest",
                 "claude-3-5-sonnet-latest"
             ]
+        case .openAI:
+            return [
+                "gpt-4.1",
+                "gpt-4.1-mini"
+            ]
+        case .deepSeek:
+            return [
+                "deepseek-chat",
+                "deepseek-reasoner"
+            ]
         case .mistral:
             return [
                 "mistral-large-latest",
@@ -117,21 +123,14 @@ enum AIProvider: String, CaseIterable {
             ]
         case .elevenLabs:
             return ["scribe_v1", "scribe_v1_experimental"]
-        case .ollama:
-            return []
         case .deepgram:
             return ["whisper-1"]
+        case .ollama:
+            return []
         case .custom:
             return []
         case .openRouter:
             return []
-        case .cerebras:
-            return [
-                "llama-4-scout-17b-16e-instruct",
-                "llama-3.3-70b",
-                "qwen-3-32b",
-                "qwen-3-235b-a22b"
-            ]
         }
     }
     
