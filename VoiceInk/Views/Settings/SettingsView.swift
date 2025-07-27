@@ -13,6 +13,7 @@ struct SettingsView: View {
     @EnvironmentObject private var enhancementService: AIEnhancementService
     @StateObject private var deviceManager = AudioDeviceManager.shared
     @ObservedObject private var mediaController = MediaController.shared
+    @ObservedObject private var playbackController = PlaybackController.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
     @State private var showResetOnboardingAlert = false
     @State private var currentShortcut = KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder)
@@ -129,6 +130,12 @@ struct SettingsView: View {
                         }
                         .toggleStyle(.switch)
                         .help("Automatically mute system audio when recording starts and restore when recording stops")
+
+                        Toggle(isOn: $playbackController.isPauseMediaEnabled) {
+                            Text("Pause media during recording")
+                        }
+                        .toggleStyle(.switch)
+                        .help("Automatically pause active media playback when recording starts and resume when recording stops")
                     }
                 }
 
@@ -263,6 +270,7 @@ struct SettingsView: View {
                                     hotkeyManager: hotkeyManager, 
                                     menuBarManager: menuBarManager, 
                                     mediaController: MediaController.shared, 
+                                    playbackController: PlaybackController.shared,
                                     soundManager: SoundManager.shared,
                                     whisperState: whisperState
                                 )
@@ -279,6 +287,7 @@ struct SettingsView: View {
                                     hotkeyManager: hotkeyManager, 
                                     menuBarManager: menuBarManager, 
                                     mediaController: MediaController.shared, 
+                                    playbackController: PlaybackController.shared,
                                     soundManager: SoundManager.shared,
                                     whisperState: whisperState
                                 )
