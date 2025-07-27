@@ -8,7 +8,8 @@ import MediaRemoteAdapter
 class PlaybackController: ObservableObject {
     static let shared = PlaybackController()
     private var mediaController: MediaRemoteAdapter.MediaController
-    private var didPauseMedia = false
+    private var wasPlayingWhenRecordingStarted = false
+    private var isMediaPlaying = false
     
     @Published var isPauseMediaEnabled: Bool = UserDefaults.standard.bool(forKey: "isPauseMediaEnabled") {
         didSet {
@@ -25,6 +26,11 @@ class PlaybackController: ObservableObject {
         
         mediaController.startListening()
         
+        // Listen for track changes to know if media is playing
+        mediaController.onTrackInfoReceived = { [weak self] trackInfo in
+            self?.isMediaPlaying = trackInfo.payload.isPlaying ?? false
+        }
+        
         mediaController.onListenerTerminated = {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 self.mediaController.startListening()
@@ -32,19 +38,21 @@ class PlaybackController: ObservableObject {
         }
     }
     
-    func pauseMedia() async -> Bool {
-        guard isPauseMediaEnabled else { return false }
-        
-        mediaController.pause()
-        didPauseMedia = true
-        return true
+    func pauseMedia() async {
+        guard isPauseMediaEnabled else { return }
+
+        if isMediaPlaying {
+            wasPlayingWhenRecordingStarted = true
+            mediaController.pause()
+        } else {
+            wasPlayingWhenRecordingStarted = false
+        }
     }
-    
+
     func resumeMedia() async {
-        guard isPauseMediaEnabled && didPauseMedia else { return }
+        guard isPauseMediaEnabled, wasPlayingWhenRecordingStarted else { return }
         
         mediaController.play()
-        didPauseMedia = false
     }
 }
 
