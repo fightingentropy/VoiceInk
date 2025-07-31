@@ -86,11 +86,24 @@ import Foundation
             isMultilingualModel: true,
             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .nativeApple)
         ),
+        
+        // Fluid Audio Model
+        FluidAudioModel(
+            name: "parakeet-tdt-0.6b",
+            displayName: "Parakeet",
+            description: "NVIDIA's insanely fast Parakeet model for lightning-fast transcription.",
+            size: "600 MB",
+            speed: 0.99,
+            accuracy: 0.94,
+            ramUsage: 0.8,
+            supportedLanguages: getLanguageDictionary(isMultilingual: false, provider: .fluidAudio)
+        ),
+        
          // Local Models
          LocalModel(
              name: "ggml-tiny",
              displayName: "Tiny",
-             size: "75 MiB",
+             size: "75 MB",
              supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .local),
              description: "Tiny model, fastest, least accurate",
              speed: 0.95,
@@ -100,7 +113,7 @@ import Foundation
          LocalModel(
              name: "ggml-tiny.en",
              displayName: "Tiny (English)",
-             size: "75 MiB",
+             size: "75 MB",
              supportedLanguages: getLanguageDictionary(isMultilingual: false, provider: .local),
              description: "Tiny model optimized for English, fastest, least accurate",
              speed: 0.95,
@@ -110,7 +123,7 @@ import Foundation
          LocalModel(
              name: "ggml-base",
              displayName: "Base",
-             size: "142 MiB",
+             size: "142 MB",
              supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .local),
              description: "Base model, good balance between speed and accuracy, supports multiple languages",
              speed: 0.85,
@@ -120,7 +133,7 @@ import Foundation
          LocalModel(
              name: "ggml-base.en",
              displayName: "Base (English)",
-             size: "142 MiB",
+             size: "142 MB",
              supportedLanguages: getLanguageDictionary(isMultilingual: false, provider: .local),
              description: "Base model optimized for English, good balance between speed and accuracy",
              speed: 0.85,
@@ -130,7 +143,7 @@ import Foundation
          LocalModel(
              name: "ggml-large-v2",
              displayName: "Large v2",
-             size: "2.9 GiB",
+             size: "2.9 GB",
              supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .local),
              description: "Large model v2, slower than Medium but more accurate",
              speed: 0.3,
@@ -140,7 +153,7 @@ import Foundation
          LocalModel(
              name: "ggml-large-v3",
              displayName: "Large v3",
-             size: "2.9 GiB",
+             size: "2.9 GB",
              supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .local),
              description: "Large model v3, very slow but most accurate",
              speed: 0.3,
@@ -150,7 +163,7 @@ import Foundation
          LocalModel(
              name: "ggml-large-v3-turbo",
              displayName: "Large v3 Turbo",
-             size: "1.5 GiB",
+             size: "1.5 GB",
              supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .local),
              description:
              "Large model v3 Turbo, faster than v3 with similar accuracy",
@@ -161,7 +174,7 @@ import Foundation
          LocalModel(
              name: "ggml-large-v3-turbo-q5_0",
              displayName: "Large v3 Turbo (Quantized)",
-             size: "547 MiB",
+             size: "547 MB",
              supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .local),
              description: "Quantized version of Large v3 Turbo, faster with slightly lower accuracy",
              speed: 0.75,
