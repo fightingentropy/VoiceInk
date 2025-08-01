@@ -91,7 +91,7 @@ import Foundation
         ParakeetModel(
             name: "parakeet-tdt-0.6b",
             displayName: "Parakeet",
-            description: "NVIDIA's insanely fast Parakeet model for lightning-fast transcription.",
+            description: "NVIDIA's ASR model for lightning-fast english transcription.",
             size: "600 MB",
             speed: 0.99,
             accuracy: 0.94,

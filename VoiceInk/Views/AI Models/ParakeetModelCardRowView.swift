@@ -104,7 +104,7 @@ struct ParakeetModelCardRowView: View {
             if isDownloading {
                 ProgressView() // Indeterminate for now
                     .progressViewStyle(LinearProgressViewStyle())
-                    .frame(maxWidth: 200)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 8)
             }
         }
