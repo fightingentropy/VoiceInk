@@ -112,11 +112,6 @@ struct SettingsView: View {
                     subtitle: "Customize app & system feedback"
                 ) {
                     VStack(alignment: .leading, spacing: 12) {
-                        Toggle(isOn: $whisperState.isAutoCopyEnabled) {
-                            Text("Auto-copy to clipboard")
-                        }
-                        .toggleStyle(.switch)
-
                         Toggle(isOn: .init(
                             get: { SoundManager.shared.isEnabled },
                             set: { SoundManager.shared.isEnabled = $0 }

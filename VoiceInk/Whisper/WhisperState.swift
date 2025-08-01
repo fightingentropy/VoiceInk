@@ -27,11 +27,7 @@ class WhisperState: NSObject, ObservableObject {
     @Published var clipboardMessage = ""
     @Published var miniRecorderError: String?
     @Published var shouldCancelRecording = false
-    @Published var isAutoCopyEnabled: Bool = UserDefaults.standard.object(forKey: "IsAutoCopyEnabled") as? Bool ?? true {
-        didSet {
-            UserDefaults.standard.set(isAutoCopyEnabled, forKey: "IsAutoCopyEnabled")
-        }
-    }
+
     @Published var recorderType: String = UserDefaults.standard.string(forKey: "RecorderType") ?? "mini" {
         didSet {
             UserDefaults.standard.set(recorderType, forKey: "RecorderType")
@@ -350,11 +346,7 @@ class WhisperState: NSObject, ObservableObject {
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 
-                CursorPaster.pasteAtCursor(text, shouldPreserveClipboard: !self.isAutoCopyEnabled)
-                
-                if self.isAutoCopyEnabled {
-                    ClipboardManager.copyToClipboard(text)
-                }
+                CursorPaster.pasteAtCursor(text, shouldPreserveClipboard: true)
 
                 // Automatically press Enter if the active Power Mode configuration allows it.
                 let powerMode = PowerModeManager.shared
