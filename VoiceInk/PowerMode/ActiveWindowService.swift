@@ -126,25 +126,23 @@ class ActiveWindowService: ObservableObject {
                 // Set the new model as default. This works for both local and cloud models.
                 await whisperState.setDefaultTranscriptionModel(selectedModel)
                 
-                // The cleanup and load cycle is only necessary for local models.
-                if selectedModel.provider == ModelProvider.local {
-                    // Unload any previously loaded model to free up memory.
+                switch selectedModel.provider {
+                case .local:
                     await whisperState.cleanupModelResources()
                     
-                    // Load the new local model into memory.
                     if let localModel = await whisperState.availableModels.first(where: { $0.name == selectedModel.name }) {
                         do {
                             try await whisperState.loadModel(localModel)
-                            logger.info("✅ Power Mode: Successfully loaded local model '\(localModel.name)'.")
                         } catch {
                             logger.error("❌ Power Mode: Failed to load local model '\(localModel.name)': \(error.localizedDescription)")
                         }
                     }
-                } else {
-                    // For cloud models, no in-memory loading is needed, but we should still
-                    // clean up if the *previous* model was a local one.
+                    
+                case .parakeet:
                     await whisperState.cleanupModelResources()
-                    logger.info("✅ Power Mode: Switched to cloud model '\(selectedModel.name)'. No local load needed.")
+                    
+                default:
+                    await whisperState.cleanupModelResources()
                 }
             }
         }

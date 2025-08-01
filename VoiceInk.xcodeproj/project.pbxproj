@@ -7,13 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E1304F742E3B9E8A0001F9E2 /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = E1304F732E3B9E8A0001F9E2 /* FluidAudio */; };
+		E1304F842E3BB2FF0001F9E2 /* whisper.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1304F832E3BB2FF0001F9E2 /* whisper.xcframework */; };
+		E1304F852E3BB2FF0001F9E2 /* whisper.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E1304F832E3BB2FF0001F9E2 /* whisper.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		E1A261122CC143AC00B233D1 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = E1A261112CC143AC00B233D1 /* KeyboardShortcuts */; };
-		E1A8C8CB2E1257B7003E58EC /* whisper.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1A8C8CA2E1257B7003E58EC /* whisper.xcframework */; };
 		E1ADD45A2CC5352A00303ECB /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = E1ADD4592CC5352A00303ECB /* LaunchAtLogin */; };
 		E1ADD45F2CC544F100303ECB /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = E1ADD45E2CC544F100303ECB /* Sparkle */; };
 		E1D7EF992E35E16C00640029 /* MediaRemoteAdapter in Frameworks */ = {isa = PBXBuildFile; productRef = E1D7EF982E35E16C00640029 /* MediaRemoteAdapter */; };
 		E1D7EF9A2E35E19B00640029 /* MediaRemoteAdapter in Embed Frameworks */ = {isa = PBXBuildFile; productRef = E1D7EF982E35E16C00640029 /* MediaRemoteAdapter */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		E1E0B9622E3133EF00C10E20 /* whisper.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E1A8C8CA2E1257B7003E58EC /* whisper.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		E1F5FA7A2DA6CBF900B1FD8A /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = E1F5FA792DA6CBF900B1FD8A /* Zip */; };
 /* End PBXBuildFile section */
 
@@ -41,7 +42,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				E1E0B9622E3133EF00C10E20 /* whisper.xcframework in Embed Frameworks */,
+				E1304F852E3BB2FF0001F9E2 /* whisper.xcframework in Embed Frameworks */,
 				E1D7EF9A2E35E19B00640029 /* MediaRemoteAdapter in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
@@ -53,6 +54,7 @@
 		E11473B02CBE0F0A00318EE4 /* VoiceInk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VoiceInk.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E11473C32CBE0F0B00318EE4 /* VoiceInkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VoiceInkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E11473CD2CBE0F0B00318EE4 /* VoiceInkUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VoiceInkUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E1304F832E3BB2FF0001F9E2 /* whisper.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = whisper.xcframework; path = "../Downloads/build-apple/whisper.xcframework"; sourceTree = "<group>"; };
 		E1A8C8CA2E1257B7003E58EC /* whisper.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = whisper.xcframework; path = "../whisper.cpp/build-apple/whisper.xcframework"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -81,9 +83,10 @@
 			files = (
 				E1ADD45A2CC5352A00303ECB /* LaunchAtLogin in Frameworks */,
 				E1D7EF992E35E16C00640029 /* MediaRemoteAdapter in Frameworks */,
+				E1304F742E3B9E8A0001F9E2 /* FluidAudio in Frameworks */,
+				E1304F842E3BB2FF0001F9E2 /* whisper.xcframework in Frameworks */,
 				E1ADD45F2CC544F100303ECB /* Sparkle in Frameworks */,
 				E1A261122CC143AC00B233D1 /* KeyboardShortcuts in Frameworks */,
-				E1A8C8CB2E1257B7003E58EC /* whisper.xcframework in Frameworks */,
 				E1F5FA7A2DA6CBF900B1FD8A /* Zip in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -129,6 +132,7 @@
 		E114741C2CBE1DE200318EE4 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E1304F832E3BB2FF0001F9E2 /* whisper.xcframework */,
 				E1A8C8CA2E1257B7003E58EC /* whisper.xcframework */,
 			);
 			name = Frameworks;
@@ -160,6 +164,7 @@
 				E1ADD45E2CC544F100303ECB /* Sparkle */,
 				E1F5FA792DA6CBF900B1FD8A /* Zip */,
 				E1D7EF982E35E16C00640029 /* MediaRemoteAdapter */,
+				E1304F732E3B9E8A0001F9E2 /* FluidAudio */,
 			);
 			productName = VoiceInk;
 			productReference = E11473B02CBE0F0A00318EE4 /* VoiceInk.app */;
@@ -249,6 +254,7 @@
 				E1ADD45D2CC544F100303ECB /* XCRemoteSwiftPackageReference "Sparkle" */,
 				E1F5FA782DA6CBF900B1FD8A /* XCRemoteSwiftPackageReference "Zip" */,
 				E1D7EF972E35E16C00640029 /* XCRemoteSwiftPackageReference "mediaremote-adapter" */,
+				E1304F722E3B9E8A0001F9E2 /* XCRemoteSwiftPackageReference "FluidAudio" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E11473B12CBE0F0A00318EE4 /* Products */;
@@ -618,6 +624,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		E1304F722E3B9E8A0001F9E2 /* XCRemoteSwiftPackageReference "FluidAudio" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/FluidInference/FluidAudio";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		E1A261102CC143AC00B233D1 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
@@ -661,6 +675,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		E1304F732E3B9E8A0001F9E2 /* FluidAudio */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E1304F722E3B9E8A0001F9E2 /* XCRemoteSwiftPackageReference "FluidAudio" */;
+			productName = FluidAudio;
+		};
 		E1A261112CC143AC00B233D1 /* KeyboardShortcuts */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = E1A261102CC143AC00B233D1 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;

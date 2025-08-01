@@ -87,8 +87,8 @@ import Foundation
             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .nativeApple)
         ),
         
-        // Fluid Audio Model
-        FluidAudioModel(
+        // Parakeet Model
+        ParakeetModel(
             name: "parakeet-tdt-0.6b",
             displayName: "Parakeet",
             description: "NVIDIA's insanely fast Parakeet model for lightning-fast transcription.",
@@ -96,7 +96,7 @@ import Foundation
             speed: 0.99,
             accuracy: 0.94,
             ramUsage: 0.8,
-            supportedLanguages: getLanguageDictionary(isMultilingual: false, provider: .fluidAudio)
+            supportedLanguages: getLanguageDictionary(isMultilingual: false, provider: .parakeet)
         ),
         
          // Local Models

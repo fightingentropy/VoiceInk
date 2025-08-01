@@ -20,7 +20,7 @@ class SoundManager {
         
         // Try loading directly from the main bundle
         if let startSoundURL = Bundle.main.url(forResource: "recstart", withExtension: "mp3"),
-           let stopSoundURL = Bundle.main.url(forResource: "pastes", withExtension: "mp3"),
+           let stopSoundURL = Bundle.main.url(forResource: "recstop", withExtension: "mp3"),
            let escSoundURL = Bundle.main.url(forResource: "esc", withExtension: "wav") {
             print("Found sounds in main bundle")
             try? loadSounds(start: startSoundURL, stop: stopSoundURL, esc: escSoundURL)
@@ -49,8 +49,8 @@ class SoundManager {
             escSound = try AVAudioPlayer(contentsOf: escURL)
             
             // Set lower volume for all sounds
-            startSound?.volume = 0.7
-            stopSound?.volume = 0.7
+            startSound?.volume = 0.4
+            stopSound?.volume = 0.4
             escSound?.volume = 0.3
             
             // Prepare sounds for instant playback

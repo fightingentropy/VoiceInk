@@ -62,6 +62,7 @@ class WhisperState: NSObject, ObservableObject {
     private var localTranscriptionService: LocalTranscriptionService!
     private lazy var cloudTranscriptionService = CloudTranscriptionService()
     private lazy var nativeAppleTranscriptionService = NativeAppleTranscriptionService()
+    private lazy var parakeetTranscriptionService = ParakeetTranscriptionService(customModelsDirectory: parakeetModelsDirectory)
     
     private var modelUrl: URL? {
         let possibleURLs = [
@@ -84,6 +85,7 @@ class WhisperState: NSObject, ObservableObject {
     
     let modelsDirectory: URL
     let recordingsDirectory: URL
+    let parakeetModelsDirectory: URL
     let enhancementService: AIEnhancementService?
     var licenseViewModel: LicenseViewModel
     let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "WhisperState")
@@ -92,6 +94,7 @@ class WhisperState: NSObject, ObservableObject {
     
     // For model progress tracking
     @Published var downloadProgress: [String: Double] = [:]
+    @Published var isDownloadingParakeet = false
     
     init(modelContext: ModelContext, enhancementService: AIEnhancementService? = nil) {
         self.modelContext = modelContext
@@ -100,6 +103,7 @@ class WhisperState: NSObject, ObservableObject {
         
         self.modelsDirectory = appSupportDirectory.appendingPathComponent("WhisperModels")
         self.recordingsDirectory = appSupportDirectory.appendingPathComponent("Recordings")
+        self.parakeetModelsDirectory = appSupportDirectory.appendingPathComponent("ParakeetModels")
         
         self.enhancementService = enhancementService
         self.licenseViewModel = LicenseViewModel()
@@ -167,10 +171,11 @@ class WhisperState: NSObject, ObservableObject {
         
                             await MainActor.run {
                                 self.recordingState = .recording
+                                SoundManager.shared.playStartSound()
                             }
                             
                             await ActiveWindowService.shared.applyConfigurationForCurrentApp()
-        
+         
                             // Only load model if it's a local model and not already loaded
                             if let model = self.currentTranscriptionModel, model.provider == .local {
                                 if let localWhisperModel = self.availableModels.first(where: { $0.name == model.name }),
@@ -181,6 +186,8 @@ class WhisperState: NSObject, ObservableObject {
                                         self.logger.error("❌ Model loading failed: \(error.localizedDescription)")
                                     }
                                 }
+                                    } else if let model = self.currentTranscriptionModel, model.provider == .parakeet {
+            try? await parakeetTranscriptionService.loadModel()
                             }
         
                             if let enhancementService = self.enhancementService,
@@ -239,6 +246,8 @@ class WhisperState: NSObject, ObservableObject {
             switch model.provider {
             case .local:
                 transcriptionService = localTranscriptionService
+                    case .parakeet:
+            transcriptionService = parakeetTranscriptionService
             case .nativeApple:
                 transcriptionService = nativeAppleTranscriptionService
             default:
@@ -332,7 +341,6 @@ class WhisperState: NSObject, ObservableObject {
 
             if await checkCancellationAndCleanup() { return }
 
-            SoundManager.shared.playStopSound()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 
                 CursorPaster.pasteAtCursor(text, shouldPreserveClipboard: !self.isAutoCopyEnabled)

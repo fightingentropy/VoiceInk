@@ -3,6 +3,7 @@ import AppKit
 
 struct ModelCardRowView: View {
     let model: any TranscriptionModel
+    @ObservedObject var whisperState: WhisperState
     let isDownloaded: Bool
     let isCurrent: Bool
     let downloadProgress: [String: Double]
@@ -28,6 +29,13 @@ struct ModelCardRowView: View {
                         deleteAction: deleteAction,
                         setDefaultAction: setDefaultAction,
                         downloadAction: downloadAction
+                    )
+                }
+                    case .parakeet:
+            if let parakeetModel = model as? ParakeetModel {
+                ParakeetModelCardRowView(
+                    model: parakeetModel,
+                        whisperState: whisperState
                     )
                 }
             case .nativeApple:

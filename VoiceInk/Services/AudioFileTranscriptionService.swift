@@ -18,6 +18,7 @@ class AudioTranscriptionService: ObservableObject {
     private let localTranscriptionService: LocalTranscriptionService
     private lazy var cloudTranscriptionService = CloudTranscriptionService()
     private lazy var nativeAppleTranscriptionService = NativeAppleTranscriptionService()
+    private lazy var parakeetTranscriptionService = ParakeetTranscriptionService(customModelsDirectory: whisperState.parakeetModelsDirectory)
     
     enum TranscriptionError: Error {
         case noAudioFile
@@ -50,6 +51,8 @@ class AudioTranscriptionService: ObservableObject {
             switch model.provider {
             case .local:
                 text = try await localTranscriptionService.transcribe(audioURL: url, model: model)
+            case .parakeet:
+                text = try await parakeetTranscriptionService.transcribe(audioURL: url, model: model)
             case .nativeApple:
                 text = try await nativeAppleTranscriptionService.transcribe(audioURL: url, model: model)
             default: // Cloud models

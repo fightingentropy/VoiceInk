@@ -3,6 +3,7 @@ import Foundation
 // Enum to differentiate between model providers
 enum ModelProvider: String, Codable, Hashable, CaseIterable {
     case local = "Local"
+    case parakeet = "Parakeet"
     case groq = "Groq"
     case elevenLabs = "ElevenLabs"
     case deepgram = "Deepgram"
@@ -43,6 +44,23 @@ struct NativeAppleModel: TranscriptionModel {
     let description: String
     let provider: ModelProvider = .nativeApple
     let isMultilingualModel: Bool
+    let supportedLanguages: [String: String]
+}
+
+// A new struct for Parakeet models
+struct ParakeetModel: TranscriptionModel {
+    let id = UUID()
+    let name: String
+    let displayName: String
+    let description: String
+    let provider: ModelProvider = .parakeet
+    let size: String
+    let speed: Double
+    let accuracy: Double
+    let ramUsage: Double
+    var isMultilingualModel: Bool {
+        supportedLanguages.count > 1
+    }
     let supportedLanguages: [String: String]
 }
 
