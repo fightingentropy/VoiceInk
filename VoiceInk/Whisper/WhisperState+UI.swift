@@ -61,7 +61,6 @@ extension WhisperState {
         
         await MainActor.run {
             self.recordingState = .busy
-            NotificationManager.shared.dismissNotification()
         }
         
         if wasRecording {
