@@ -224,7 +224,10 @@ class WhisperState: NSObject, ObservableObject {
         
         // Play stop sound when transcription starts with a small delay
         Task {
-            try? await Task.sleep(nanoseconds: 100_000_000) // 100 milliseconds delay
+            let isSystemMuteEnabled = UserDefaults.standard.bool(forKey: "isSystemMuteEnabled")
+            if isSystemMuteEnabled {
+                try? await Task.sleep(nanoseconds: 200_000_000) // 200 milliseconds delay
+            }
             await MainActor.run {
                 SoundManager.shared.playStopSound()
             }
