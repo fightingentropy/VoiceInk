@@ -155,11 +155,6 @@ class Recorder: ObservableObject {
             // Complete system audio operations first
             await mediaController.unmuteSystemAudio()
             await playbackController.resumeMedia()
-            
-            // Then play stop sound on main thread after audio operations are complete
-            await MainActor.run {
-                SoundManager.shared.playStopSound()
-            }
         }
         deviceManager.isRecordingActive = false
     }

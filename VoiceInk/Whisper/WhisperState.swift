@@ -171,7 +171,6 @@ class WhisperState: NSObject, ObservableObject {
         
                             await MainActor.run {
                                 self.recordingState = .recording
-                                SoundManager.shared.playStartSound()
                             }
                             
                             await ActiveWindowService.shared.applyConfigurationForCurrentApp()
@@ -225,6 +224,14 @@ class WhisperState: NSObject, ObservableObject {
         
         await MainActor.run {
             recordingState = .transcribing
+        }
+        
+        // Play stop sound when transcription starts with a small delay
+        Task {
+            try? await Task.sleep(nanoseconds: 100_000_000) // 100 milliseconds delay
+            await MainActor.run {
+                SoundManager.shared.playStopSound()
+            }
         }
         
         defer {
