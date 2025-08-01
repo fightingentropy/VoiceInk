@@ -1,5 +1,9 @@
 import SwiftUI
 
+extension String: Identifiable {
+    public var id: String { self }
+}
+
 class WordReplacementManager: ObservableObject {
     @Published var replacements: [String: String] {
         didSet {
@@ -25,12 +29,23 @@ class WordReplacementManager: ObservableObject {
     func removeReplacement(original: String) {
         replacements.removeValue(forKey: original)
     }
+    
+    func updateReplacement(oldOriginal: String, newOriginal: String, newReplacement: String) {
+        // Remove the old key if the original text has changed
+        if oldOriginal != newOriginal {
+            replacements.removeValue(forKey: oldOriginal)
+        }
+        // Update (or insert) the new key/value pair
+        replacements[newOriginal] = newReplacement
+    }
 }
 
 struct WordReplacementView: View {
     @StateObject private var manager = WordReplacementManager()
     @State private var showAddReplacementModal = false
     @State private var showAlert = false
+    @State private var editingOriginal: String? = nil
+    
     @State private var alertMessage = ""
     
     var body: some View {
@@ -88,7 +103,8 @@ struct WordReplacementView: View {
                                 ReplacementRow(
                                     original: original,
                                     replacement: manager.replacements[original] ?? "",
-                                    onDelete: { manager.removeReplacement(original: original) }
+                                    onDelete: { manager.removeReplacement(original: original) },
+                                    onEdit: { editingOriginal = original }
                                 )
                                 
                                 if original != manager.replacements.keys.sorted().last {
@@ -106,6 +122,11 @@ struct WordReplacementView: View {
         .sheet(isPresented: $showAddReplacementModal) {
             AddReplacementSheet(manager: manager)
         }
+        // Edit existing replacement
+        .sheet(item: $editingOriginal) { original in
+            EditReplacementSheet(manager: manager, originalKey: original)
+        }
+        
     }
 }
 
@@ -287,6 +308,7 @@ struct ReplacementRow: View {
     let original: String
     let replacement: String
     let onDelete: () -> Void
+    let onEdit: () -> Void
     
     var body: some View {
         HStack(spacing: 16) {
@@ -320,6 +342,16 @@ struct ReplacementRow: View {
                     .cornerRadius(6)
             }
             .frame(maxWidth: .infinity)
+            
+            // Edit Button
+            Button(action: onEdit) {
+                Image(systemName: "pencil.circle.fill")
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundColor(.accentColor)
+                    .font(.system(size: 16))
+            }
+            .buttonStyle(.borderless)
+            .help("Edit replacement")
             
             // Delete Button
             Button(action: onDelete) {
