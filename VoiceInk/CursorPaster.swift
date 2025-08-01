@@ -2,7 +2,7 @@ import Foundation
 import AppKit
 
 class CursorPaster {
-    private static let pasteCompletionDelay: TimeInterval = 0.3
+    private static let pasteCompletionDelay: TimeInterval = 0.6
     
     static func pasteAtCursor(_ text: String, shouldPreserveClipboard: Bool = true) {
         let pasteboard = NSPasteboard.general
