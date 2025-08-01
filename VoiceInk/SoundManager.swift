@@ -16,29 +16,12 @@ class SoundManager {
     }
     
     private func setupSounds() {
-        print("Attempting to load sound files...")
-        
         // Try loading directly from the main bundle
         if let startSoundURL = Bundle.main.url(forResource: "recstart", withExtension: "mp3"),
            let stopSoundURL = Bundle.main.url(forResource: "recstop", withExtension: "mp3"),
            let escSoundURL = Bundle.main.url(forResource: "esc", withExtension: "wav") {
-            print("Found sounds in main bundle")
             try? loadSounds(start: startSoundURL, stop: stopSoundURL, esc: escSoundURL)
             return
-        }
-        
-        print("⚠️ Could not find sound files in the main bundle")
-        print("Bundle path: \(Bundle.main.bundlePath)")
-        
-        // List contents of the bundle for debugging
-        if let bundleURL = Bundle.main.resourceURL {
-            do {
-                let contents = try FileManager.default.contentsOfDirectory(at: bundleURL, includingPropertiesForKeys: nil)
-                print("Contents of bundle resource directory:")
-                contents.forEach { print($0.lastPathComponent) }
-            } catch {
-                print("Error listing bundle contents: \(error)")
-            }
         }
     }
     
@@ -48,35 +31,35 @@ class SoundManager {
             stopSound = try AVAudioPlayer(contentsOf: stopURL)
             escSound = try AVAudioPlayer(contentsOf: escURL)
             
-            // Set lower volume for all sounds
-            startSound?.volume = 0.4
-            stopSound?.volume = 0.4
-            escSound?.volume = 0.3
-            
-            // Prepare sounds for instant playback
+            // Prepare sounds for instant playback first
             startSound?.prepareToPlay()
             stopSound?.prepareToPlay()
             escSound?.prepareToPlay()
             
-            print("✅ Successfully loaded all sound files")
+            // Set lower volume for all sounds after preparation
+            startSound?.volume = 0.4
+            stopSound?.volume = 0.4
+            escSound?.volume = 0.3
         } catch {
-            print("❌ Error loading sounds: \(error.localizedDescription)")
             throw error
         }
     }
     
     func playStartSound() {
         guard isSoundFeedbackEnabled else { return }
+        startSound?.volume = 0.4
         startSound?.play()
     }
     
     func playStopSound() {
         guard isSoundFeedbackEnabled else { return }
+        stopSound?.volume = 0.4
         stopSound?.play()
     }
     
     func playEscSound() {
         guard isSoundFeedbackEnabled else { return }
+        escSound?.volume = 0.3
         escSound?.play()
     }
     
