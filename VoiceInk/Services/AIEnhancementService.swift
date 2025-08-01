@@ -171,7 +171,7 @@ class AIEnhancementService: ObservableObject {
         }
         
         guard !text.isEmpty else {
-            throw EnhancementError.emptyText
+            return "" // Silently return empty string instead of throwing error
         }
         
         let formattedText = "\n<TRANSCRIPT>\n\(text)\n</TRANSCRIPT>"
@@ -368,7 +368,6 @@ class AIEnhancementService: ObservableObject {
 
 enum EnhancementError: Error {
     case notConfigured
-    case emptyText
     case invalidResponse
     case enhancementFailed
     case networkError
@@ -380,8 +379,6 @@ extension EnhancementError: LocalizedError {
         switch self {
         case .notConfigured:
             return "AI provider not configured. Please check your API key."
-        case .emptyText:
-            return "No text to enhance."
         case .invalidResponse:
             return "Invalid response from AI provider."
         case .enhancementFailed:
