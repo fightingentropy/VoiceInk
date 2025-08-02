@@ -56,6 +56,8 @@ class Recorder: ObservableObject {
     }
     
     func startRecording(toOutputFile url: URL) async throws {
+        isReconfiguring = true
+        defer { isReconfiguring = false }
         deviceManager.isRecordingActive = true
         
         let currentDeviceID = deviceManager.getCurrentDevice()
