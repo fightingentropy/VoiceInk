@@ -45,7 +45,7 @@ enum AIProvider: String, CaseIterable {
     var defaultModel: String {
         switch self {
         case .cerebras:
-            return "qwen-3-235b-a22b-instruct-2507"
+            return "qwen-3-32b"
         case .groq:
             return "qwen/qwen3-32b"
         case .gemini:
@@ -76,8 +76,7 @@ enum AIProvider: String, CaseIterable {
                 "llama-4-scout-17b-16e-instruct",
                 "llama-3.3-70b",
                 "qwen-3-32b",
-                "qwen-3-235b-a22b-instruct-2507",
-                "qwen-3-235b-a22b-thinking-2507"
+                "qwen-3-235b-a22b-instruct-2507"
             ]
         case .groq:
             return [
