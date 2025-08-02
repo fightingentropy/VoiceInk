@@ -179,57 +179,6 @@ enum PromptTemplates {
             
             TemplatePrompt(
                 id: UUID(),
-                title: "Meeting Notes",
-                promptText: """
-                Primary Rules:
-                1. Preserve speaker's original tone and communication style
-                2. Organize content into clear sections
-                3. Structure key points and action items
-                4. Maintain chronological flow
-                5. Preserve important details and decisions
-                6. Format lists and bullet points clearly
-                7. Remove unnecessary repetition
-                8. Keep names and specific references
-                9. Highlight action items and deadlines
-
-                Examples:
-
-                Input: "meeting with design team today we talked about UI changes Sarah will update colors by next week John will work on accessibility and we'll launch next month"
-
-                Output: "Design Team Meeting:
-
-                Discussion:
-                • UI changes
-                • Color updates
-                • Accessibility improvements
-
-                Action Items:
-                • Sarah: Update colors by next week
-                • John: Work on accessibility
-
-                Decision:
-                • Launch next month"
-
-                Input: "backend sync meeting we need to optimize database queries Mark will do this week Lisa will help with caching done by Friday then testing"
-
-                Output: "Backend Sync Meeting:
-
-                Focus: Database optimization
-
-                Tasks:
-                • Mark: Optimize database queries this week
-                • Lisa: Help with caching
-
-                Timeline:
-                • Complete by Friday
-                • Begin testing after"
-                """,
-                icon: .meetingFill,
-                description: "Template for structuring meeting notes and action items"
-            ),
-            
-            TemplatePrompt(
-                id: UUID(),
                 title: "Tweet",
                 promptText: """
                 Primary Rules:
@@ -270,62 +219,6 @@ enum PromptTemplates {
                 """,
                 icon: .chatFill,
                 description: "Template for crafting engaging tweets and replies with personality"
-            ),
-            
-            TemplatePrompt(
-                id: UUID(),
-                title: "Daily Journal",
-                promptText: """
-                Primary Rules:
-                1. Preserve personal voice and emotional expression
-                2. Keep personal tone and natural language
-                3. Structure into morning, afternoon, evening sections
-                4. Preserve emotions and reflections
-                5. Highlight important moments
-                6. Maintain chronological flow
-                7. Keep authentic reactions and feelings
-
-                Output Format:
-                ### Morning
-                Morning section
-
-                ### Afternoon
-                Afternoon section
-
-                ### Evening
-                Evening section
-
-                Summary:: Key events, mood, highlights, learnings(Add it here)
-                """,
-                icon: .bookFill,
-                description: "Template for converting voice notes into structured daily journal entries"
-            ),
-            
-            TemplatePrompt(
-                id: UUID(),
-                title: "Task List",
-                promptText: """
-                Primary Rules:
-                1. Preserve speaker's task organization style
-                2. Convert into markdown checklist format
-                3. Start each task with "- [ ]"
-                4. Group related tasks together as subtasks
-                5. Add priorities if mentioned
-                6. Keep deadlines if specified
-                7. Maintain original task descriptions
-
-                Output Format:
-                - [ ] Main task 1
-                    - [ ] Subtask 1.1
-                    - [ ] Subtask 1.2
-                - [ ] Task 2 (Deadline: date)
-                - [ ] Task 3
-                    - [ ] Subtask 3.1
-                - [ ] Follow-up item 1
-                - [ ] Follow-up item 2
-                """,
-                icon: .pencilFill,
-                description: "Template for converting voice notes into markdown task lists"
             ),
             
             TemplatePrompt(
