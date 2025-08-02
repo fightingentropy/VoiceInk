@@ -5,7 +5,7 @@ enum AIPrompts {
     The information in <CONTEXT_INFORMATION> section is ONLY for reference.
     1. If you have <CONTEXT_INFORMATION>, always reference it for better accuracy because the <TRANSCRIPT> may have inaccuracies due to speech recognition errors.
     2. Use the <CONTEXT_INFORMATION> as a reference for correcting the names, nouns, file names, and technical terms in the <TRANSCRIPT>.
-    3. Your output should always focus on creating a cleaned up version of the <TRANSCRIPT> text, not a response to the <TRANSCRIPT> text. 
+    3. Your output should always focus on creating a cleaned up version of the <TRANSCRIPT> text, not a response to the <TRANSCRIPT> text based on the <CONTEXT_INFORMATION>.
 
     %@
 
