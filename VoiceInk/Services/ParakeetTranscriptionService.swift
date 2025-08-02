@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import FluidAudio
+import os.log
 
 
 
@@ -8,6 +9,9 @@ class ParakeetTranscriptionService: TranscriptionService {
     private var asrManager: AsrManager?
     private let customModelsDirectory: URL?
     @Published var isModelLoaded = false
+    
+    // Logger for Parakeet transcription service
+    private let logger = Logger(subsystem: "com.voiceink.app", category: "ParakeetTranscriptionService")
     
     init(customModelsDirectory: URL? = nil) {
         self.customModelsDirectory = customModelsDirectory
@@ -18,24 +22,37 @@ class ParakeetTranscriptionService: TranscriptionService {
             return
         }
 
-        let asrConfig = ASRConfig(
-            maxSymbolsPerFrame: 3,
-            realtimeMode: true,
-            chunkSizeMs: 1500,
-            tdtConfig: TdtConfig(
-                durations: [0, 1, 2, 3, 4],
-                maxSymbolsPerStep: 3
+        logger.notice("🦜 Starting Parakeet model loading")
+        
+        do {
+            let asrConfig = ASRConfig(
+                maxSymbolsPerFrame: 3,
+                realtimeMode: true,
+                chunkSizeMs: 1500,
+                tdtConfig: TdtConfig(
+                    durations: [0, 1, 2, 3, 4],
+                    maxSymbolsPerStep: 3
+                )
             )
-        )
-        asrManager = AsrManager(config: asrConfig)
-        let models: AsrModels
-        if let customDirectory = customModelsDirectory {
-            models = try await AsrModels.downloadAndLoad(to: customDirectory)
-        } else {
-            models = try await AsrModels.downloadAndLoad()
+            asrManager = AsrManager(config: asrConfig)
+            
+            let models: AsrModels
+            if let customDirectory = customModelsDirectory {
+                models = try await AsrModels.downloadAndLoad(to: customDirectory)
+            } else {
+                models = try await AsrModels.downloadAndLoad()
+            }
+            
+            try await asrManager?.initialize(models: models)
+            isModelLoaded = true
+            logger.notice("🦜 Parakeet model loaded successfully")
+            
+        } catch {
+            logger.error("🦜 Failed to load Parakeet model: \(error.localizedDescription)")
+            isModelLoaded = false
+            asrManager = nil
+            throw error
         }
-        try await asrManager?.initialize(models: models)
-        isModelLoaded = true
     }
 
     func transcribe(audioURL: URL, model: any TranscriptionModel) async throws -> String {
@@ -51,17 +68,21 @@ class ParakeetTranscriptionService: TranscriptionService {
             }
             
             guard let asrManager = asrManager else {
+                logger.error("🦜 ASR manager is nil after model loading")
                 throw NSError(domain: "ParakeetTranscriptionService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to initialize ASR manager."])
             }
 
+            logger.notice("🦜 Starting Parakeet transcription")
             let audioSamples = try readAudioSamples(from: audioURL)
             let result = try await asrManager.transcribe(audioSamples)
+            logger.notice("🦜 Parakeet transcription completed")
             
             if UserDefaults.standard.object(forKey: "IsTextFormattingEnabled") as? Bool ?? true {
                 return WhisperTextFormatter.format(result.text)
             }
             return result.text
         } catch {
+            logger.error("🦜 Parakeet transcription failed: \(error.localizedDescription)")
             let errorMessage = error.localizedDescription
             await MainActor.run {
                 NotificationManager.shared.showNotification(
