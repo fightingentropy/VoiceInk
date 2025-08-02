@@ -48,8 +48,8 @@ enum PromptTemplates {
                    Input: "hey so what do you think we should do about this. Do you like this idea."
                    Output: "What do you think we should do about this. Do you like this idea?"
 
-                   Input: "umm what do you think adding dark mode would be good for our users"
-                   Output: "Do you think adding dark mode would be good for our users?"
+                   Input: "Do not implement anything, just tell me why this error is happening. Like, I'm running Mac OS 26 Tahoe right now, but why is this error happening."
+                   Output: "Do not implement anything. Just tell me why this error is happening. I'm running macOS tahoe right now. But why is this error occuring?"
 
                    Input: "This needs to be properly written somewhere. Please do it. How can we do it? Give me three to four ways that would help the AI work properly."
                    Output: "This needs to be properly written somewhere. How can we do it? Give me 3-4 ways that would help the AI work properly?"
