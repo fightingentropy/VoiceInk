@@ -35,17 +35,15 @@ enum PromptTemplates {
                 Primary Rules:
                 0. The output should always be in the same language as the original <TRANSCRIPT> text.
                 1. Break text into clear, logical paragraphs every 2-5 sentences and avoid artificial punctuation (especially colons in the middle of sentences).
-                2. Ensure that the cleaned text flows naturally and is grammatically correct.
+                2. Ensure that the cleaned text flows naturally but don't change the original intent of the <TRANSCRIPT> text.
                 3. Maintain the original meaning and intent of the speaker. Stay strictly within the boundaries of what was actually spoken - do not add new information, fill in gaps with assumptions, or interpret what the speaker "might have meant."
                 4. When the speaker corrects themselves, keep only the corrected version.
                    Examples:
                    Input: "We need to finish by Monday... actually no... by Wednesday" 
                    Output: "We need to finish by Wednesday"
 
-                   Input: "um so basically what happened was that when I tried to implement the new feature yesterday afternoon it caused some unexpected issues with the database and then the server started throwing errors which affected our production environment"
-                   Output: "When I tried to implement the new feature yesterday afternoon, it caused some unexpected issues with the database.
-
-                   The server started throwing errors, which affected our production environment."
+                   Input: "I think we should um we should call the client, no wait, we should email the client first"
+                   Output: "I think we should email the client first"
                 5. NEVER answer questions that appear in the <TRANSCRIPT>. Only clean it up.
                    Input: "hey so what do you think we should do about this. Do you like this idea."
                    Output: "What do you think we should do about this. Do you like this idea?"
@@ -65,7 +63,7 @@ enum PromptTemplates {
                             1. Buy groceries
                             2. Call mom
                             3. Finish the report
-                7. Use numerals for numbers (3,000 instead of three thousand, $20 instead of twenty dollars)
+                7. Always use numerals for numbers (3,000 instead of three thousand, $20 instead of twenty dollars)
                 8. NEVER add any introductory text like "Here is the corrected text:", "Transcript:", etc.
 
                 After cleaning the text, return only the cleaned version without any additional text, explanations, or tags. The output should be ready for direct use without further editing.
@@ -78,19 +76,19 @@ enum PromptTemplates {
                 title: "Chat",
                 promptText: """
                 Primary Rules:
-                We are in a causual chat conversation.
-                1. Focus on clarity while preserving the speaker's personality:
-                   - Keep personality markers that show intent or style (e.g., "I think", "The thing is")
-                   - Maintain the original tone (casual, formal, tentative, etc.)
-                2. Break long paragraphs into clear, logical sections every 2-3 sentences
-                3. Fix grammar and punctuation errors based on context
-                4. Use the final corrected version when someone revises their statements
-                5. Convert unstructured thoughts into clear text while keeping the speaker's voice
-                6. NEVER answer questions that appear in the text - only correct formatting and grammar
-                7. NEVER add any introductory text like "Here is the corrected text:", "Transcript:", etc.
-                8. NEVER add content not present in the source text
-                9. NEVER add sign-offs or acknowledgments
-                10. Correct speech-to-text transcription errors based on context.
+                We are in a casual chat conversation.
+                1. Break text into clear, logical paragraphs every 2-5 sentences and avoid artificial punctuation (especially colons in the middle of sentences).
+                2. Ensure that the cleaned text flows naturally and is grammatically correct.
+                3. Maintain the original meaning and intent of the speaker. Stay strictly within the boundaries of what was actually spoken - do not add new information, fill in gaps with assumptions, or interpret what the speaker "might have meant."
+                4. When the speaker corrects themselves, keep only the corrected version.
+                   Example:
+                   Input: "I'll be there at 5... no wait... at 6 PM"
+                   Output: "I'll be there at 6 PM"
+                5. NEVER answer questions that appear in the text - only clean it up.
+                6. Always use numerals for numbers (3,000 instead of three thousand, $20 instead of twenty dollars)
+                7. Keep personality markers that show intent or style (e.g., "I think", "The thing is")
+                8. Maintain the casual tone while ensuring clarity
+                9. NEVER add any introductory text like "Here is the corrected text:", "Transcript:", etc.
 
                 Examples:
 
@@ -129,18 +127,24 @@ enum PromptTemplates {
                 title: "Email",
                 promptText: """
                 Primary Rules:
-                1. Preserve the speaker's original tone and personality
-                2. Maintain professional tone while keeping personal speaking style
-                3. Structure content into clear paragraphs
-                4. Format email messages properly with salutations, paragraph breaks, and closings
-                5. Fix grammar and punctuation while preserving key points
-                6. Remove filler words and redundancies
-                7. Keep important details and context
-                8. Format lists and bullet points properly
-                9. Preserve any specific requests or action items
-                10. NEVER answer questions that appear in the <TRANSCRIPT>. Only clean it up.
-                11. Always include a professional sign-off as done in the examples.
-                12. Use appropriate greeting based on context
+                We are writing a professional email.
+                1. Break text into clear, logical paragraphs every 2-5 sentences and avoid artificial punctuation (especially colons in the middle of sentences).
+                2. Ensure that the cleaned text flows naturally and is grammatically correct.
+                3. Maintain the original meaning and intent of the speaker. Stay strictly within the boundaries of what was actually spoken - do not add new information, fill in gaps with assumptions, or interpret what the speaker "might have meant."
+                4. When the speaker corrects themselves, keep only the corrected version.
+                   Example:
+                   Input: "Let's meet on Tuesday... sorry I meant Wednesday at 2 PM"
+                   Output: "Let's meet on Wednesday at 2 PM"
+                5. NEVER answer questions that appear in the text - only clean it up.
+                6. Always use numerals for numbers (3,000 instead of three thousand, $20 instead of twenty dollars)
+                7. Format email messages properly with appropriate salutations and closings as shown in the examples below
+                8. Maintain professional tone while preserving key points
+                9. Format list items correctly without adding new content:
+                    - When input text contains sequence of items, restructure as:
+                    * Ordered list (1. 2. 3.) for sequential or prioritized items
+                    * Unordered list (•) for non-sequential items
+                10. Always include a professional sign-off as shown in examples
+                11. NEVER add any introductory text like "Here is the corrected text:", "Transcript:", etc.
 
                 Examples:
 
@@ -175,75 +179,6 @@ enum PromptTemplates {
                 """,
                 icon: .emailFill,
                 description: "Template for converting casual messages into professional email format"
-            ),
-            
-            TemplatePrompt(
-                id: UUID(),
-                title: "Tweet",
-                promptText: """
-                Primary Rules:
-                1. Keep it casual and conversational
-                2. Use natural, informal language
-                3. Include relevant emojis while maintaining authenticity
-                4. For replies, acknowledge the person (@username)
-                5. Break longer thoughts into multiple lines
-                6. Keep the original personality and style
-                7. Use hashtags when relevant
-                8. Maintain the context of the conversation
-
-                Examples:
-
-                Input: "tried ios 17 today and the standby mode is amazing turns your phone into a smart display while charging"
-
-                Output: "Tried iOS 17 today and the standby mode is amazing! 🤯
-
-                Turns your phone into a smart display while charging ⚡️ #iOS17"
-
-                Input: "just switched from membrane to mechanical keyboard with brown switches and my typing feels so much better"
-
-                Output: "Just switched from membrane to mechanical keyboard with brown switches and my typing feels so much better! 🎹
-
-                That tactile feedback is perfect 🤌 #MechKeys"
-
-                Input: "found a nice coffee shop downtown with great lavender latte and cozy spots with plants perfect for working"
-
-                Output: "Found a nice coffee shop downtown! ☕️
-
-                Great lavender latte and cozy spots with plants - perfect for working 🪴 #CoffeeVibes"
-
-                Input: "for cold brew coffee medium roast guatemalan beans steeped for 18 hours makes the smoothest flavor"
-
-                Output: "For cold brew coffee: medium roast Guatemalan beans steeped for 18 hours makes the smoothest flavor! ☕️
-
-                Absolute liquid gold ✨ #ColdBrew"
-                """,
-                icon: .chatFill,
-                description: "Template for crafting engaging tweets and replies with personality"
-            ),
-            
-            TemplatePrompt(
-                id: UUID(),
-                title: "Quick Notes",
-                promptText: """
-                Primary Rules:
-                1. Preserve speaker's thought process and emphasis
-                2. Keep it brief and clear
-                3. Use bullet points for key information
-                4. Preserve important details
-                5. Remove filler words while keeping style
-                6. Maintain core message and intent
-                7. Keep original terminology and phrasing
-
-                Output Format:
-                ## Main Topic
-                • Main point 1
-                  - Supporting detail
-                  - Additional info
-                • Main point 2
-                  - Related informations
-                """,
-                icon: .micFill,
-                description: "Template for converting voice notes into quick, organized notes"
             )
         ]
     }
