@@ -3,24 +3,24 @@
     <channel>
         <title>VoiceInk Releases</title>
         <item>
-            <title>1.42</title>
-            <pubDate>Sat, 25 June 2025 12:20:00 +0545</pubDate>
+            <title>1.44</title>
+            <pubDate>Sat, 2 Aug 2025 12:20:00 +0545</pubDate>
             <sparkle:version>142</sparkle:version>
-            <sparkle:shortVersionString>1.42</sparkle:shortVersionString>
+            <sparkle:shortVersionString>1.44</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
-                <h3>What's New in Version 1.42 🚀⚡</h3>
+                <h3>What's New in Version 1.44 🚀⚡</h3>
                             <ul>
-                                <li>Improvements with repeating words for longer recordings</li>
-                                <li>Added copy last transcript in menu bar</li>
-                                <li>Add Cerebras Integration for AI enhancement(Insanely fast)</li>
-                                <li>Increased Anthropic Output token limit</li>
-                                <li>Export transcript data in CSV format</li>
-                                <li>Remove think tags from reasoning models during enhancement</li>
-                                <li>Fix bug with mute/unmute during recording</li>
-                             </ul> 
+                              <li>Added support for parakeet model</li>
+                              <li>Support playing or pausing media during recording</li>
+                              <li>Added Gemini-2.5-flash-lite model</li>
+                              <li>New sound for recording start and recording stop</li>
+                              <li>Edit word replacement options</li>
+                              <li>More reliable and better working default prompt for AI enhancement</li>
+                              <li>Minor fixes and improvements</li>
+                            </ul> 
             ]]></description>
-           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.42/VoiceInk.dmg" length="8511483" type="application/octet-stream" sparkle:edSignature="uRh39a+5oUlzzNAfPSuqk/trCIllKbhbWVFmjS5MLrhZEEpNmTEyB6B9998YP7A0P0naF4iZYbyaj6uhBI4oCA=="/>
+           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.44/VoiceInk.dmg" length="9084545" type="application/octet-stream" sparkle:edSignature="Co3NgvMeQZDTLGG++X54+RtdCGXSLVzUCr9gOWq5EOkC2niqoUoAD7fi4Cgb5j0n3XHi9G9XO1xISiJYHef4Bw=="/>
         </item>
     </channel>
 </rss>
