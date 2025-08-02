@@ -120,7 +120,7 @@ class Recorder: ObservableObject {
             }
             
             audioLevelCheckTask = Task {
-                let notificationChecks: [TimeInterval] = [2.0, 8.0]
+                let notificationChecks: [TimeInterval] = [5.0, 12.0]
 
                 for delay in notificationChecks {
                     try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
