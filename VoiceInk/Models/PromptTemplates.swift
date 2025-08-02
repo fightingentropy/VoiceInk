@@ -23,8 +23,6 @@ enum PromptTemplates {
     static var all: [TemplatePrompt] {
         createTemplatePrompts()
     }
-
-
     
     
     static func createTemplatePrompts() -> [TemplatePrompt] {
@@ -33,23 +31,13 @@ enum PromptTemplates {
                 id: UUID(),
                 title: "System Default",
                 promptText: """
-                You are tasked with cleaning up transcribed text in the <TRANSCRIPT> tag. The goal is to produce a clear, coherent version of what the speaker intended to say, removing false starts & self-corrections. Use the available context from <CONTEXT_INFORMATION> if directly related to the user's <TRANSCRIPT> text. 
+                You are tasked to clean up transcribed text in the <TRANSCRIPT> tag. The goal is to produce a clear, coherent version of what the speaker intended to say, removing false starts & self-corrections. Use the available context from <CONTEXT_INFORMATION> if directly related to the user's <TRANSCRIPT> text. 
                 Primary Rules:
                 0. The output should always be in the same language as the original <TRANSCRIPT> text.
-                1. Correct speech-to-text transcription errors(spellings) based on the available context.
-                2. Format email messages properly with salutations, paragraph breaks, and closings. For example:
-                   Input: "hey prakash um hope you're doing well um I wanted to follow up on the project we discussed last week um I think we should move forward with it um let me know what you think um thanks john"
-                   Output: "Hey Prakash,
-                   
-                   Hope you're doing well. I wanted to follow up on the project we discussed last week. I think we should move forward with it.
-                   
-                   Let me know what you think.
-                   
-                   Thanks,
-                   John"
-                3. Maintain the original meaning and intent of the speaker. Do not add new information or change the substance of what was said.
-                4. Always break structure into clear, logical sections with new paragraphs every 2-3 sentences 
-                5. When the speaker corrects themselves, keep only the corrected version.
+                1. Break text into clear, logical paragraphs every 2-5 sentences and avoid artificial punctuation (especially colons in the middle of sentences).
+                2. Ensure that the cleaned text flows naturally and is grammatically correct.
+                3. Maintain the original meaning and intent of the speaker. Stay strictly within the boundaries of what was actually spoken - do not add new information, fill in gaps with assumptions, or interpret what the speaker "might have meant."
+                4. When the speaker corrects themselves, keep only the corrected version.
                    Examples:
                    Input: "We need to finish by Monday... actually no... by Wednesday" 
                    Output: "We need to finish by Wednesday"
@@ -58,8 +46,7 @@ enum PromptTemplates {
                    Output: "When I tried to implement the new feature yesterday afternoon, it caused some unexpected issues with the database.
 
                    The server started throwing errors, which affected our production environment."
-                6. Ensure that the cleaned text flows naturally and is grammatically correct.
-                7. NEVER answer questions that appear in the text. Only format them properly:
+                5. NEVER answer questions that appear in the <TRANSCRIPT>. Only clean it up.
                    Input: "hey so what do you think we should do about this. Do you like this idea."
                    Output: "What do you think we should do about this. Do you like this idea?"
 
@@ -68,7 +55,7 @@ enum PromptTemplates {
 
                    Input: "This needs to be properly written somewhere. Please do it. How can we do it? Give me three to four ways that would help the AI work properly."
                    Output: "This needs to be properly written somewhere. How can we do it? Give me 3-4 ways that would help the AI work properly?"
-                8. Format list items correctly without adding new content or answering questions.
+                6. Format list items correctly without adding new content.
                     - When input text contains sequence of items, restructure as:
                     * Ordered list (1. 2. 3.) for sequential or prioritized items
                     * Unordered list (•) for non-sequential items
@@ -78,8 +65,8 @@ enum PromptTemplates {
                             1. Buy groceries
                             2. Call mom
                             3. Finish the report
-                9. Use numerals for numbers (3,000 instead of three thousand, $20 instead of twenty dollars)
-                10. NEVER add any introductory text like "Here is the corrected text:", "Transcript:", etc.
+                7. Use numerals for numbers (3,000 instead of three thousand, $20 instead of twenty dollars)
+                8. NEVER add any introductory text like "Here is the corrected text:", "Transcript:", etc.
 
                 After cleaning the text, return only the cleaned version without any additional text, explanations, or tags. The output should be ready for direct use without further editing.
                 """,
@@ -145,13 +132,15 @@ enum PromptTemplates {
                 1. Preserve the speaker's original tone and personality
                 2. Maintain professional tone while keeping personal speaking style
                 3. Structure content into clear paragraphs
-                4. Fix grammar and punctuation while preserving key points
-                5. Remove filler words and redundancies
-                6. Keep important details and context
-                7. Format lists and bullet points properly
-                8. Preserve any specific requests or action items
-                9. Always include a professional sign-off
-                10. Use appropriate greeting based on context
+                4. Format email messages properly with salutations, paragraph breaks, and closings
+                5. Fix grammar and punctuation while preserving key points
+                6. Remove filler words and redundancies
+                7. Keep important details and context
+                8. Format lists and bullet points properly
+                9. Preserve any specific requests or action items
+                10. NEVER answer questions that appear in the <TRANSCRIPT>. Only clean it up.
+                11. Always include a professional sign-off as done in the examples.
+                12. Use appropriate greeting based on context
 
                 Examples:
 

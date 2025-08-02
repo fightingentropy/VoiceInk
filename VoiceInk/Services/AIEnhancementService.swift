@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import AppKit
+import os
 
 enum EnhancementPrompt {
     case transcriptionEnhancement
@@ -8,6 +9,8 @@ enum EnhancementPrompt {
 }
 
 class AIEnhancementService: ObservableObject {
+    private let logger = Logger(subsystem: "com.voiceink.enhancement", category: "AIEnhancementService")
+    
     @Published var isEnhancementEnabled: Bool {
         didSet {
             UserDefaults.standard.set(isEnhancementEnabled, forKey: "isAIEnhancementEnabled")
@@ -176,6 +179,10 @@ class AIEnhancementService: ObservableObject {
         
         let formattedText = "\n<TRANSCRIPT>\n\(text)\n</TRANSCRIPT>"
         let systemMessage = getSystemMessage(for: mode)
+        
+        // Log the message being sent to AI enhancement
+        logger.notice("AI Enhancement - System Message: \(systemMessage, privacy: .public)")
+        logger.notice("AI Enhancement - User Message: \(formattedText, privacy: .public)")
         
         if aiService.selectedProvider == .ollama {
             do {
