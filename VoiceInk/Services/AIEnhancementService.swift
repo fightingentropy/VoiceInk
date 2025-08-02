@@ -126,7 +126,7 @@ class AIEnhancementService: ObservableObject {
            let selectedText = selectedText, !selectedText.isEmpty {
             
             let selectedTextContext = "\n\nSelected Text: \(selectedText)"
-            let contextSection = "\n\n\(AIPrompts.contextInstructions)\n\n<CONTEXT_INFORMATION>\(selectedTextContext)\n</CONTEXT_INFORMATION>"
+            let contextSection = "\n\n<CONTEXT_INFORMATION>\(selectedTextContext)\n</CONTEXT_INFORMATION>"
             return activePrompt.promptText + contextSection
         }
         
@@ -147,7 +147,7 @@ class AIEnhancementService: ObservableObject {
         }
         
         let contextSection = if !clipboardContext.isEmpty || !screenCaptureContext.isEmpty {
-            "\n\n\(AIPrompts.contextInstructions)\n\n<CONTEXT_INFORMATION>\(clipboardContext)\(screenCaptureContext)\n</CONTEXT_INFORMATION>"
+            "\n\n<CONTEXT_INFORMATION>\(clipboardContext)\(screenCaptureContext)\n</CONTEXT_INFORMATION>"
         } else {
             ""
         }
