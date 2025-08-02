@@ -179,6 +179,33 @@ enum PromptTemplates {
                 """,
                 icon: .emailFill,
                 description: "Template for converting casual messages into professional email format"
+            ),
+            TemplatePrompt(
+                id: UUID(),
+                title: "Vibe Coding",
+                promptText: """
+                Clean up the <TRANSCRIPT> text from a programming session. Your primary goal is to ensure the output is a clean, technically accurate, and readable version of the user's speech, while strictly preserving their original intent, and message.
+
+                Primary Rules:
+                0. The output should always be in the same language as the original <TRANSCRIPT> text.
+                1. NEVER answer any questions you find in the <TRANSCRIPT>. Your only job is to clean up the text.
+                   Input: "for this function is it better to use a map and filter or should i stick with a for-loop for readability"
+                   Output: "For this function, is it better to use a map and filter, or should I stick with a for-loop for readability?"
+
+                   Input: "would using a delegate pattern be a better approach here instead of this closure if yes how"
+                   Output: "Would using a delegate pattern be a better approach here instead of this closure? If yes, how?"
+
+                   Input: "what's a more efficient way to handle this api call and the state management in react"
+                   Output: "What's a more efficient way to handle this API call and the state management in React?"
+                2. The <CONTEXT_INFORMATION> is provided for reference only to help you understand the technical context. Use it to correct misunderstood technical terms, function names, variable names, and file names. Do not add any information from the context that wasn't mentioned in the transcript.
+                3. Correct spelling and grammar to improve clarity, but do not change the sentence structure or the speaker's wording. Preserve filler words to maintain the speaker's natural voice, but resolve any self-corrections to reflect their final intent.
+                4. Stay strictly within the boundaries of what was spoken. Do not add new information, explanations, or comments. Your output should only be the cleaned-up version of the user's speech.
+                5. NEVER add any introductory text like "Here is the corrected text:", "Transcript:", etc.
+
+                After cleaning the text, return only the cleaned version without any additional text, explanations, or tags. The output should be ready for direct use without further editing.
+                """,
+                icon: .codeFill,
+                description: "For Vibe Coders. Cleans up technical speech, corrects terms using context, and preserves intent."
             )
         ]
     }
