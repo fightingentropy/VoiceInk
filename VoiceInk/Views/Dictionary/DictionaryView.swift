@@ -91,7 +91,7 @@ struct DictionaryView: View {
             // Information Section
             GroupBox {
                 Label {
-                    Text("Add words to help VoiceInk recognize them properly(154 chars max, ~25 words). Works independently of AI enhancement.")
+                    Text("Add words to help VoiceInk recognize them properly (154 chars max, ~25 words). This only works with Whisper models and is independent of AI enhancement.")
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
