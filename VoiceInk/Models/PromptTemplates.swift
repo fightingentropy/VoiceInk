@@ -23,6 +23,9 @@ enum PromptTemplates {
     static var all: [TemplatePrompt] {
         createTemplatePrompts()
     }
+
+
+    
     
     static func createTemplatePrompts() -> [TemplatePrompt] {
         [
