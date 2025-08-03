@@ -10,6 +10,8 @@ class PlaybackController: ObservableObject {
     private var mediaController: MediaRemoteAdapter.MediaController
     private var wasPlayingWhenRecordingStarted = false
     private var isMediaPlaying = false
+    private var lastKnownTrackInfo: TrackInfo?
+    private var originalMediaAppBundleId: String?
     
     @Published var isPauseMediaEnabled: Bool = UserDefaults.standard.bool(forKey: "isPauseMediaEnabled") {
         didSet {
@@ -25,10 +27,9 @@ class PlaybackController: ObservableObject {
         }
         
         mediaController.startListening()
-        
-        // Listen for track changes to know if media is playing
         mediaController.onTrackInfoReceived = { [weak self] trackInfo in
             self?.isMediaPlaying = trackInfo.payload.isPlaying ?? false
+            self?.lastKnownTrackInfo = trackInfo
         }
         
         mediaController.onListenerTerminated = {
@@ -43,16 +44,28 @@ class PlaybackController: ObservableObject {
 
         if isMediaPlaying {
             wasPlayingWhenRecordingStarted = true
+            originalMediaAppBundleId = lastKnownTrackInfo?.payload.bundleIdentifier
             mediaController.pause()
         } else {
             wasPlayingWhenRecordingStarted = false
+            originalMediaAppBundleId = nil
         }
     }
 
     func resumeMedia() async {
         guard isPauseMediaEnabled, wasPlayingWhenRecordingStarted else { return }
         
-        mediaController.play()
+        if let bundleId = originalMediaAppBundleId, isAppStillRunning(bundleId: bundleId) {
+            mediaController.play()
+        }
+        
+        originalMediaAppBundleId = nil
+    }
+    
+    /// Checks if an app with the given bundle identifier is currently running
+    private func isAppStillRunning(bundleId: String) -> Bool {
+        let runningApps = NSWorkspace.shared.runningApplications
+        return runningApps.contains { $0.bundleIdentifier == bundleId }
     }
 }
 
