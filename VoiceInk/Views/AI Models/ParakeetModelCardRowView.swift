@@ -80,10 +80,12 @@ struct ParakeetModelCardRowView: View {
                 Text("Speed")
                 progressDotsWithNumber(value: model.speed * 10)
             }
+            .fixedSize(horizontal: true, vertical: false)
             HStack(spacing: 3) {
                 Text("Accuracy")
                 progressDotsWithNumber(value: model.accuracy * 10)
             }
+            .fixedSize(horizontal: true, vertical: false)
         }
         .font(.system(size: 11))
         .foregroundColor(Color(.secondaryLabelColor))
