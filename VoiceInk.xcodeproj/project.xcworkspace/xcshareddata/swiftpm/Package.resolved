@@ -1,6 +1,15 @@
 {
-  "originHash" : "ae3f634e8c4b39a1a80bcd04f018e2208c0491e42ee824cd94a92d7b88893420",
+  "originHash" : "0b9379abd19d2f53581c233273d09235e935a8d2b1180cf253dd69baa2784b39",
   "pins" : [
+    {
+      "identity" : "fluidaudio",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/FluidInference/FluidAudio",
+      "state" : {
+        "branch" : "main",
+        "revision" : "2a3d6a948cb332b3fd8ae479a9942e33ade2cc9e"
+      }
+    },
     {
       "identity" : "keyboardshortcuts",
       "kind" : "remoteSourceControl",
@@ -33,14 +42,14 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/sparkle-project/Sparkle",
       "state" : {
-        "revision" : "0ca3004e98712ea2b39dd881d28448630cce1c99",
-        "version" : "2.7.0"
+        "revision" : "df074165274afaa39539c05d57b0832620775b11",
+        "version" : "2.7.1"
       }
     },
     {
-      "identity" : "zip?tab=readme-ov-file",
+      "identity" : "zip",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/marmelroy/Zip?tab=readme-ov-file",
+      "location" : "https://github.com/marmelroy/Zip",
       "state" : {
         "revision" : "67fa55813b9e7b3b9acee9c0ae501def28746d76",
         "version" : "2.1.2"

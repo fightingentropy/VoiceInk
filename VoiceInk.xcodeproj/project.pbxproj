@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		E12E7E972E3F109C006276F2 /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = E12E7E962E3F109C006276F2 /* FluidAudio */; };
+		E10F06092E3F390600F7FBDC /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = E10F06082E3F390600F7FBDC /* FluidAudio */; };
 		E1A261122CC143AC00B233D1 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = E1A261112CC143AC00B233D1 /* KeyboardShortcuts */; };
 		E1ADD45A2CC5352A00303ECB /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = E1ADD4592CC5352A00303ECB /* LaunchAtLogin */; };
 		E1ADD45F2CC544F100303ECB /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = E1ADD45E2CC544F100303ECB /* Sparkle */; };
@@ -82,7 +82,7 @@
 			files = (
 				E1ADD45A2CC5352A00303ECB /* LaunchAtLogin in Frameworks */,
 				E1D7EF992E35E16C00640029 /* MediaRemoteAdapter in Frameworks */,
-				E12E7E972E3F109C006276F2 /* FluidAudio in Frameworks */,
+				E10F06092E3F390600F7FBDC /* FluidAudio in Frameworks */,
 				E1B2DCAB2E3DE70A008DFD68 /* whisper.xcframework in Frameworks */,
 				E1ADD45F2CC544F100303ECB /* Sparkle in Frameworks */,
 				E1A261122CC143AC00B233D1 /* KeyboardShortcuts in Frameworks */,
@@ -162,7 +162,7 @@
 				E1ADD45E2CC544F100303ECB /* Sparkle */,
 				E1F5FA792DA6CBF900B1FD8A /* Zip */,
 				E1D7EF982E35E16C00640029 /* MediaRemoteAdapter */,
-				E12E7E962E3F109C006276F2 /* FluidAudio */,
+				E10F06082E3F390600F7FBDC /* FluidAudio */,
 			);
 			productName = VoiceInk;
 			productReference = E11473B02CBE0F0A00318EE4 /* VoiceInk.app */;
@@ -252,7 +252,7 @@
 				E1ADD45D2CC544F100303ECB /* XCRemoteSwiftPackageReference "Sparkle" */,
 				E1F5FA782DA6CBF900B1FD8A /* XCRemoteSwiftPackageReference "Zip" */,
 				E1D7EF972E35E16C00640029 /* XCRemoteSwiftPackageReference "mediaremote-adapter" */,
-				E10A90B12E3F0E0400E5D6AF /* XCLocalSwiftPackageReference "../FluidAudio" */,
+				E10FFA112E3F37D100F7FBDC /* XCRemoteSwiftPackageReference "FluidAudio" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E11473B12CBE0F0A00318EE4 /* Products */;
@@ -621,14 +621,15 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		E10A90B12E3F0E0400E5D6AF /* XCLocalSwiftPackageReference "../FluidAudio" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../FluidAudio;
-		};
-/* End XCLocalSwiftPackageReference section */
-
 /* Begin XCRemoteSwiftPackageReference section */
+		E10FFA112E3F37D100F7FBDC /* XCRemoteSwiftPackageReference "FluidAudio" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/FluidInference/FluidAudio";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		E1A261102CC143AC00B233D1 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
@@ -663,7 +664,7 @@
 		};
 		E1F5FA782DA6CBF900B1FD8A /* XCRemoteSwiftPackageReference "Zip" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/marmelroy/Zip?tab=readme-ov-file";
+			repositoryURL = "https://github.com/marmelroy/Zip";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 2.1.2;
@@ -672,8 +673,9 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		E12E7E962E3F109C006276F2 /* FluidAudio */ = {
+		E10F06082E3F390600F7FBDC /* FluidAudio */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = E10FFA112E3F37D100F7FBDC /* XCRemoteSwiftPackageReference "FluidAudio" */;
 			productName = FluidAudio;
 		};
 		E1A261112CC143AC00B233D1 /* KeyboardShortcuts */ = {
