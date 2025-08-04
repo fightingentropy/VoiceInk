@@ -205,7 +205,7 @@ struct PerformanceAnalysisView: View {
                 avgAudioDuration: avgAudioDuration,
                 speedFactor: speedFactor
             )
-        }.sorted { $0.name < $1.name }
+        }.sorted { $0.avgProcessingTime < $1.avgProcessingTime }
     }
 }
 
