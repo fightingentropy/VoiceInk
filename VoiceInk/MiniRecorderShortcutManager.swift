@@ -173,6 +173,8 @@ class MiniRecorderShortcutManager: ObservableObject {
                 guard let self = self,
                       await self.whisperState.isMiniRecorderVisible else { return }
                 
+                // TODO: Power Mode shortcut handling will be re-implemented later.
+                /*
                 let powerModeManager = PowerModeManager.shared
                 
                 if !powerModeManager.enabledConfigurations.isEmpty {
@@ -183,6 +185,7 @@ class MiniRecorderShortcutManager: ObservableObject {
                         await PowerModeSessionManager.shared.beginSession(with: selectedConfig)
                     }
                 } else {
+                */
                     guard let enhancementService = await self.whisperState.getEnhancementService() else { return }
                     
                     let availablePrompts = enhancementService.allPrompts
@@ -193,7 +196,9 @@ class MiniRecorderShortcutManager: ObservableObject {
                         
                         enhancementService.setActivePrompt(availablePrompts[index])
                     }
+                /*
                 }
+                */
             }
         }
     }
