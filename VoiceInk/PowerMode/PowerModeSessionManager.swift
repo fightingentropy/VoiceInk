@@ -21,6 +21,7 @@ struct PowerModeSession: Codable {
 class PowerModeSessionManager {
     static let shared = PowerModeSessionManager()
     private let sessionKey = "powerModeActiveSession.v1"
+    private var isApplyingPowerModeConfig = false
 
     private var whisperState: WhisperState?
     private var enhancementService: AIEnhancementService?
@@ -59,20 +60,26 @@ class PowerModeSessionManager {
         
         NotificationCenter.default.addObserver(self, selector: #selector(updateSessionSnapshot), name: .AppSettingsDidChange, object: nil)
 
+        isApplyingPowerModeConfig = true
         await applyConfiguration(config)
+        isApplyingPowerModeConfig = false
     }
 
     func endSession() async {
         guard let session = loadSession() else { return }
 
+        isApplyingPowerModeConfig = true
         await restoreState(session.originalState)
+        isApplyingPowerModeConfig = false
         
         NotificationCenter.default.removeObserver(self, name: .AppSettingsDidChange, object: nil)
 
         clearSession()
     }
     
-    @objc private func updateSessionSnapshot() {
+    @objc func updateSessionSnapshot() {
+        guard !isApplyingPowerModeConfig else { return }
+        
         guard var session = loadSession(), let whisperState = whisperState, let enhancementService = enhancementService else { return }
 
         let updatedState = ApplicationState(
