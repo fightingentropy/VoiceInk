@@ -22,6 +22,7 @@ struct LanguageSelectionView: View {
 
         // Post notification for language change
         NotificationCenter.default.post(name: .languageDidChange, object: nil)
+        NotificationCenter.default.post(name: .AppSettingsDidChange, object: nil)
     }
     
     // Function to check if current model is multilingual

@@ -56,6 +56,8 @@ class PowerModeSessionManager {
             originalState: originalState
         )
         saveSession(newSession)
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(updateSessionSnapshot), name: .AppSettingsDidChange, object: nil)
 
         await applyConfiguration(config)
     }
@@ -64,8 +66,27 @@ class PowerModeSessionManager {
         guard let session = loadSession() else { return }
 
         await restoreState(session.originalState)
+        
+        NotificationCenter.default.removeObserver(self, name: .AppSettingsDidChange, object: nil)
 
         clearSession()
+    }
+    
+    @objc private func updateSessionSnapshot() {
+        guard var session = loadSession(), let whisperState = whisperState, let enhancementService = enhancementService else { return }
+
+        let updatedState = ApplicationState(
+            isEnhancementEnabled: enhancementService.isEnhancementEnabled,
+            useScreenCaptureContext: enhancementService.useScreenCaptureContext,
+            selectedPromptId: enhancementService.selectedPromptId?.uuidString,
+            selectedAIProvider: enhancementService.getAIService()?.selectedProvider.rawValue,
+            selectedAIModel: enhancementService.getAIService()?.currentModel,
+            selectedLanguage: UserDefaults.standard.string(forKey: "SelectedLanguage"),
+            transcriptionModelName: whisperState.currentTranscriptionModel?.name
+        )
+        
+        session.originalState = updatedState
+        saveSession(session)
     }
 
     private func applyConfiguration(_ config: PowerModeConfig) async {

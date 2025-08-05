@@ -17,6 +17,7 @@ class AIEnhancementService: ObservableObject {
             if isEnhancementEnabled && selectedPromptId == nil {
                 selectedPromptId = customPrompts.first?.id
             }
+            NotificationCenter.default.post(name: .AppSettingsDidChange, object: nil)
         }
     }
     
@@ -29,6 +30,7 @@ class AIEnhancementService: ObservableObject {
     @Published var useScreenCaptureContext: Bool {
         didSet {
             UserDefaults.standard.set(useScreenCaptureContext, forKey: "useScreenCaptureContext")
+            NotificationCenter.default.post(name: .AppSettingsDidChange, object: nil)
         }
     }
     
@@ -43,6 +45,7 @@ class AIEnhancementService: ObservableObject {
     @Published var selectedPromptId: UUID? {
         didSet {
             UserDefaults.standard.set(selectedPromptId?.uuidString, forKey: "selectedPromptId")
+            NotificationCenter.default.post(name: .AppSettingsDidChange, object: nil)
         }
     }
     

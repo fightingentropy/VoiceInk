@@ -25,9 +25,9 @@ extension WhisperState {
         if model.provider != .local {
             self.isModelLoaded = true
         }
-        
         // Post notification about the model change
         NotificationCenter.default.post(name: .didChangeModel, object: nil, userInfo: ["modelName": model.name])
+        NotificationCenter.default.post(name: .AppSettingsDidChange, object: nil)
     }
     
     func refreshAllAvailableModels() {
