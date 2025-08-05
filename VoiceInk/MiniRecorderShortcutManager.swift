@@ -180,7 +180,7 @@ class MiniRecorderShortcutManager: ObservableObject {
                     if index < availableConfigurations.count {
                         let selectedConfig = availableConfigurations[index]
                         powerModeManager.setActiveConfiguration(selectedConfig)
-                        await ActiveWindowService.shared.applyConfiguration(selectedConfig)
+                        await PowerModeSessionManager.shared.beginSession(with: selectedConfig)
                     }
                 } else {
                     guard let enhancementService = await self.whisperState.getEnhancementService() else { return }

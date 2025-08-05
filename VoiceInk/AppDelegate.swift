@@ -4,6 +4,7 @@ import SwiftUI
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         updateActivationPolicy()
+        cleanupLegacyUserDefaults()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -41,5 +42,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             NSApp.windows.first?.makeKeyAndOrderFront(nil)
         }
+    }
+
+    private func cleanupLegacyUserDefaults() {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: "defaultPowerModeConfigV2")
+        defaults.removeObject(forKey: "isPowerModeEnabled")
     }
 }

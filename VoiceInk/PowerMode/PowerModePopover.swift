@@ -72,7 +72,7 @@ struct PowerModePopover: View {
     private func applySelectedConfiguration() {
         Task {
             if let config = selectedConfig {
-                await ActiveWindowService.shared.applyConfiguration(config)
+                await PowerModeSessionManager.shared.beginSession(with: config)
             }
         }
     }

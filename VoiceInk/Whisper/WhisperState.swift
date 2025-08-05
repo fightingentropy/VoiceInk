@@ -106,6 +106,11 @@ class WhisperState: NSObject, ObservableObject {
         
         super.init()
         
+        // Configure the session manager
+        if let enhancementService = enhancementService {
+            PowerModeSessionManager.shared.configure(whisperState: self, enhancementService: enhancementService)
+        }
+        
         // Set the whisperState reference after super.init()
         self.localTranscriptionService = LocalTranscriptionService(modelsDirectory: self.modelsDirectory, whisperState: self)
         
@@ -214,6 +219,7 @@ class WhisperState: NSObject, ObservableObject {
             await MainActor.run {
                 recordingState = .idle
             }
+            await PowerModeSessionManager.shared.endSession()
             await cleanupModelResources()
             return
         }
@@ -367,6 +373,7 @@ class WhisperState: NSObject, ObservableObject {
             }
             
             await self.dismissMiniRecorder()
+            await PowerModeSessionManager.shared.endSession()
             
         } catch {
             do {
@@ -400,6 +407,7 @@ class WhisperState: NSObject, ObservableObject {
             }
             
             await self.dismissMiniRecorder()
+            await PowerModeSessionManager.shared.endSession()
         }
     }
 
