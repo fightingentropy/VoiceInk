@@ -54,38 +54,37 @@ struct NotchRecorderView: View {
     
     private var rightToggleButton: some View {
         HStack(spacing: 4) {
-            // TODO: PowerMode button will be implemented in the future
-            /*
-            RecorderToggleButton(
-                isEnabled: !powerModeManager.enabledConfigurations.isEmpty,
-                icon: powerModeManager.currentActiveConfiguration?.emoji ?? "⚙️",
-                color: .orange,
-                disabled: false
-            ) {
-                showPowerModePopover.toggle()
-            }
-            .frame(width: 22)
-            .popover(isPresented: $showPowerModePopover, arrowEdge: .bottom) {
-                PowerModePopover()
-            }
-            */
-
-            RecorderToggleButton(
-                isEnabled: enhancementService.isEnhancementEnabled,
-                icon: enhancementService.activePrompt?.icon.rawValue ?? "brain",
-                color: .blue,
-                disabled: false
-            ) {
-                if enhancementService.isEnhancementEnabled {
-                    showEnhancementPromptPopover.toggle()
-                } else {
-                    enhancementService.isEnhancementEnabled = true
+            if !powerModeManager.enabledConfigurations.isEmpty && false {
+                RecorderToggleButton(
+                    isEnabled: !powerModeManager.enabledConfigurations.isEmpty,
+                    icon: powerModeManager.currentActiveConfiguration?.emoji ?? "⚙️",
+                    color: .orange,
+                    disabled: false
+                ) {
+                    showPowerModePopover.toggle()
                 }
-            }
-            .frame(width: 22)
-            .popover(isPresented: $showEnhancementPromptPopover, arrowEdge: .bottom) {
-                EnhancementPromptPopover()
-                    .environmentObject(enhancementService)
+                .frame(width: 22)
+                .popover(isPresented: $showPowerModePopover, arrowEdge: .bottom) {
+                    PowerModePopover()
+                }
+            } else {
+                RecorderToggleButton(
+                    isEnabled: enhancementService.isEnhancementEnabled,
+                    icon: enhancementService.activePrompt?.icon.rawValue ?? "brain",
+                    color: .blue,
+                    disabled: false
+                ) {
+                    if enhancementService.isEnhancementEnabled {
+                        showEnhancementPromptPopover.toggle()
+                    } else {
+                        enhancementService.isEnhancementEnabled = true
+                    }
+                }
+                .frame(width: 22)
+                .popover(isPresented: $showEnhancementPromptPopover, arrowEdge: .bottom) {
+                    EnhancementPromptPopover()
+                        .environmentObject(enhancementService)
+                }
             }
         }
     }

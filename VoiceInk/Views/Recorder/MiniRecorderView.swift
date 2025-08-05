@@ -36,7 +36,7 @@ struct MiniRecorderView: View {
     
     private var rightButton: some View {
         Group {
-            if !powerModeManager.enabledConfigurations.isEmpty {
+            if !powerModeManager.enabledConfigurations.isEmpty && false {
                 RecorderToggleButton(
                     isEnabled: !powerModeManager.enabledConfigurations.isEmpty,
                     icon: powerModeManager.currentActiveConfiguration?.emoji ?? "⚙️",
