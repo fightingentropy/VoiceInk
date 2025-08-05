@@ -13,12 +13,12 @@ struct PowerModeConfig: Codable, Identifiable, Equatable {
     var useScreenCapture: Bool
     var selectedAIProvider: String?
     var selectedAIModel: String?
-    // NEW: Automatically press the Return key after pasting
     var isAutoSendEnabled: Bool = false
+    var isEnabled: Bool = true
         
     // Custom coding keys to handle migration from selectedWhisperModel
     enum CodingKeys: String, CodingKey {
-        case id, name, emoji, appConfigs, urlConfigs, isAIEnhancementEnabled, selectedPrompt, selectedLanguage, useScreenCapture, selectedAIProvider, selectedAIModel, isAutoSendEnabled
+        case id, name, emoji, appConfigs, urlConfigs, isAIEnhancementEnabled, selectedPrompt, selectedLanguage, useScreenCapture, selectedAIProvider, selectedAIModel, isAutoSendEnabled, isEnabled
         case selectedWhisperModel // Old key
         case selectedTranscriptionModelName // New key
     }
@@ -26,7 +26,7 @@ struct PowerModeConfig: Codable, Identifiable, Equatable {
     init(id: UUID = UUID(), name: String, emoji: String, appConfigs: [AppConfig]? = nil,
          urlConfigs: [URLConfig]? = nil, isAIEnhancementEnabled: Bool, selectedPrompt: String? = nil,
          selectedTranscriptionModelName: String? = nil, selectedLanguage: String? = nil, useScreenCapture: Bool = false,
-         selectedAIProvider: String? = nil, selectedAIModel: String? = nil, isAutoSendEnabled: Bool = false) {
+         selectedAIProvider: String? = nil, selectedAIModel: String? = nil, isAutoSendEnabled: Bool = false, isEnabled: Bool = true) {
         self.id = id
         self.name = name
         self.emoji = emoji
@@ -40,6 +40,7 @@ struct PowerModeConfig: Codable, Identifiable, Equatable {
         self.selectedAIModel = selectedAIModel
         self.selectedTranscriptionModelName = selectedTranscriptionModelName ?? UserDefaults.standard.string(forKey: "CurrentTranscriptionModel")
         self.selectedLanguage = selectedLanguage ?? UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "en"
+        self.isEnabled = isEnabled
     }
 
     init(from decoder: Decoder) throws {
@@ -56,6 +57,7 @@ struct PowerModeConfig: Codable, Identifiable, Equatable {
         selectedAIProvider = try container.decodeIfPresent(String.self, forKey: .selectedAIProvider)
         selectedAIModel = try container.decodeIfPresent(String.self, forKey: .selectedAIModel)
         isAutoSendEnabled = try container.decodeIfPresent(Bool.self, forKey: .isAutoSendEnabled) ?? false
+        isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
 
         if let newModelName = try container.decodeIfPresent(String.self, forKey: .selectedTranscriptionModelName) {
             selectedTranscriptionModelName = newModelName
@@ -81,6 +83,7 @@ struct PowerModeConfig: Codable, Identifiable, Equatable {
         try container.encodeIfPresent(selectedAIModel, forKey: .selectedAIModel)
         try container.encode(isAutoSendEnabled, forKey: .isAutoSendEnabled)
         try container.encodeIfPresent(selectedTranscriptionModelName, forKey: .selectedTranscriptionModelName)
+        try container.encode(isEnabled, forKey: .isEnabled)
     }
     
     
@@ -124,111 +127,64 @@ struct URLConfig: Codable, Identifiable, Equatable {
 class PowerModeManager: ObservableObject {
     static let shared = PowerModeManager()
     @Published var configurations: [PowerModeConfig] = []
-    @Published var defaultConfig: PowerModeConfig
-    @Published var isPowerModeEnabled: Bool
     @Published var activeConfiguration: PowerModeConfig?
-    
+
     private let configKey = "powerModeConfigurationsV2"
-    private let defaultConfigKey = "defaultPowerModeConfigV2"
-    private let powerModeEnabledKey = "isPowerModeEnabled"
     private let activeConfigIdKey = "activeConfigurationId"
-    
+
     private init() {
-        // Load power mode enabled state or default to false if not set
-        if UserDefaults.standard.object(forKey: powerModeEnabledKey) != nil {
-            self.isPowerModeEnabled = UserDefaults.standard.bool(forKey: powerModeEnabledKey)
-        } else {
-            self.isPowerModeEnabled = false
-            UserDefaults.standard.set(false, forKey: powerModeEnabledKey)
-        }
-        
-        // Initialize default config with default values
-        if let data = UserDefaults.standard.data(forKey: defaultConfigKey),
-           let config = try? JSONDecoder().decode(PowerModeConfig.self, from: data) {
-            defaultConfig = config
-        } else {
-            // Get default values from UserDefaults if available
-            let defaultModelName = UserDefaults.standard.string(forKey: "CurrentTranscriptionModel")
-            let defaultLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "en"
-            
-            defaultConfig = PowerModeConfig(
-                id: UUID(),
-                name: "Default Configuration",
-                emoji: "⚙️",
-                isAIEnhancementEnabled: false,
-                selectedPrompt: nil,
-                selectedTranscriptionModelName: defaultModelName,
-                selectedLanguage: defaultLanguage
-            )
-            saveDefaultConfig()
-        }
         loadConfigurations()
-        
-        // Set the active configuration, either from saved ID or default to the default config
+
+        // Set the active configuration from saved ID
         if let activeConfigIdString = UserDefaults.standard.string(forKey: activeConfigIdKey),
            let activeConfigId = UUID(uuidString: activeConfigIdString) {
-            if let savedConfig = configurations.first(where: { $0.id == activeConfigId }) {
-                activeConfiguration = savedConfig
-            } else if activeConfigId == defaultConfig.id {
-                activeConfiguration = defaultConfig
-            } else {
-                activeConfiguration = defaultConfig
-            }
+            activeConfiguration = configurations.first { $0.id == activeConfigId }
         } else {
-            activeConfiguration = defaultConfig
+            activeConfiguration = nil
         }
     }
-    
+
     private func loadConfigurations() {
         if let data = UserDefaults.standard.data(forKey: configKey),
            let configs = try? JSONDecoder().decode([PowerModeConfig].self, from: data) {
             configurations = configs
         }
     }
-    
+
     func saveConfigurations() {
         if let data = try? JSONEncoder().encode(configurations) {
             UserDefaults.standard.set(data, forKey: configKey)
         }
     }
-    
-    private func saveDefaultConfig() {
-        if let data = try? JSONEncoder().encode(defaultConfig) {
-            UserDefaults.standard.set(data, forKey: defaultConfigKey)
-        }
-    }
-    
+
     func addConfiguration(_ config: PowerModeConfig) {
         if !configurations.contains(where: { $0.id == config.id }) {
             configurations.append(config)
             saveConfigurations()
         }
     }
-    
+
     func removeConfiguration(with id: UUID) {
         configurations.removeAll { $0.id == id }
         saveConfigurations()
     }
-    
+
     func getConfiguration(with id: UUID) -> PowerModeConfig? {
         return configurations.first { $0.id == id }
     }
-    
+
     func updateConfiguration(_ config: PowerModeConfig) {
-        if config.id == defaultConfig.id {
-            defaultConfig = config
-            saveDefaultConfig()
-        } else if let index = configurations.firstIndex(where: { $0.id == config.id }) {
+        if let index = configurations.firstIndex(where: { $0.id == config.id }) {
             configurations[index] = config
             saveConfigurations()
         }
     }
-    
+
     // Get configuration for a specific URL
     func getConfigurationForURL(_ url: String) -> PowerModeConfig? {
         let cleanedURL = cleanURL(url)
         
-        for config in configurations {
+        for config in configurations.filter({ $0.isEnabled }) {
             if let urlConfigs = config.urlConfigs {
                 for urlConfig in urlConfigs {
                     let configURL = cleanURL(urlConfig.url)
@@ -244,7 +200,7 @@ class PowerModeManager: ObservableObject {
     
     // Get configuration for an application bundle ID
     func getConfigurationForApp(_ bundleId: String) -> PowerModeConfig? {
-        for config in configurations {
+        for config in configurations.filter({ $0.isEnabled }) {
             if let appConfigs = config.appConfigs {
                 if appConfigs.contains(where: { $0.bundleIdentifier == bundleId }) {
                     return config
@@ -254,6 +210,27 @@ class PowerModeManager: ObservableObject {
         return nil
     }
     
+    // Enable a configuration
+    func enableConfiguration(with id: UUID) {
+        if let index = configurations.firstIndex(where: { $0.id == id }) {
+            configurations[index].isEnabled = true
+            saveConfigurations()
+        }
+    }
+    
+    // Disable a configuration
+    func disableConfiguration(with id: UUID) {
+        if let index = configurations.firstIndex(where: { $0.id == id }) {
+            configurations[index].isEnabled = false
+            saveConfigurations()
+        }
+    }
+    
+    // Get all enabled configurations
+    var enabledConfigurations: [PowerModeConfig] {
+        return configurations.filter { $0.isEnabled }
+    }
+
     // Add app configuration
     func addAppConfig(_ appConfig: AppConfig, to config: PowerModeConfig) {
         if var updatedConfig = configurations.first(where: { $0.id == config.id }) {
@@ -263,7 +240,7 @@ class PowerModeManager: ObservableObject {
             updateConfiguration(updatedConfig)
         }
     }
-    
+
     // Remove app configuration
     func removeAppConfig(_ appConfig: AppConfig, from config: PowerModeConfig) {
         if var updatedConfig = configurations.first(where: { $0.id == config.id }) {
@@ -271,7 +248,7 @@ class PowerModeManager: ObservableObject {
             updateConfiguration(updatedConfig)
         }
     }
-    
+
     // Add URL configuration
     func addURLConfig(_ urlConfig: URLConfig, to config: PowerModeConfig) {
         if var updatedConfig = configurations.first(where: { $0.id == config.id }) {
@@ -281,7 +258,7 @@ class PowerModeManager: ObservableObject {
             updateConfiguration(updatedConfig)
         }
     }
-    
+
     // Remove URL configuration
     func removeURLConfig(_ urlConfig: URLConfig, from config: PowerModeConfig) {
         if var updatedConfig = configurations.first(where: { $0.id == config.id }) {
@@ -289,7 +266,7 @@ class PowerModeManager: ObservableObject {
             updateConfiguration(updatedConfig)
         }
     }
-    
+
     // Clean URL for comparison
     func cleanURL(_ url: String) -> String {
         return url.lowercased()
@@ -298,33 +275,25 @@ class PowerModeManager: ObservableObject {
             .replacingOccurrences(of: "www.", with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
-    
-    // Save power mode enabled state
-    func savePowerModeEnabled() {
-        UserDefaults.standard.set(isPowerModeEnabled, forKey: powerModeEnabledKey)
-    }
-    
+
     // Set active configuration
-    func setActiveConfiguration(_ config: PowerModeConfig) {
+    func setActiveConfiguration(_ config: PowerModeConfig?) {
         activeConfiguration = config
-        UserDefaults.standard.set(config.id.uuidString, forKey: activeConfigIdKey)
+        UserDefaults.standard.set(config?.id.uuidString, forKey: activeConfigIdKey)
         self.objectWillChange.send()
     }
-    
+
     // Get current active configuration
-    var currentActiveConfiguration: PowerModeConfig {
-        return activeConfiguration ?? defaultConfig
+    var currentActiveConfiguration: PowerModeConfig? {
+        return activeConfiguration
     }
-    
-    // Get all available configurations in order (default first, then custom configurations)
+
+    // Get all available configurations in order
     func getAllAvailableConfigurations() -> [PowerModeConfig] {
-        return [defaultConfig] + configurations
+        return configurations
     }
-    
+
     func isEmojiInUse(_ emoji: String) -> Bool {
-        if defaultConfig.emoji == emoji {
-            return true
-        }
         return configurations.contains { $0.emoji == emoji }
     }
 } 

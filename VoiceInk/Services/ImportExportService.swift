@@ -26,7 +26,6 @@ struct VoiceInkExportedSettings: Codable {
     let version: String
     let customPrompts: [CustomPrompt]
     let powerModeConfigs: [PowerModeConfig]
-    let defaultPowerModeConfig: PowerModeConfig
     let dictionaryItems: [DictionaryItem]?
     let wordReplacements: [String: String]?
     let generalSettings: GeneralSettings?
@@ -67,7 +66,6 @@ class ImportExportService {
         let exportablePrompts = enhancementService.customPrompts.filter { !$0.isPredefined }
 
         let powerConfigs = powerModeManager.configurations
-        let defaultPowerConfig = powerModeManager.defaultConfig
         
         // Export custom models
         let customModels = CustomModelManager.shared.customModels
@@ -102,7 +100,6 @@ class ImportExportService {
             version: currentSettingsVersion,
             customPrompts: exportablePrompts,
             powerModeConfigs: powerConfigs,
-            defaultPowerModeConfig: defaultPowerConfig,
             dictionaryItems: exportedDictionaryItems,
             wordReplacements: exportedWordReplacements,
             generalSettings: generalSettingsToExport,
@@ -172,9 +169,7 @@ class ImportExportService {
                     
                     let powerModeManager = PowerModeManager.shared
                     powerModeManager.configurations = importedSettings.powerModeConfigs
-                    powerModeManager.defaultConfig = importedSettings.defaultPowerModeConfig
                     powerModeManager.saveConfigurations()
-                    powerModeManager.updateConfiguration(powerModeManager.defaultConfig)
 
                     // Import Custom Models
                     if let modelsToImport = importedSettings.customCloudModels {

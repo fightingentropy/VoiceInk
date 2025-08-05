@@ -25,10 +25,6 @@ class ActiveWindowService: ObservableObject {
     }
     
     func applyConfigurationForCurrentApp() async {
-        guard PowerModeManager.shared.isPowerModeEnabled else {
-            return
-        }
-
         guard let frontmostApp = NSWorkspace.shared.frontmostApplication,
               let bundleIdentifier = frontmostApp.bundleIdentifier else { return }
         
@@ -59,13 +55,16 @@ class ActiveWindowService: ObservableObject {
             }
         }
         
-        let config = PowerModeManager.shared.getConfigurationForApp(bundleIdentifier) ?? PowerModeManager.shared.defaultConfig
-        
-        await MainActor.run {
-            PowerModeManager.shared.setActiveConfiguration(config)
+        if let config = PowerModeManager.shared.getConfigurationForApp(bundleIdentifier) {
+            await MainActor.run {
+                PowerModeManager.shared.setActiveConfiguration(config)
+            }
+            await applyConfiguration(config)
+        } else {
+            await MainActor.run {
+                PowerModeManager.shared.setActiveConfiguration(nil)
+            }
         }
-        
-        await applyConfiguration(config)
     }
     
     /// Applies a specific configuration

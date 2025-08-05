@@ -18,18 +18,28 @@ struct PowerModePopover: View {
             
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
-                    // Default Configuration
-                    PowerModeRow(
-                        config: powerModeManager.defaultConfig,
-                        isSelected: selectedConfig?.id == powerModeManager.defaultConfig.id,
-                        action: {
-                            powerModeManager.setActiveConfiguration(powerModeManager.defaultConfig)
-                            selectedConfig = powerModeManager.defaultConfig
-                            // Apply configuration immediately
-                            applySelectedConfiguration()
+                    // "Disable" option if a power mode is active
+                    if powerModeManager.activeConfiguration != nil {
+                        Button(action: {
+                            powerModeManager.setActiveConfiguration(nil)
+                            selectedConfig = nil
+                            // Here we might want to revert to a default state,
+                            // but for now, we'll just deactivate the power mode.
+                        }) {
+                            HStack {
+                                Text("Disable Power Mode")
+                                    .foregroundColor(.red.opacity(0.9))
+                                    .font(.system(size: 13))
+                                Spacer()
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.red.opacity(0.9))
+                            }
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8)
                         }
-                    )
-                    
+                        .buttonStyle(.plain)
+                    }
+
                     // Custom Configurations
                     ForEach(powerModeManager.configurations) { config in
                         PowerModeRow(

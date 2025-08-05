@@ -96,19 +96,6 @@ struct ConfigurationView: View {
             _isAutoSendEnabled = State(initialValue: latestConfig.isAutoSendEnabled)
             _selectedAIProvider = State(initialValue: latestConfig.selectedAIProvider)
             _selectedAIModel = State(initialValue: latestConfig.selectedAIModel)
-        case .editDefault(let config):
-            // Always use the latest default config
-            let latestConfig = powerModeManager.defaultConfig
-            _isAIEnhancementEnabled = State(initialValue: latestConfig.isAIEnhancementEnabled)
-            _selectedPromptId = State(initialValue: latestConfig.selectedPrompt.flatMap { UUID(uuidString: $0) })
-            _selectedTranscriptionModelName = State(initialValue: latestConfig.selectedTranscriptionModelName)
-            _selectedLanguage = State(initialValue: latestConfig.selectedLanguage)
-            _configName = State(initialValue: latestConfig.name)
-            _selectedEmoji = State(initialValue: latestConfig.emoji)
-            _useScreenCapture = State(initialValue: latestConfig.useScreenCapture)
-            _isAutoSendEnabled = State(initialValue: latestConfig.isAutoSendEnabled)
-            _selectedAIProvider = State(initialValue: latestConfig.selectedAIProvider)
-            _selectedAIModel = State(initialValue: latestConfig.selectedAIModel)
         }
     }
     
@@ -159,8 +146,6 @@ struct ConfigurationView: View {
                             }
                         }
                         .buttonStyle(.plain)
-                        .disabled(mode.isEditingDefault)
-                        .opacity(mode.isEditingDefault ? 0.5 : 1)
                         .popover(isPresented: $isShowingEmojiPicker, arrowEdge: .bottom) {
                             EmojiPickerView(
                                 selectedEmoji: $selectedEmoji,
@@ -173,12 +158,9 @@ struct ConfigurationView: View {
                             .textFieldStyle(.plain)
                             .foregroundColor(.primary)
                             .tint(.accentColor)
-                            .disabled(mode.isEditingDefault)
                             .focused($isNameFieldFocused)
                             .onAppear {
-                                if !mode.isEditingDefault {
-                                    isNameFieldFocused = true
-                                }
+                                isNameFieldFocused = true
                             }
                     }
                     .padding(.horizontal, 20)
@@ -196,154 +178,152 @@ struct ConfigurationView: View {
                     // }
                     
                     // SECTION 1: TRIGGERS
-                    if !mode.isEditingDefault {
-                        VStack(spacing: 16) {
-                            // Section Header
-                            SectionHeader(title: "When to Trigger")
-                            
-                            // Applications Subsection
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack {
-                                    Text("Applications")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                    
-                                    Spacer()
-                                    
-                                    Button(action: {
-                                        loadInstalledApps()
-                                        isShowingAppPicker = true
-                                    }) {
-                                        Label("Add App", systemImage: "plus.circle.fill")
-                                            .font(.subheadline)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                                
-                                if selectedAppConfigs.isEmpty {
-                                    HStack {
-                                        Spacer()
-                                        Text("No applications added")
-                                            .foregroundColor(.secondary)
-                                            .font(.subheadline)
-                                        Spacer()
-                                    }
-                                    .padding()
-                                    .background(CardBackground(isSelected: false))
-                                } else {
-                                    // Grid of selected apps that wraps to next line
-                                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 50, maximum: 55), spacing: 10)], spacing: 10) {
-                                        ForEach(selectedAppConfigs) { appConfig in
-                                            VStack {
-                                                ZStack(alignment: .topTrailing) {
-                                                    // App icon - completely filling the container
-                                                    if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: appConfig.bundleIdentifier) {
-                                                        Image(nsImage: NSWorkspace.shared.icon(forFile: appURL.path))
-                                                            .resizable()
-                                                            .aspectRatio(contentMode: .fill)
-                                                            .frame(width: 50, height: 50)
-                                                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                                                    } else {
-                                                        Image(systemName: "app.fill")
-                                                            .resizable()
-                                                            .aspectRatio(contentMode: .fill)
-                                                            .frame(width: 50, height: 50)
-                                                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                                                    }
-                                                    
-                                                    // Remove button
-                                                    Button(action: {
-                                                        selectedAppConfigs.removeAll(where: { $0.id == appConfig.id })
-                                                    }) {
-                                                        Image(systemName: "xmark.circle.fill")
-                                                            .font(.system(size: 14))
-                                                            .foregroundColor(.white)
-                                                            .background(Circle().fill(Color.black.opacity(0.6)))
-                                                    }
-                                                    .buttonStyle(.plain)
-                                                    .offset(x: 6, y: -6)
-                                                }
-                                            }
-                                            .frame(width: 50, height: 50)
-                                            .background(CardBackground(isSelected: false, cornerRadius: 10))
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            Divider()
-                            
-                            // Websites Subsection
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("Websites")
+                    VStack(spacing: 16) {
+                        // Section Header
+                        SectionHeader(title: "When to Trigger")
+                        
+                        // Applications Subsection
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Text("Applications")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
-                                    
-                                // Add URL Field
-                                HStack {
-                                    TextField("Enter website URL (e.g., google.com)", text: $newWebsiteURL)
-                                    .textFieldStyle(.roundedBorder)
-                                        .onSubmit {
-                                            addWebsite()
-                                        }
-                                    
-                                    Button(action: addWebsite) {
-                                        Image(systemName: "plus.circle.fill")
-                                            .foregroundColor(.accentColor)
-                                            .font(.system(size: 18))
-                                    }
-                                    .buttonStyle(.plain)
-                                    .disabled(newWebsiteURL.isEmpty)
-                                }
                                 
-                                if websiteConfigs.isEmpty {
-                                    HStack {
-                                        Spacer()
-                                        Text("No websites added")
-                                            .foregroundColor(.secondary)
-                                            .font(.subheadline)
-                                        Spacer()
-                                    }
-                                    .padding()
-                                    .background(CardBackground(isSelected: false))
-                                } else {
-                                    // Grid of website tags that wraps to next line
-                                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 100, maximum: 160), spacing: 10)], spacing: 10) {
-                                        ForEach(websiteConfigs) { urlConfig in
-                                            HStack(spacing: 4) {
-                                                Image(systemName: "globe")
-                                                    .font(.system(size: 11))
-                                                    .foregroundColor(.accentColor)
+                                Spacer()
+                                
+                                Button(action: {
+                                    loadInstalledApps()
+                                    isShowingAppPicker = true
+                                }) {
+                                    Label("Add App", systemImage: "plus.circle.fill")
+                                        .font(.subheadline)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            
+                            if selectedAppConfigs.isEmpty {
+                                HStack {
+                                    Spacer()
+                                    Text("No applications added")
+                                        .foregroundColor(.secondary)
+                                        .font(.subheadline)
+                                    Spacer()
+                                }
+                                .padding()
+                                .background(CardBackground(isSelected: false))
+                            } else {
+                                // Grid of selected apps that wraps to next line
+                                LazyVGrid(columns: [GridItem(.adaptive(minimum: 50, maximum: 55), spacing: 10)], spacing: 10) {
+                                    ForEach(selectedAppConfigs) { appConfig in
+                                        VStack {
+                                            ZStack(alignment: .topTrailing) {
+                                                // App icon - completely filling the container
+                                                if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: appConfig.bundleIdentifier) {
+                                                    Image(nsImage: NSWorkspace.shared.icon(forFile: appURL.path))
+                                                        .resizable()
+                                                        .aspectRatio(contentMode: .fill)
+                                                        .frame(width: 50, height: 50)
+                                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                                } else {
+                                                    Image(systemName: "app.fill")
+                                                        .resizable()
+                                                        .aspectRatio(contentMode: .fill)
+                                                        .frame(width: 50, height: 50)
+                                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                                }
                                                 
-                                                Text(urlConfig.url)
-                                                    .font(.system(size: 11))
-                                                    .lineLimit(1)
-                                                
-                                                Spacer(minLength: 0)
-                                                
+                                                // Remove button
                                                 Button(action: {
-                                                    websiteConfigs.removeAll(where: { $0.id == urlConfig.id })
+                                                    selectedAppConfigs.removeAll(where: { $0.id == appConfig.id })
                                                 }) {
                                                     Image(systemName: "xmark.circle.fill")
-                                                        .font(.system(size: 9))
-                                                        .foregroundColor(.secondary)
+                                                        .font(.system(size: 14))
+                                                        .foregroundColor(.white)
+                                                        .background(Circle().fill(Color.black.opacity(0.6)))
                                                 }
                                                 .buttonStyle(.plain)
+                                                .offset(x: 6, y: -6)
                                             }
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 6)
-                                            .frame(height: 28)
-                                            .background(CardBackground(isSelected: false, cornerRadius: 10))
                                         }
+                                        .frame(width: 50, height: 50)
+                                        .background(CardBackground(isSelected: false, cornerRadius: 10))
                                     }
-                                    .padding(8)
                                 }
                             }
                         }
-                        .padding()
-                        .background(CardBackground(isSelected: false))
-                        .padding(.horizontal)
+                        
+                        Divider()
+                        
+                        // Websites Subsection
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Websites")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                
+                            // Add URL Field
+                            HStack {
+                                TextField("Enter website URL (e.g., google.com)", text: $newWebsiteURL)
+                                .textFieldStyle(.roundedBorder)
+                                    .onSubmit {
+                                        addWebsite()
+                                    }
+                                
+                                Button(action: addWebsite) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .foregroundColor(.accentColor)
+                                        .font(.system(size: 18))
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(newWebsiteURL.isEmpty)
+                            }
+                            
+                            if websiteConfigs.isEmpty {
+                                HStack {
+                                    Spacer()
+                                    Text("No websites added")
+                                        .foregroundColor(.secondary)
+                                        .font(.subheadline)
+                                    Spacer()
+                                }
+                                .padding()
+                                .background(CardBackground(isSelected: false))
+                            } else {
+                                // Grid of website tags that wraps to next line
+                                LazyVGrid(columns: [GridItem(.adaptive(minimum: 100, maximum: 160), spacing: 10)], spacing: 10) {
+                                    ForEach(websiteConfigs) { urlConfig in
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "globe")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(.accentColor)
+                                            
+                                            Text(urlConfig.url)
+                                                .font(.system(size: 11))
+                                                .lineLimit(1)
+                                            
+                                            Spacer(minLength: 0)
+                                            
+                                            Button(action: {
+                                                websiteConfigs.removeAll(where: { $0.id == urlConfig.id })
+                                            }) {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .font(.system(size: 9))
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 6)
+                                        .frame(height: 28)
+                                        .background(CardBackground(isSelected: false, cornerRadius: 10))
+                                    }
+                                }
+                                .padding(8)
+                            }
+                        }
                     }
+                    .padding()
+                    .background(CardBackground(isSelected: false))
+                    .padding(.horizontal)
                     
                     // SECTION 2: TRANSCRIPTION
                     VStack(spacing: 16) {
@@ -713,20 +693,6 @@ struct ConfigurationView: View {
             updatedConfig.selectedAIProvider = selectedAIProvider
             updatedConfig.selectedAIModel = selectedAIModel
             return updatedConfig
-            
-        case .editDefault(let config):
-            var updatedConfig = config
-            updatedConfig.name = configName
-            updatedConfig.emoji = selectedEmoji
-            updatedConfig.isAIEnhancementEnabled = isAIEnhancementEnabled
-            updatedConfig.selectedPrompt = selectedPromptId?.uuidString
-            updatedConfig.selectedTranscriptionModelName = selectedTranscriptionModelName
-            updatedConfig.selectedLanguage = selectedLanguage
-            updatedConfig.useScreenCapture = useScreenCapture
-            updatedConfig.isAutoSendEnabled = isAutoSendEnabled
-            updatedConfig.selectedAIProvider = selectedAIProvider
-            updatedConfig.selectedAIModel = selectedAIModel
-            return updatedConfig
         }
     }
     
@@ -790,7 +756,7 @@ struct ConfigurationView: View {
         switch mode {
         case .add:
             powerModeManager.addConfiguration(config)
-        case .edit, .editDefault:
+        case .edit:
             powerModeManager.updateConfiguration(config)
         }
         

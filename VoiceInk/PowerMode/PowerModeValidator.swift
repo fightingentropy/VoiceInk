@@ -64,43 +64,41 @@ struct PowerModeValidator {
             errors.append(.duplicateName(config.name))
         }
         
-        // For non-default modes, check that there's at least one trigger
-        if !mode.isEditingDefault {
-            if (config.appConfigs == nil || config.appConfigs?.isEmpty == true) && 
-               (config.urlConfigs == nil || config.urlConfigs?.isEmpty == true) {
-                errors.append(.noTriggers)
-            }
-            
-            // Check for duplicate app configurations
-            if let appConfigs = config.appConfigs {
-                for appConfig in appConfigs {
-                    for existingConfig in powerModeManager.configurations {
-                        // Skip checking against itself when editing
-                        if case .edit(let editConfig) = mode, existingConfig.id == editConfig.id {
-                            continue
-                        }
-                        
-                        if let existingAppConfigs = existingConfig.appConfigs,
-                           existingAppConfigs.contains(where: { $0.bundleIdentifier == appConfig.bundleIdentifier }) {
-                            errors.append(.duplicateAppTrigger(appConfig.appName, existingConfig.name))
-                        }
+        // For all modes, check that there's at least one trigger
+        if (config.appConfigs == nil || config.appConfigs?.isEmpty == true) &&
+           (config.urlConfigs == nil || config.urlConfigs?.isEmpty == true) {
+            errors.append(.noTriggers)
+        }
+        
+        // Check for duplicate app configurations
+        if let appConfigs = config.appConfigs {
+            for appConfig in appConfigs {
+                for existingConfig in powerModeManager.configurations {
+                    // Skip checking against itself when editing
+                    if case .edit(let editConfig) = mode, existingConfig.id == editConfig.id {
+                        continue
+                    }
+                    
+                    if let existingAppConfigs = existingConfig.appConfigs,
+                       existingAppConfigs.contains(where: { $0.bundleIdentifier == appConfig.bundleIdentifier }) {
+                        errors.append(.duplicateAppTrigger(appConfig.appName, existingConfig.name))
                     }
                 }
             }
-            
-            // Check for duplicate website configurations
-            if let urlConfigs = config.urlConfigs {
-                for urlConfig in urlConfigs {
-                    for existingConfig in powerModeManager.configurations {
-                        // Skip checking against itself when editing
-                        if case .edit(let editConfig) = mode, existingConfig.id == editConfig.id {
-                            continue
-                        }
-                        
-                        if let existingUrlConfigs = existingConfig.urlConfigs,
-                           existingUrlConfigs.contains(where: { $0.url == urlConfig.url }) {
-                            errors.append(.duplicateWebsiteTrigger(urlConfig.url, existingConfig.name))
-                        }
+        }
+        
+        // Check for duplicate website configurations
+        if let urlConfigs = config.urlConfigs {
+            for urlConfig in urlConfigs {
+                for existingConfig in powerModeManager.configurations {
+                    // Skip checking against itself when editing
+                    if case .edit(let editConfig) = mode, existingConfig.id == editConfig.id {
+                        continue
+                    }
+                    
+                    if let existingUrlConfigs = existingConfig.urlConfigs,
+                       existingUrlConfigs.contains(where: { $0.url == urlConfig.url }) {
+                        errors.append(.duplicateWebsiteTrigger(urlConfig.url, existingConfig.name))
                     }
                 }
             }
