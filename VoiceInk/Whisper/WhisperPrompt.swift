@@ -1,9 +1,5 @@
 import Foundation
 
-extension Notification.Name {
-    static let languageDidChange = Notification.Name("languageDidChange")
-    static let promptDidChange = Notification.Name("promptDidChange")
-}
 
 @MainActor
 class WhisperPrompt: ObservableObject {

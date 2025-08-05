@@ -144,6 +144,3 @@ class WindowDelegate: NSObject, NSWindowDelegate {
     }
 }
 
-extension Notification.Name {
-    static let navigateToDestination = Notification.Name("navigateToDestination")
-}

@@ -428,7 +428,3 @@ class WhisperState: NSObject, ObservableObject {
     }
 }
 
-extension Notification.Name {
-    static let toggleMiniRecorder = Notification.Name("toggleMiniRecorder")
-    static let didChangeModel = Notification.Name("didChangeModel")
-}

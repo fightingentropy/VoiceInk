@@ -2,4 +2,11 @@ import Foundation
 
 extension Notification.Name {
     static let AppSettingsDidChange = Notification.Name("appSettingsDidChange")
+    static let languageDidChange = Notification.Name("languageDidChange")
+    static let promptDidChange = Notification.Name("promptDidChange")
+    static let toggleMiniRecorder = Notification.Name("toggleMiniRecorder")
+    static let didChangeModel = Notification.Name("didChangeModel")
+    static let aiProviderKeyChanged = Notification.Name("aiProviderKeyChanged")
+    static let licenseStatusChanged = Notification.Name("licenseStatusChanged")
+    static let navigateToDestination = Notification.Name("navigateToDestination")
 }
