@@ -136,7 +136,7 @@ struct PowerModeView: View {
                                                 .font(.system(size: 20, weight: .medium))
                                                 .foregroundColor(.primary)
                                             
-                                            Text("Create your first power mode to enhance your VoiceInk experience\nwith context-aware speech-to-text AI transcription tool")
+                                            Text("Create your first power mode to automate your VoiceInk workflow based on apps/website you are using")
                                                 .font(.system(size: 14))
                                                 .foregroundColor(.secondary)
                                                 .multilineTextAlignment(.center)
