@@ -1,7 +1,5 @@
 import SwiftUI
-// Supporting Views
 
-// VoiceInk's consistent button component
 struct VoiceInkButton: View {
     let title: String
     let action: () -> Void
@@ -91,10 +89,8 @@ struct ConfigurationRow: View {
     @EnvironmentObject var enhancementService: AIEnhancementService
     @EnvironmentObject var whisperState: WhisperState
     
-    // How many app icons to show at maximum
     private let maxAppIconsToShow = 5
     
-    // Data properties
     private var selectedPrompt: CustomPrompt? {
         guard let promptId = config.selectedPrompt,
               let uuid = UUID(uuidString: promptId) else { return nil }
@@ -147,51 +143,46 @@ struct ConfigurationRow: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Top row: Emoji, Name, and App/Website counts
             HStack(spacing: 12) {
-                // Left: Emoji/Icon
-                                    ZStack {
-                        Circle()
-                            .fill(Color(NSColor.controlBackgroundColor))
-                            .frame(width: 40, height: 40)
-                        
-                        Text(config.emoji)
-                            .font(.system(size: 20))
-                    }
+                ZStack {
+                    Circle()
+                        .fill(Color(NSColor.controlBackgroundColor))
+                        .frame(width: 40, height: 40)
+                    
+                    Text(config.emoji)
+                        .font(.system(size: 20))
+                }
                 
-                // Middle: Name and badge
-                                    VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 6) {
-                            Text(config.name)
-                                .font(.system(size: 15, weight: .semibold))
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(config.name)
+                            .font(.system(size: 15, weight: .semibold))
+                    }
+                    
+                    HStack(spacing: 12) {
+                        if appCount > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "app.fill")
+                                    .font(.system(size: 10))
+                                Text(appText)
+                                    .font(.caption2)
+                            }
                         }
                         
-                        // Display app and website counts
-                        HStack(spacing: 12) {
-                            if appCount > 0 {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "app.fill")
-                                        .font(.system(size: 10))
-                                    Text(appText)
-                                        .font(.caption2)
-                                }
-                            }
-                            
-                            if websiteCount > 0 {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "globe")
-                                        .font(.system(size: 10))
-                                    Text(websiteText)
-                                        .font(.caption2)
-                                }
+                        if websiteCount > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "globe")
+                                    .font(.system(size: 10))
+                                Text(websiteText)
+                                    .font(.caption2)
                             }
                         }
-                        .foregroundColor(.secondary)
                     }
+                    .foregroundColor(.secondary)
+                }
                 
                 Spacer()
                 
-                // Right: Toggle Switch
                 Toggle("", isOn: $config.isEnabled)
                     .toggleStyle(SwitchToggleStyle(tint: .accentColor))
                     .labelsHidden()
@@ -199,14 +190,11 @@ struct ConfigurationRow: View {
             .padding(.vertical, 12)
             .padding(.horizontal, 14)
             
-            // Only add divider and settings row if we have settings
             if selectedModel != nil || selectedLanguage != nil || config.isAIEnhancementEnabled {
                 Divider()
                     .padding(.horizontal, 16)
                 
-                // Settings badges in specified order
                 HStack(spacing: 8) {
-                    // 1. Voice Model badge
                     if let model = selectedModel, model != "Default" {
                         HStack(spacing: 4) {
                             Image(systemName: "waveform")
@@ -224,7 +212,6 @@ struct ConfigurationRow: View {
                         )
                     }
                     
-                    // 2. Language badge
                     if let language = selectedLanguage, language != "Default" {
                         HStack(spacing: 4) {
                             Image(systemName: "globe")
@@ -242,12 +229,10 @@ struct ConfigurationRow: View {
                         )
                     }
                     
-                    // 3. AI Model badge if specified (moved before AI Enhancement)
                     if config.isAIEnhancementEnabled, let modelName = config.selectedAIModel, !modelName.isEmpty {
                         HStack(spacing: 4) {
                             Image(systemName: "cpu")
                                 .font(.system(size: 10))
-                            // Display a shortened version of the model name if it's too long (increased limit)
                             Text(modelName.count > 20 ? String(modelName.prefix(18)) + "..." : modelName)
                                 .font(.caption)
                         }
@@ -261,9 +246,7 @@ struct ConfigurationRow: View {
                         )
                     }
                     
-                    // 4. AI Enhancement badge
                     if config.isAIEnhancementEnabled {
-                        // Context Awareness badge (moved before AI Enhancement)
                         if config.useScreenCapture {
                             HStack(spacing: 4) {
                                 Image(systemName: "camera.viewfinder")
@@ -321,7 +304,6 @@ struct ConfigurationRow: View {
     }
 }
 
-// App Icon View Component
 struct PowerModeAppIcon: View {
     let bundleId: String
     

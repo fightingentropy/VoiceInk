@@ -16,11 +16,10 @@ struct PowerModeConfig: Codable, Identifiable, Equatable {
     var isAutoSendEnabled: Bool = false
     var isEnabled: Bool = true
         
-    // Custom coding keys to handle migration from selectedWhisperModel
     enum CodingKeys: String, CodingKey {
         case id, name, emoji, appConfigs, urlConfigs, isAIEnhancementEnabled, selectedPrompt, selectedLanguage, useScreenCapture, selectedAIProvider, selectedAIModel, isAutoSendEnabled, isEnabled
-        case selectedWhisperModel // Old key
-        case selectedTranscriptionModelName // New key
+        case selectedWhisperModel
+        case selectedTranscriptionModelName
     }
     
     init(id: UUID = UUID(), name: String, emoji: String, appConfigs: [AppConfig]? = nil,
@@ -92,7 +91,6 @@ struct PowerModeConfig: Codable, Identifiable, Equatable {
     }
 }
 
-// App configuration
 struct AppConfig: Codable, Identifiable, Equatable {
     let id: UUID
     var bundleIdentifier: String
@@ -109,10 +107,9 @@ struct AppConfig: Codable, Identifiable, Equatable {
     }
 }
 
-// Simple URL configuration
 struct URLConfig: Codable, Identifiable, Equatable {
     let id: UUID
-    var url: String // Simple URL like "google.com"
+    var url: String
     
     init(id: UUID = UUID(), url: String) {
         self.id = id
@@ -135,7 +132,6 @@ class PowerModeManager: ObservableObject {
     private init() {
         loadConfigurations()
 
-        // Set the active configuration from saved ID
         if let activeConfigIdString = UserDefaults.standard.string(forKey: activeConfigIdKey),
            let activeConfigId = UUID(uuidString: activeConfigIdString) {
             activeConfiguration = configurations.first { $0.id == activeConfigId }
@@ -180,7 +176,6 @@ class PowerModeManager: ObservableObject {
         }
     }
 
-    // Get configuration for a specific URL
     func getConfigurationForURL(_ url: String) -> PowerModeConfig? {
         let cleanedURL = cleanURL(url)
         
@@ -198,7 +193,6 @@ class PowerModeManager: ObservableObject {
         return nil
     }
     
-    // Get configuration for an application bundle ID
     func getConfigurationForApp(_ bundleId: String) -> PowerModeConfig? {
         for config in configurations.filter({ $0.isEnabled }) {
             if let appConfigs = config.appConfigs {
@@ -210,7 +204,6 @@ class PowerModeManager: ObservableObject {
         return nil
     }
     
-    // Enable a configuration
     func enableConfiguration(with id: UUID) {
         if let index = configurations.firstIndex(where: { $0.id == id }) {
             configurations[index].isEnabled = true
@@ -218,7 +211,6 @@ class PowerModeManager: ObservableObject {
         }
     }
     
-    // Disable a configuration
     func disableConfiguration(with id: UUID) {
         if let index = configurations.firstIndex(where: { $0.id == id }) {
             configurations[index].isEnabled = false
@@ -226,12 +218,10 @@ class PowerModeManager: ObservableObject {
         }
     }
     
-    // Get all enabled configurations
     var enabledConfigurations: [PowerModeConfig] {
         return configurations.filter { $0.isEnabled }
     }
 
-    // Add app configuration
     func addAppConfig(_ appConfig: AppConfig, to config: PowerModeConfig) {
         if var updatedConfig = configurations.first(where: { $0.id == config.id }) {
             var configs = updatedConfig.appConfigs ?? []
@@ -241,7 +231,6 @@ class PowerModeManager: ObservableObject {
         }
     }
 
-    // Remove app configuration
     func removeAppConfig(_ appConfig: AppConfig, from config: PowerModeConfig) {
         if var updatedConfig = configurations.first(where: { $0.id == config.id }) {
             updatedConfig.appConfigs?.removeAll(where: { $0.id == appConfig.id })
@@ -249,7 +238,6 @@ class PowerModeManager: ObservableObject {
         }
     }
 
-    // Add URL configuration
     func addURLConfig(_ urlConfig: URLConfig, to config: PowerModeConfig) {
         if var updatedConfig = configurations.first(where: { $0.id == config.id }) {
             var configs = updatedConfig.urlConfigs ?? []
@@ -259,7 +247,6 @@ class PowerModeManager: ObservableObject {
         }
     }
 
-    // Remove URL configuration
     func removeURLConfig(_ urlConfig: URLConfig, from config: PowerModeConfig) {
         if var updatedConfig = configurations.first(where: { $0.id == config.id }) {
             updatedConfig.urlConfigs?.removeAll(where: { $0.id == urlConfig.id })
@@ -267,7 +254,6 @@ class PowerModeManager: ObservableObject {
         }
     }
 
-    // Clean URL for comparison
     func cleanURL(_ url: String) -> String {
         return url.lowercased()
             .replacingOccurrences(of: "https://", with: "")
@@ -276,19 +262,16 @@ class PowerModeManager: ObservableObject {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    // Set active configuration
     func setActiveConfiguration(_ config: PowerModeConfig?) {
         activeConfiguration = config
         UserDefaults.standard.set(config?.id.uuidString, forKey: activeConfigIdKey)
         self.objectWillChange.send()
     }
 
-    // Get current active configuration
     var currentActiveConfiguration: PowerModeConfig? {
         return activeConfiguration
     }
 
-    // Get all available configurations in order
     func getAllAvailableConfigurations() -> [PowerModeConfig] {
         return configurations
     }

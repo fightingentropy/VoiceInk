@@ -41,20 +41,15 @@ struct PowerModeValidator {
         self.powerModeManager = powerModeManager
     }
     
-    /// Validates a power mode configuration when the user tries to save it.
-    /// This validation only happens at save time, not during editing.
     func validateForSave(config: PowerModeConfig, mode: ConfigurationMode) -> [PowerModeValidationError] {
         var errors: [PowerModeValidationError] = []
         
-        // Validate name
         if config.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             errors.append(.emptyName)
         }
         
-        // Check for duplicate name
         let isDuplicateName = powerModeManager.configurations.contains { existingConfig in
             if case .edit(let editConfig) = mode, existingConfig.id == editConfig.id {
-                // Skip checking against itself when editing
                 return false
             }
             return existingConfig.name == config.name
@@ -64,17 +59,14 @@ struct PowerModeValidator {
             errors.append(.duplicateName(config.name))
         }
         
-        // For all modes, check that there's at least one trigger
         if (config.appConfigs == nil || config.appConfigs?.isEmpty == true) &&
            (config.urlConfigs == nil || config.urlConfigs?.isEmpty == true) {
             errors.append(.noTriggers)
         }
         
-        // Check for duplicate app configurations
         if let appConfigs = config.appConfigs {
             for appConfig in appConfigs {
                 for existingConfig in powerModeManager.configurations {
-                    // Skip checking against itself when editing
                     if case .edit(let editConfig) = mode, existingConfig.id == editConfig.id {
                         continue
                     }
@@ -87,11 +79,9 @@ struct PowerModeValidator {
             }
         }
         
-        // Check for duplicate website configurations
         if let urlConfigs = config.urlConfigs {
             for urlConfig in urlConfigs {
                 for existingConfig in powerModeManager.configurations {
-                    // Skip checking against itself when editing
                     if case .edit(let editConfig) = mode, existingConfig.id == editConfig.id {
                         continue
                     }
@@ -108,7 +98,6 @@ struct PowerModeValidator {
     }
 }
 
-// Alert extension for showing validation errors
 extension View {
     func powerModeValidationAlert(
         errors: [PowerModeValidationError],

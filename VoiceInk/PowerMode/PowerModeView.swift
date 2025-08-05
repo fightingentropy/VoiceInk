@@ -13,7 +13,6 @@ extension View {
     }
 }
 
-// Configuration Mode Enum
 enum ConfigurationMode: Hashable {
     case add
     case edit(PowerModeConfig)
@@ -30,18 +29,16 @@ enum ConfigurationMode: Hashable {
         }
     }
     
-    // Implement hash(into:) to conform to Hashable
     func hash(into hasher: inout Hasher) {
         switch self {
         case .add:
-            hasher.combine(0) // Use a unique value for add
+            hasher.combine(0)
         case .edit(let config):
-            hasher.combine(1) // Use a unique value for edit
+            hasher.combine(1)
             hasher.combine(config.id)
         }
     }
     
-    // Implement == to conform to Equatable (required by Hashable)
     static func == (lhs: ConfigurationMode, rhs: ConfigurationMode) -> Bool {
         switch (lhs, rhs) {
         case (.add, .add):
@@ -54,16 +51,13 @@ enum ConfigurationMode: Hashable {
     }
 }
 
-// Configuration Type
 enum ConfigurationType {
     case application
     case website
 }
 
-// Common Emojis for selection
 let commonEmojis = ["🏢", "🏠", "💼", "🎮", "📱", "📺", "🎵", "📚", "✏️", "🎨", "🧠", "⚙️", "💻", "🌐", "📝", "📊", "🔍", "💬", "📈", "🔧"]
 
-// Main Power Mode View with Navigation
 struct PowerModeView: View {
     @StateObject private var powerModeManager = PowerModeManager.shared
     @EnvironmentObject private var enhancementService: AIEnhancementService
@@ -74,7 +68,6 @@ struct PowerModeView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             VStack(spacing: 0) {
-                // Header Section with proper macOS styling
                 VStack(spacing: 12) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
@@ -83,8 +76,7 @@ struct PowerModeView: View {
                                     .font(.system(size: 28, weight: .bold, design: .default))
                                     .foregroundColor(.primary)
                                 
-                                                                 // InfoTip for Power Mode
-                                 InfoTip(
+                                                                 InfoTip(
                                      title: "What is Power Mode?",
                                      message: "Automatically apply custom configurations based on the app/website you are using",
                                      learnMoreURL: "https://www.youtube.com/watch?v=-xFLvgNs_Iw"
@@ -98,7 +90,6 @@ struct PowerModeView: View {
                         
                         Spacer()
                         
-                        // Add button in header for better macOS UX
                         Button(action: {
                             configurationMode = .add
                             navigationPath.append(configurationMode!)
@@ -122,18 +113,15 @@ struct PowerModeView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 16)
                 
-                // Separator
                 Rectangle()
                     .fill(Color(NSColor.separatorColor))
                     .frame(height: 1)
                     .padding(.horizontal, 24)
                 
-                // Main Content Area
                 GeometryReader { geometry in
                     ScrollView {
                         VStack(spacing: 0) {
                             if powerModeManager.configurations.isEmpty {
-                                // Empty State - Centered and symmetric
                                 VStack(spacing: 24) {
                                     Spacer()
                                         .frame(height: geometry.size.height * 0.2)
@@ -148,7 +136,7 @@ struct PowerModeView: View {
                                                 .font(.system(size: 20, weight: .medium))
                                                 .foregroundColor(.primary)
                                             
-                                            Text("Create your first power mode to enhance your productivity\nwith context-aware AI assistance")
+                                            Text("Create your first power mode to enhance your VoiceInk experience\nwith context-aware speech-to-text AI transcription tool")
                                                 .font(.system(size: 14))
                                                 .foregroundColor(.secondary)
                                                 .multilineTextAlignment(.center)
@@ -161,7 +149,6 @@ struct PowerModeView: View {
                                 .frame(maxWidth: .infinity)
                                 .frame(minHeight: geometry.size.height)
                             } else {
-                                // Configurations Grid with symmetric padding
                                 VStack(spacing: 0) {
                                     PowerModeConfigurationsGrid(
                                         powerModeManager: powerModeManager,
@@ -173,7 +160,6 @@ struct PowerModeView: View {
                                     .padding(.horizontal, 24)
                                     .padding(.vertical, 20)
                                     
-                                    // Bottom spacing for visual balance
                                     Spacer()
                                         .frame(height: 40)
                                 }

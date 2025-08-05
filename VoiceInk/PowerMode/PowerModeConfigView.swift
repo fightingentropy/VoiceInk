@@ -35,7 +35,6 @@ struct ConfigurationView: View {
     
     // New state for screen capture toggle
     @State private var useScreenCapture = false
-    // NEW: Auto-send toggle state
     @State private var isAutoSendEnabled = false
     
     // State for prompt editing (similar to EnhancementSettingsView)
@@ -171,21 +170,9 @@ struct ConfigurationView: View {
                         }
                     }
                     
-                    // Enhanced Emoji Picker with Custom Emoji Support
-                    // if isShowingEmojiPicker { // <<< This conditional block will be removed
-                    //     EmojiPickerView(
-                    //         selectedEmoji: $selectedEmoji,
-                    //         isPresented: $isShowingEmojiPicker
-                    //     )
-                    //     .padding(.horizontal)
-                    // }
-                    
-                    // SECTION 1: TRIGGERS
                     VStack(spacing: 16) {
-                        // Section Header
                         SectionHeader(title: "When to Trigger")
                         
-                        // Applications Subsection
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
                                 Text("Applications")
@@ -257,7 +244,6 @@ struct ConfigurationView: View {
                         
                         Divider()
                         
-                        // Websites Subsection
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Websites")
                                 .font(.subheadline)
@@ -328,12 +314,9 @@ struct ConfigurationView: View {
                     .background(CardBackground(isSelected: false))
                     .padding(.horizontal)
                     
-                    // SECTION 2: TRANSCRIPTION
                     VStack(spacing: 16) {
-                        // Section Header
                         SectionHeader(title: "Transcription")
                         
-                        // Whisper Model Selection Subsection
                         if whisperState.usableModels.isEmpty {
                             Text("No transcription models available. Please connect to a cloud service or download a local model in the AI Models tab.")
                                 .font(.subheadline)
@@ -342,7 +325,6 @@ struct ConfigurationView: View {
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .background(CardBackground(isSelected: false))
                         } else {
-                            // Create a simple binding that uses current model if nil
                             let modelBinding = Binding<String?>(
                                 get: {
                                     selectedTranscriptionModelName ?? whisperState.usableModels.first?.name
@@ -366,12 +348,10 @@ struct ConfigurationView: View {
                             }
                         }
                         
-                        // Language Selection Subsection
                         if let selectedModel = effectiveModelName,
                            let modelInfo = whisperState.allAvailableModels.first(where: { $0.name == selectedModel }),
                            modelInfo.isMultilingualModel {
                             
-                            // Create a simple binding that uses UserDefaults language if nil
                             let languageBinding = Binding<String?>(
                                 get: {
                                     selectedLanguage ?? UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "auto"
@@ -400,7 +380,6 @@ struct ConfigurationView: View {
                         } else if let selectedModel = effectiveModelName,
                                   let modelInfo = whisperState.allAvailableModels.first(where: { $0.name == selectedModel }),
                                   !modelInfo.isMultilingualModel {
-                            // Silently set to English without showing UI
                             let _ = { selectedLanguage = "en" }()
                         }
                     }
@@ -408,16 +387,13 @@ struct ConfigurationView: View {
                     .background(CardBackground(isSelected: false))
                     .padding(.horizontal)
                     
-                    // SECTION 3: AI ENHANCEMENT
                     VStack(spacing: 16) {
-                        // Section Header
                         SectionHeader(title: "AI Enhancement")
 
                         Toggle("Enable AI Enhancement", isOn: $isAIEnhancementEnabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .onChange(of: isAIEnhancementEnabled) { oldValue, newValue in
                                 if newValue {
-                                    // When enabling AI enhancement, set default values if none are selected
                                     if selectedAIProvider == nil {
                                         selectedAIProvider = aiService.selectedProvider.rawValue
                                     }
@@ -429,21 +405,18 @@ struct ConfigurationView: View {
 
                         Divider()
                             
-                            // AI Provider Selection - Match style with Whisper model selection
-                            // Create a binding for the provider selection that falls back to global settings
                             let providerBinding = Binding<AIProvider>(
                                 get: {
                                     if let providerName = selectedAIProvider,
                                        let provider = AIProvider(rawValue: providerName) {
                                         return provider
                                     }
-                                    // Just return the global provider without modifying state
                                     return aiService.selectedProvider
                                 },
                                 set: { newValue in
-                                    selectedAIProvider = newValue.rawValue // Update local state for UI responsiveness
-                                    aiService.selectedProvider = newValue // Update global AI service state
-                                    selectedAIModel = nil                 // Reset selected model when provider changes
+                                    selectedAIProvider = newValue.rawValue
+                                    aiService.selectedProvider = newValue
+                                    selectedAIModel = nil
                                 }
                             )
                             
@@ -470,9 +443,7 @@ struct ConfigurationView: View {
                                     }
                                     .labelsHidden()
                                     .onChange(of: selectedAIProvider) { oldValue, newValue in
-                                        // When provider changes, ensure we have a valid model for that provider
                                         if let provider = newValue.flatMap({ AIProvider(rawValue: $0) }) {
-                                            // Set default model for this provider
                                             selectedAIModel = provider.defaultModel
                                         }
                                     }
@@ -480,7 +451,6 @@ struct ConfigurationView: View {
                                 }
                             }
                             
-                            // AI Model Selection - Match style with whisper language selection
                             let providerName = selectedAIProvider ?? aiService.selectedProvider.rawValue
                             if let provider = AIProvider(rawValue: providerName),
                                provider != .custom {
@@ -496,18 +466,15 @@ struct ConfigurationView: View {
                                             .italic()
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                     } else {
-                                        // Create binding that falls back to current model for the selected provider
                                         let modelBinding = Binding<String>(
                                             get: { 
                                                 if let model = selectedAIModel, !model.isEmpty {
                                                     return model
                                                 }
-                                                // Just return the current model without modifying state
                                                 return aiService.currentModel
                                             },
                                             set: { newModelValue in
-                                                selectedAIModel = newModelValue // Update local state
-                                                // Update the model in AIService for the current provider
+                                                selectedAIModel = newModelValue
                                                 aiService.selectModel(newModelValue)
                                             }
                                         )
@@ -539,7 +506,6 @@ struct ConfigurationView: View {
                             }
                         
                             
-                            // Enhancement Prompts Section (reused from EnhancementSettingsView)
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Enhancement Prompt")
                                     .font(.headline)
@@ -576,7 +542,6 @@ struct ConfigurationView: View {
                     .background(CardBackground(isSelected: false))
                     .padding(.horizontal)
                     
-                    // SECTION 4: ADVANCED
                     VStack(spacing: 16) {
                         SectionHeader(title: "Advanced")
 
@@ -595,7 +560,6 @@ struct ConfigurationView: View {
                     .background(CardBackground(isSelected: false))
                     .padding(.horizontal)
                     
-                    // Save Button
                     VoiceInkButton(
                         title: mode.isAdding ? "Add New Power Mode" : "Save Changes",
                         action: saveConfiguration,

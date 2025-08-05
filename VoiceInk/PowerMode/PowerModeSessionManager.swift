@@ -1,19 +1,16 @@
 import Foundation
 import AppKit
 
-// Represents the state of the application that can be modified by a Power Mode.
-// This struct captures the settings that will be temporarily overridden.
 struct ApplicationState: Codable {
     var isEnhancementEnabled: Bool
     var useScreenCaptureContext: Bool
-    var selectedPromptId: String? // Storing as String for Codable simplicity
+    var selectedPromptId: String?
     var selectedAIProvider: String?
     var selectedAIModel: String?
     var selectedLanguage: String?
     var transcriptionModelName: String?
 }
 
-// Represents an active Power Mode session.
 struct PowerModeSession: Codable {
     let id: UUID
     let startTime: Date
@@ -29,7 +26,6 @@ class PowerModeSessionManager {
     private var enhancementService: AIEnhancementService?
 
     private init() {
-        // Attempt to recover a session on startup in case of a crash.
         recoverSession()
     }
 
@@ -38,15 +34,12 @@ class PowerModeSessionManager {
         self.enhancementService = enhancementService
     }
 
-    // Begins a new Power Mode session. It captures the current state,
-    // applies the new configuration, and saves the session.
     func beginSession(with config: PowerModeConfig) async {
         guard let whisperState = whisperState, let enhancementService = enhancementService else {
             print("SessionManager not configured.")
             return
         }
 
-        // 1. Capture the current application state.
         let originalState = ApplicationState(
             isEnhancementEnabled: enhancementService.isEnhancementEnabled,
             useScreenCaptureContext: enhancementService.useScreenCaptureContext,
@@ -57,7 +50,6 @@ class PowerModeSessionManager {
             transcriptionModelName: whisperState.currentTranscriptionModel?.name
         )
 
-        // 2. Create and save the session.
         let newSession = PowerModeSession(
             id: UUID(),
             startTime: Date(),
@@ -65,22 +57,17 @@ class PowerModeSessionManager {
         )
         saveSession(newSession)
 
-        // 3. Apply the new configuration's settings.
         await applyConfiguration(config)
     }
 
-    // Ends the current Power Mode session and restores the original state.
     func endSession() async {
         guard let session = loadSession() else { return }
 
-        // Restore the original state from the session.
         await restoreState(session.originalState)
 
-        // Clear the session from UserDefaults.
         clearSession()
     }
 
-    // Applies the settings from a PowerModeConfig.
     private func applyConfiguration(_ config: PowerModeConfig) async {
         guard let enhancementService = enhancementService else { return }
 
@@ -117,7 +104,6 @@ class PowerModeSessionManager {
         }
     }
 
-    // Restores the application state from a saved state object.
     private func restoreState(_ state: ApplicationState) async {
         guard let enhancementService = enhancementService else { return }
 
@@ -149,7 +135,6 @@ class PowerModeSessionManager {
         }
     }
     
-    // Handles the logic for switching transcription models.
     private func handleModelChange(to newModel: any TranscriptionModel) async {
         guard let whisperState = whisperState else { return }
 
@@ -162,13 +147,11 @@ class PowerModeSessionManager {
                 do {
                     try await whisperState.loadModel(localModel)
                 } catch {
-                    // Log error appropriately
                     print("Power Mode: Failed to load local model '\(localModel.name)': \(error)")
                 }
             }
         case .parakeet:
             await whisperState.cleanupModelResources()
-            // Parakeet models are loaded on demand, so we only need to clean up.
 
         default:
             await whisperState.cleanupModelResources()
@@ -182,8 +165,6 @@ class PowerModeSessionManager {
             await endSession()
         }
     }
-
-    // MARK: - UserDefaults Persistence
 
     private func saveSession(_ session: PowerModeSession) {
         do {
