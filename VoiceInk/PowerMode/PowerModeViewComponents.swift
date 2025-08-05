@@ -58,15 +58,12 @@ struct PowerModeConfigurationsGrid: View {
     
     var body: some View {
         LazyVStack(spacing: 12) {
-            ForEach(powerModeManager.configurations) { config in
+            ForEach($powerModeManager.configurations) { $config in
                 ConfigurationRow(
-                    config: config,
+                    config: $config,
                     isEditing: false,
-                    isDefault: false,
                     powerModeManager: powerModeManager,
-                    action: { 
-                        onEditConfig(config)
-                    }
+                    onEditConfig: onEditConfig
                 )
                 .contextMenu {
                     Button(action: { 
@@ -87,11 +84,10 @@ struct PowerModeConfigurationsGrid: View {
 }
 
 struct ConfigurationRow: View {
-    @State var config: PowerModeConfig
+    @Binding var config: PowerModeConfig
     let isEditing: Bool
-    let isDefault: Bool
     let powerModeManager: PowerModeManager
-    let action: () -> Void
+    let onEditConfig: (PowerModeConfig) -> Void
     @EnvironmentObject var enhancementService: AIEnhancementService
     @EnvironmentObject var whisperState: WhisperState
     
@@ -150,203 +146,174 @@ struct ConfigurationRow: View {
     }
     
     var body: some View {
-        HStack {
-            Button(action: action) {
-                VStack(spacing: 0) {
-                    // Top row: Emoji, Name, and App/Website counts
-                    HStack(spacing: 12) {
-                        // Left: Emoji/Icon
-                        ZStack {
-                            Circle()
-                                .fill(isDefault ? Color.accentColor.opacity(0.15) : Color(.controlBackgroundColor))
-                                .frame(width: 40, height: 40)
-                            
-                            if isDefault {
-                                Image(systemName: "gearshape.fill")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(.accentColor)
-                            } else {
-                                Text(config.emoji)
-                                    .font(.system(size: 20))
-                            }
-                        }
+        VStack(spacing: 0) {
+            // Top row: Emoji, Name, and App/Website counts
+            HStack(spacing: 12) {
+                // Left: Emoji/Icon
+                                    ZStack {
+                        Circle()
+                            .fill(Color(NSColor.controlBackgroundColor))
+                            .frame(width: 40, height: 40)
                         
-                        // Middle: Name and badge
-                        VStack(alignment: .leading, spacing: 3) {
-                            HStack(spacing: 6) {
-                                Text(config.name)
-                                    .font(.system(size: 15, weight: .semibold))
-                                
-                                if isDefault {
-                                    Text("Default")
-                                        .font(.system(size: 10, weight: .medium))
-                                        .padding(.horizontal, 5)
-                                        .padding(.vertical, 2)
-                                        .background(Capsule().fill(Color.accentColor.opacity(0.15)))
-                                        .foregroundColor(.accentColor)
-                                }
-                            }
-                            
-                            if isDefault {
-                                Text("Fallback power mode")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        // Right: App Icons and Website Count
-                        if !isDefault {
-                            HStack(alignment: .center, spacing: 6) {
-                                // App Count
-                                if appCount > 0 {
-                                    HStack(spacing: 3) {
-                                        Text(appText)
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                        
-                                        Image(systemName: "app.fill")
-                                            .font(.system(size: 9))
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                
-                                // Website Count
-                                if websiteCount > 0 {
-                                    HStack(spacing: 3) {
-                                        Text(websiteText)
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                        
-                                        Image(systemName: "globe")
-                                            .font(.system(size: 9))
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                            }
-                        }
+                        Text(config.emoji)
+                            .font(.system(size: 20))
                     }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 14)
-                    
-                    // Only add divider and settings row if we have settings
-                    if selectedModel != nil || selectedLanguage != nil || config.isAIEnhancementEnabled {
-                        Divider()
-                            .padding(.horizontal, 16)
+                
+                // Middle: Name and badge
+                                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Text(config.name)
+                                .font(.system(size: 15, weight: .semibold))
+                        }
                         
-                        // Settings badges in specified order
-                        HStack(spacing: 8) {
-                            // 1. Voice Model badge
-                            if let model = selectedModel, model != "Default" {
+                        // Display app and website counts
+                        HStack(spacing: 12) {
+                            if appCount > 0 {
                                 HStack(spacing: 4) {
-                                    Image(systemName: "waveform")
+                                    Image(systemName: "app.fill")
                                         .font(.system(size: 10))
-                                    Text(model)
-                                        .font(.caption)
+                                    Text(appText)
+                                        .font(.caption2)
                                 }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Capsule()
-                                    .fill(Color(.controlBackgroundColor)))
-                                .overlay(
-                                    Capsule()
-                                        .stroke(Color(.separatorColor), lineWidth: 0.5)
-                                )
                             }
                             
-                            // 2. Language badge
-                            if let language = selectedLanguage, language != "Default" {
+                            if websiteCount > 0 {
                                 HStack(spacing: 4) {
                                     Image(systemName: "globe")
                                         .font(.system(size: 10))
-                                    Text(language)
-                                        .font(.caption)
+                                    Text(websiteText)
+                                        .font(.caption2)
                                 }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Capsule()
-                                    .fill(Color(.controlBackgroundColor)))
-                                .overlay(
-                                    Capsule()
-                                        .stroke(Color(.separatorColor), lineWidth: 0.5)
-                                )
                             }
-                            
-                            // 3. AI Model badge if specified (moved before AI Enhancement)
-                            if config.isAIEnhancementEnabled, let modelName = config.selectedAIModel, !modelName.isEmpty {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "cpu")
-                                        .font(.system(size: 10))
-                                    // Display a shortened version of the model name if it's too long (increased limit)
-                                    Text(modelName.count > 20 ? String(modelName.prefix(18)) + "..." : modelName)
-                                        .font(.caption)
-                                }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Capsule()
-                                    .fill(Color(.controlBackgroundColor)))
-                                .overlay(
-                                    Capsule()
-                                        .stroke(Color(.separatorColor), lineWidth: 0.5)
-                                )
-                            }
-                            
-                            // 4. AI Enhancement badge
-                            if config.isAIEnhancementEnabled {
-                                // Context Awareness badge (moved before AI Enhancement)
-                                if config.useScreenCapture {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "camera.viewfinder")
-                                            .font(.system(size: 10))
-                                        Text("Context Awareness")
-                                            .font(.caption)
-                                    }
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(Capsule()
-                                        .fill(Color(.controlBackgroundColor)))
-                                    .overlay(
-                                        Capsule()
-                                            .stroke(Color(.separatorColor), lineWidth: 0.5)
-                                    )
-                                }
-                                
-                                HStack(spacing: 4) {
-                                    Image(systemName: "sparkles")
-                                        .font(.system(size: 10))
-                                    Text(selectedPrompt?.title ?? "AI")
-                                        .font(.caption)
-                                }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Capsule()
-                                    .fill(Color.accentColor.opacity(0.1)))
-                                .foregroundColor(.accentColor)
-                            }
-                            
-                            Spacer()
                         }
-                        .padding(.vertical, 10)
-                        .padding(.horizontal, 16)
+                        .foregroundColor(.secondary)
                     }
-                }
-                .background(CardBackground(isSelected: isEditing))
+                
+                Spacer()
+                
+                // Right: Toggle Switch
+                Toggle("", isOn: $config.isEnabled)
+                    .toggleStyle(SwitchToggleStyle(tint: .accentColor))
+                    .labelsHidden()
             }
-            .buttonStyle(.plain)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 14)
             
-            Toggle("", isOn: $config.isEnabled)
-                .toggleStyle(SwitchToggleStyle(tint: .accentColor))
-                .labelsHidden()
-                .onChange(of: config.isEnabled) { oldValue, newValue in
-                    if newValue {
-                        powerModeManager.enableConfiguration(with: config.id)
-                    } else {
-                        powerModeManager.disableConfiguration(with: config.id)
+            // Only add divider and settings row if we have settings
+            if selectedModel != nil || selectedLanguage != nil || config.isAIEnhancementEnabled {
+                Divider()
+                    .padding(.horizontal, 16)
+                
+                // Settings badges in specified order
+                HStack(spacing: 8) {
+                    // 1. Voice Model badge
+                    if let model = selectedModel, model != "Default" {
+                        HStack(spacing: 4) {
+                            Image(systemName: "waveform")
+                                .font(.system(size: 10))
+                            Text(model)
+                                .font(.caption)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Capsule()
+                            .fill(Color(NSColor.controlBackgroundColor)))
+                        .overlay(
+                            Capsule()
+                                .stroke(Color(NSColor.separatorColor), lineWidth: 0.5)
+                        )
                     }
+                    
+                    // 2. Language badge
+                    if let language = selectedLanguage, language != "Default" {
+                        HStack(spacing: 4) {
+                            Image(systemName: "globe")
+                                .font(.system(size: 10))
+                            Text(language)
+                                .font(.caption)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Capsule()
+                            .fill(Color(NSColor.controlBackgroundColor)))
+                        .overlay(
+                            Capsule()
+                                .stroke(Color(NSColor.separatorColor), lineWidth: 0.5)
+                        )
+                    }
+                    
+                    // 3. AI Model badge if specified (moved before AI Enhancement)
+                    if config.isAIEnhancementEnabled, let modelName = config.selectedAIModel, !modelName.isEmpty {
+                        HStack(spacing: 4) {
+                            Image(systemName: "cpu")
+                                .font(.system(size: 10))
+                            // Display a shortened version of the model name if it's too long (increased limit)
+                            Text(modelName.count > 20 ? String(modelName.prefix(18)) + "..." : modelName)
+                                .font(.caption)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Capsule()
+                            .fill(Color(NSColor.controlBackgroundColor)))
+                        .overlay(
+                            Capsule()
+                                .stroke(Color(NSColor.separatorColor), lineWidth: 0.5)
+                        )
+                    }
+                    
+                    // 4. AI Enhancement badge
+                    if config.isAIEnhancementEnabled {
+                        // Context Awareness badge (moved before AI Enhancement)
+                        if config.useScreenCapture {
+                            HStack(spacing: 4) {
+                                Image(systemName: "camera.viewfinder")
+                                    .font(.system(size: 10))
+                                Text("Context Awareness")
+                                    .font(.caption)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Capsule()
+                                .fill(Color(NSColor.controlBackgroundColor)))
+                            .overlay(
+                                Capsule()
+                                    .stroke(Color(NSColor.separatorColor), lineWidth: 0.5)
+                            )
+                        }
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 10))
+                            Text(selectedPrompt?.title ?? "AI")
+                                .font(.caption)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Capsule()
+                            .fill(Color.accentColor.opacity(0.1)))
+                        .foregroundColor(.accentColor)
+                    }
+                    
+                    Spacer()
                 }
+                .padding(.vertical, 10)
+                .padding(.horizontal, 16)
+            }
+    }
+    .background(CardBackground(isSelected: isEditing))
+    .opacity(config.isEnabled ? 1.0 : 0.5)
+    .contextMenu {
+        Button(action: {
+            onEditConfig(config)
+        }) {
+            Label("Edit", systemImage: "pencil")
         }
-        .opacity(config.isEnabled ? 1.0 : 0.5)
+        Button(role: .destructive, action: {
+            powerModeManager.removeConfiguration(with: config.id)
+        }) {
+            Label("Remove", systemImage: "trash")
+        }
+    }
     }
     
     private var isSelected: Bool {

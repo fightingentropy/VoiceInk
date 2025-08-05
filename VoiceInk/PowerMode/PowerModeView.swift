@@ -73,103 +73,122 @@ struct PowerModeView: View {
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Header Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(alignment: .center) {
-                            Text("Power Mode")
-                                .font(.system(size: 22, weight: .bold))
+            VStack(spacing: 0) {
+                // Header Section with proper macOS styling
+                VStack(spacing: 12) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 8) {
+                                Text("Power Modes")
+                                    .font(.system(size: 28, weight: .bold, design: .default))
+                                    .foregroundColor(.primary)
+                                
+                                                                 // InfoTip for Power Mode
+                                 InfoTip(
+                                     title: "What is Power Mode?",
+                                     message: "Automatically apply custom configurations based on the app/website you are using",
+                                     learnMoreURL: "https://www.youtube.com/watch?v=-xFLvgNs_Iw"
+                                 )
+                            }
                             
-                            InfoTip(
-                                title: "Power Mode",
-                                message: "Create custom modes that automatically apply when using specific apps/websites.",
-                                learnMoreURL: "https://www.youtube.com/watch?v=cEepexxgf6Y&t=10s"
-                            )
-                            
-                            Spacer()
-                        }
+                            Text("Automate your workflows with context-aware configurations.")
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary)
                         }
                         
-                        Text("Automatically apply custom configurations based on the app/website you are using")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                        Spacer()
+                        
+                        // Add button in header for better macOS UX
+                        Button(action: {
+                            configurationMode = .add
+                            navigationPath.append(configurationMode!)
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 12, weight: .medium))
+                                Text("Add Power Mode")
+                                    .font(.system(size: 13, weight: .medium))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.accentColor)
+                            .cornerRadius(6)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-                    
-                    // Configurations Container
-                    VStack(spacing: 0) {
-                        // Custom Configurations Section
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Custom Power Modes")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                                .padding(.horizontal)
-                            
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 20)
+                .padding(.bottom, 16)
+                
+                // Separator
+                Rectangle()
+                    .fill(Color(NSColor.separatorColor))
+                    .frame(height: 1)
+                    .padding(.horizontal, 24)
+                
+                // Main Content Area
+                GeometryReader { geometry in
+                    ScrollView {
+                        VStack(spacing: 0) {
                             if powerModeManager.configurations.isEmpty {
-                                VStack(spacing: 20) {
-                                    Image(systemName: "square.grid.2x2")
-                                        .font(.system(size: 36))
-                                        .foregroundColor(.secondary)
+                                // Empty State - Centered and symmetric
+                                VStack(spacing: 24) {
+                                    Spacer()
+                                        .frame(height: geometry.size.height * 0.2)
                                     
-                                    Text("No power modes configured")
-                                        .font(.title3)
-                                        .fontWeight(.medium)
+                                    VStack(spacing: 16) {
+                                        Image(systemName: "square.grid.2x2.fill")
+                                            .font(.system(size: 48, weight: .regular))
+                                            .foregroundColor(.secondary.opacity(0.6))
+                                        
+                                        VStack(spacing: 8) {
+                                            Text("No Power Modes Yet")
+                                                .font(.system(size: 20, weight: .medium))
+                                                .foregroundColor(.primary)
+                                            
+                                            Text("Create your first power mode to enhance your productivity\nwith context-aware AI assistance")
+                                                .font(.system(size: 14))
+                                                .foregroundColor(.secondary)
+                                                .multilineTextAlignment(.center)
+                                                .lineSpacing(2)
+                                        }
+                                    }
                                     
-                                    Text("Create a new power mode to get started.")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                        .multilineTextAlignment(.center)
+                                    Spacer()
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 30)
+                                .frame(minHeight: geometry.size.height)
                             } else {
-                                PowerModeConfigurationsGrid(
-                                    powerModeManager: powerModeManager,
-                                    onEditConfig: { config in
-                                        configurationMode = .edit(config)
-                                        navigationPath.append(configurationMode!)
-                                    }
-                                )
+                                // Configurations Grid with symmetric padding
+                                VStack(spacing: 0) {
+                                    PowerModeConfigurationsGrid(
+                                        powerModeManager: powerModeManager,
+                                        onEditConfig: { config in
+                                            configurationMode = .edit(config)
+                                            navigationPath.append(configurationMode!)
+                                        }
+                                    )
+                                    .padding(.horizontal, 24)
+                                    .padding(.vertical, 20)
+                                    
+                                    // Bottom spacing for visual balance
+                                    Spacer()
+                                        .frame(height: 40)
+                                }
                             }
                         }
-                        
-                        Spacer(minLength: 24)
-                        
-                        // Add Configuration button at the bottom (centered)
-                        HStack {
-                            VoiceInkButton(
-                                title: "Add New Power Mode",
-                                action: {
-                                    configurationMode = .add
-                                    navigationPath.append(configurationMode!)
-                                }
-                            )
-                        }
-                        .padding(.horizontal)
-                        .padding(.bottom, 16)
                     }
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(NSColor.controlBackgroundColor))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color(NSColor.separatorColor), lineWidth: 1)
-                    )
-                    .shadow(color: Color(NSColor.shadowColor).opacity(0.05), radius: 5, y: 2)
-                    .padding(.horizontal)
                 }
-                .padding(.bottom, 24)
             }
             .background(Color(NSColor.controlBackgroundColor))
-            .navigationTitle("")
             .navigationDestination(for: ConfigurationMode.self) { mode in
                 ConfigurationView(mode: mode, powerModeManager: powerModeManager)
             }
         }
     }
+}
 
 
 

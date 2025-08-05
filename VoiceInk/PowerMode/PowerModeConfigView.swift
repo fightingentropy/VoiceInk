@@ -159,14 +159,17 @@ struct ConfigurationView: View {
                             .foregroundColor(.primary)
                             .tint(.accentColor)
                             .focused($isNameFieldFocused)
-                            .onAppear {
-                                isNameFieldFocused = true
-                            }
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
                     .background(CardBackground(isSelected: false))
                     .padding(.horizontal)
+                    .onAppear {
+                        // Add a small delay to ensure the view is fully loaded
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            isNameFieldFocused = true
+                        }
+                    }
                     
                     // Enhanced Emoji Picker with Custom Emoji Support
                     // if isShowingEmojiPicker { // <<< This conditional block will be removed
