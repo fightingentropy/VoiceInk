@@ -34,44 +34,7 @@ struct MiniRecorderView: View {
         )
     }
     
-    private var rightButton: some View {
-        Group {
-            if !powerModeManager.enabledConfigurations.isEmpty && false {
-                RecorderToggleButton(
-                    isEnabled: !powerModeManager.enabledConfigurations.isEmpty,
-                    icon: powerModeManager.currentActiveConfiguration?.emoji ?? "⚙️",
-                    color: .orange,
-                    disabled: false
-                ) {
-                    showPowerModePopover.toggle()
-                }
-                .frame(width: 24)
-                .padding(.trailing, 8)
-                .popover(isPresented: $showPowerModePopover, arrowEdge: .bottom) {
-                    PowerModePopover()
-                }
-            } else {
-                RecorderToggleButton(
-                    isEnabled: enhancementService.isEnhancementEnabled,
-                    icon: enhancementService.activePrompt?.icon.rawValue ?? "brain",
-                    color: .blue,
-                    disabled: false
-                ) {
-                    if enhancementService.isEnhancementEnabled {
-                        showEnhancementPromptPopover.toggle()
-                    } else {
-                        enhancementService.isEnhancementEnabled = true
-                    }
-                }
-                .frame(width: 24)
-                .padding(.trailing, 8)
-                .popover(isPresented: $showEnhancementPromptPopover, arrowEdge: .bottom) {
-                    EnhancementPromptPopover()
-                        .environmentObject(enhancementService)
-                }
-            }
-        }
-    }
+
     
     var body: some View {
         Group {
@@ -85,23 +48,13 @@ struct MiniRecorderView: View {
                     }
                     .overlay {
                         HStack(spacing: 0) {
-                            let isRecording = whisperState.recordingState == .recording
-                            let isProcessing = whisperState.recordingState == .transcribing || whisperState.recordingState == .enhancing
-                            
-                            RecorderRecordButton(
-                                isRecording: isRecording,
-                                isProcessing: isProcessing
-                            ) {
-                                Task { await whisperState.toggleRecord() }
-                            }
-                            .frame(width: 24)
-                            .padding(.leading, 8)
+                            RecorderPromptButton(showPopover: $showEnhancementPromptPopover)
                             
                             statusView
                                 .frame(maxWidth: .infinity)
                                 .padding(.horizontal, 8)
                             
-                            rightButton
+                            RecorderPowerModeButton(showPopover: $showPowerModePopover)
                         }
                         .padding(.vertical, 8)
                     }

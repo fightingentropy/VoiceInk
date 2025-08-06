@@ -99,6 +99,71 @@ struct ProcessingIndicator: View {
     }
 }
 
+// MARK: - Prompt Button Component
+struct RecorderPromptButton: View {
+    @EnvironmentObject private var enhancementService: AIEnhancementService
+    @Binding var showPopover: Bool
+    let buttonSize: CGFloat
+    let padding: EdgeInsets
+    
+    init(showPopover: Binding<Bool>, buttonSize: CGFloat = 24, padding: EdgeInsets = EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 0)) {
+        self._showPopover = showPopover
+        self.buttonSize = buttonSize
+        self.padding = padding
+    }
+    
+    var body: some View {
+        RecorderToggleButton(
+            isEnabled: enhancementService.isEnhancementEnabled,
+            icon: enhancementService.activePrompt?.icon.rawValue ?? "brain",
+            color: .blue,
+            disabled: false
+        ) {
+            if enhancementService.isEnhancementEnabled {
+                showPopover.toggle()
+            } else {
+                enhancementService.isEnhancementEnabled = true
+            }
+        }
+        .frame(width: buttonSize)
+        .padding(padding)
+        .popover(isPresented: $showPopover, arrowEdge: .bottom) {
+            EnhancementPromptPopover()
+                .environmentObject(enhancementService)
+        }
+    }
+}
+
+// MARK: - Power Mode Button Component
+struct RecorderPowerModeButton: View {
+    @ObservedObject private var powerModeManager = PowerModeManager.shared
+    @Binding var showPopover: Bool
+    let buttonSize: CGFloat
+    let padding: EdgeInsets
+    
+    init(showPopover: Binding<Bool>, buttonSize: CGFloat = 24, padding: EdgeInsets = EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 8)) {
+        self._showPopover = showPopover
+        self.buttonSize = buttonSize
+        self.padding = padding
+    }
+    
+    var body: some View {
+        RecorderToggleButton(
+            isEnabled: !powerModeManager.enabledConfigurations.isEmpty,
+            icon: powerModeManager.currentActiveConfiguration?.emoji ?? "⚙️",
+            color: .orange,
+            disabled: powerModeManager.enabledConfigurations.isEmpty
+        ) {
+            showPopover.toggle()
+        }
+        .frame(width: buttonSize)
+        .padding(padding)
+        .popover(isPresented: $showPopover, arrowEdge: .bottom) {
+            PowerModePopover()
+        }
+    }
+}
+
 // MARK: - Status Display Component
 struct RecorderStatusDisplay: View {
     let currentState: RecordingState

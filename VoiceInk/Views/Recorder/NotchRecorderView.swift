@@ -33,60 +33,22 @@ struct NotchRecorderView: View {
     
     private var leftSection: some View {
         HStack(spacing: 8) {
-            let isRecording = whisperState.recordingState == .recording
-            let isProcessing = whisperState.recordingState == .transcribing || whisperState.recordingState == .enhancing
+            RecorderPromptButton(
+                showPopover: $showEnhancementPromptPopover,
+                buttonSize: 22,
+                padding: EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
+            )
             
-            RecorderRecordButton(
-                isRecording: isRecording,
-                isProcessing: isProcessing
-            ) {
-                Task { await whisperState.toggleRecord() }
-            }
-            .frame(width: 22)
-            
-            rightToggleButton
+            RecorderPowerModeButton(
+                showPopover: $showPowerModePopover,
+                buttonSize: 22,
+                padding: EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
+            )
             
             Spacer()
         }
-        .frame(width: 64)
+        .frame(width: 84)
         .padding(.leading, 16)
-    }
-    
-    private var rightToggleButton: some View {
-        HStack(spacing: 4) {
-            if !powerModeManager.enabledConfigurations.isEmpty && false {
-                RecorderToggleButton(
-                    isEnabled: !powerModeManager.enabledConfigurations.isEmpty,
-                    icon: powerModeManager.currentActiveConfiguration?.emoji ?? "⚙️",
-                    color: .orange,
-                    disabled: false
-                ) {
-                    showPowerModePopover.toggle()
-                }
-                .frame(width: 22)
-                .popover(isPresented: $showPowerModePopover, arrowEdge: .bottom) {
-                    PowerModePopover()
-                }
-            } else {
-                RecorderToggleButton(
-                    isEnabled: enhancementService.isEnhancementEnabled,
-                    icon: enhancementService.activePrompt?.icon.rawValue ?? "brain",
-                    color: .blue,
-                    disabled: false
-                ) {
-                    if enhancementService.isEnhancementEnabled {
-                        showEnhancementPromptPopover.toggle()
-                    } else {
-                        enhancementService.isEnhancementEnabled = true
-                    }
-                }
-                .frame(width: 22)
-                .popover(isPresented: $showEnhancementPromptPopover, arrowEdge: .bottom) {
-                    EnhancementPromptPopover()
-                        .environmentObject(enhancementService)
-                }
-            }
-        }
     }
     
     private var centerSection: some View {
@@ -97,7 +59,7 @@ struct NotchRecorderView: View {
     }
     
     private var rightSection: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 8) {
             Spacer()
             statusDisplay
         }
