@@ -99,6 +99,28 @@ struct ProcessingIndicator: View {
     }
 }
 
+// MARK: - Progress Animation Component
+struct ProgressAnimation: View {
+    @State private var currentDot = 0
+    let animationSpeed: Double
+    
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(0..<5, id: \.self) { index in
+                Circle()
+                    .fill(Color.white.opacity(index <= currentDot ? 0.8 : 0.2))
+                    .frame(width: 3, height: 3)
+            }
+        }
+        .onAppear {
+            Timer.scheduledTimer(withTimeInterval: animationSpeed, repeats: true) { _ in
+                currentDot = (currentDot + 1) % 7
+                if currentDot >= 5 { currentDot = -1 }
+            }
+        }
+    }
+}
+
 // MARK: - Prompt Button Component
 struct RecorderPromptButton: View {
     @EnvironmentObject private var enhancementService: AIEnhancementService
@@ -179,17 +201,25 @@ struct RecorderStatusDisplay: View {
     var body: some View {
         Group {
             if currentState == .enhancing {
-                Text("Enhancing")
-                    .foregroundColor(.white)
-                    .font(.system(size: 10, weight: .medium, design: .default))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
+                VStack(spacing: 2) {
+                    Text("Enhancing")
+                        .foregroundColor(.white)
+                        .font(.system(size: 10, weight: .medium, design: .default))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                    
+                    ProgressAnimation(animationSpeed: 0.15)
+                }
             } else if currentState == .transcribing {
-                Text("Transcribing")
-                    .foregroundColor(.white)
-                    .font(.system(size: 10, weight: .medium, design: .default))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
+                VStack(spacing: 2) {
+                    Text("Transcribing")
+                        .foregroundColor(.white)
+                        .font(.system(size: 10, weight: .medium, design: .default))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                    
+                    ProgressAnimation(animationSpeed: 0.12)
+                }
             } else if currentState == .recording {
                 AudioVisualizer(
                     audioMeter: audioMeter,
