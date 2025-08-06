@@ -49,8 +49,8 @@ struct MiniRecorderView: View {
                             if windowManager.isExpanded {
                                 // Left button zone - only exists when expanded
                                 RecorderPromptButton(showPopover: $showEnhancementPromptPopover)
+                                    .padding(.leading, 6)
                                     .transition(.scale(scale: 0.5).combined(with: .opacity))
-                                    .animation(.easeInOut(duration: 0.25), value: windowManager.isExpanded)
                                 
                                 Spacer()
                             }
@@ -64,8 +64,8 @@ struct MiniRecorderView: View {
                                 
                                 // Right button zone - only exists when expanded
                                 RecorderPowerModeButton(showPopover: $showPowerModePopover)
+                                    .padding(.trailing, 6)
                                     .transition(.scale(scale: 0.5).combined(with: .opacity))
-                                    .animation(.easeInOut(duration: 0.25), value: windowManager.isExpanded)
                             }
                         }
                         .padding(.vertical, 8)
