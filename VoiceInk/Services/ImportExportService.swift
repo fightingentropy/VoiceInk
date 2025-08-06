@@ -13,6 +13,7 @@ struct GeneralSettings: Codable {
     let isMenuBarOnly: Bool?
     let useAppleScriptPaste: Bool?
     let recorderType: String?
+    let doNotMaintainTranscriptHistory: Bool?
     let isAudioCleanupEnabled: Bool?
     let audioRetentionPeriod: Int?
 
@@ -43,6 +44,7 @@ class ImportExportService {
     private let keyIsMenuBarOnly = "IsMenuBarOnly"
     private let keyUseAppleScriptPaste = "UseAppleScriptPaste"
     private let keyRecorderType = "RecorderType"
+    private let keyDoNotMaintainTranscriptHistory = "DoNotMaintainTranscriptHistory"
     private let keyIsAudioCleanupEnabled = "IsAudioCleanupEnabled"
     private let keyAudioRetentionPeriod = "AudioRetentionPeriod"
 
@@ -87,6 +89,7 @@ class ImportExportService {
             isMenuBarOnly: menuBarManager.isMenuBarOnly,
             useAppleScriptPaste: UserDefaults.standard.bool(forKey: keyUseAppleScriptPaste),
             recorderType: whisperState.recorderType,
+            doNotMaintainTranscriptHistory: UserDefaults.standard.bool(forKey: keyDoNotMaintainTranscriptHistory),
             isAudioCleanupEnabled: UserDefaults.standard.bool(forKey: keyIsAudioCleanupEnabled),
             audioRetentionPeriod: UserDefaults.standard.integer(forKey: keyAudioRetentionPeriod),
 
@@ -229,6 +232,9 @@ class ImportExportService {
                         }
                         if let recType = general.recorderType {
                             whisperState.recorderType = recType
+                        }
+                        if let doNotMaintainHistory = general.doNotMaintainTranscriptHistory {
+                            UserDefaults.standard.set(doNotMaintainHistory, forKey: self.keyDoNotMaintainTranscriptHistory)
                         }
                         if let audioCleanup = general.isAudioCleanupEnabled {
                             UserDefaults.standard.set(audioCleanup, forKey: self.keyIsAudioCleanupEnabled)

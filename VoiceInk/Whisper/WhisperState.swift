@@ -311,6 +311,7 @@ class WhisperState: NSObject, ObservableObject {
                     )
                     modelContext.insert(newTranscription)
                     try? modelContext.save()
+                    NotificationCenter.default.post(name: .transcriptionCreated, object: newTranscription)
                     text = enhancedText
                 } catch {
                     let newTranscription = Transcription(
@@ -323,6 +324,7 @@ class WhisperState: NSObject, ObservableObject {
                     )
                     modelContext.insert(newTranscription)
                     try? modelContext.save()
+                    NotificationCenter.default.post(name: .transcriptionCreated, object: newTranscription)
                     
                     await MainActor.run {
                         NotificationManager.shared.showNotification(
@@ -341,6 +343,7 @@ class WhisperState: NSObject, ObservableObject {
                 )
                 modelContext.insert(newTranscription)
                 try? modelContext.save()
+                NotificationCenter.default.post(name: .transcriptionCreated, object: newTranscription)
             }
             
             if case .trialExpired = licenseViewModel.licenseState {
@@ -395,6 +398,7 @@ class WhisperState: NSObject, ObservableObject {
                     
                     modelContext.insert(failedTranscription)
                     try? modelContext.save()
+                    NotificationCenter.default.post(name: .transcriptionCreated, object: failedTranscription)
                 }
             } catch {
                 logger.error("❌ Could not create a record for the failed transcription: \(error.localizedDescription)")

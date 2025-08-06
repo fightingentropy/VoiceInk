@@ -6,6 +6,7 @@ struct AudioCleanupSettingsView: View {
     @EnvironmentObject private var whisperState: WhisperState
     
     // Audio cleanup settings
+    @AppStorage("DoNotMaintainTranscriptHistory") private var doNotMaintainTranscriptHistory = false
     @AppStorage("IsAudioCleanupEnabled") private var isAudioCleanupEnabled = true
     @AppStorage("AudioRetentionPeriod") private var audioRetentionPeriod = 7
     @State private var isPerformingCleanup = false
@@ -16,16 +17,47 @@ struct AudioCleanupSettingsView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("VoiceInk can automatically delete audio files from transcription history while preserving the text transcripts.")
+            Text("Control how VoiceInk handles your transcription data and audio recordings for privacy and storage management.")
                 .font(.system(size: 13))
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             
-            Toggle("Enable automatic audio cleanup", isOn: $isAudioCleanupEnabled)
+            Text("Data Retention")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.primary)
+                .padding(.top, 8)
+            
+            Toggle("Do not maintain transcript history", isOn: $doNotMaintainTranscriptHistory)
                 .toggleStyle(.switch)
                 .padding(.vertical, 4)
             
-            if isAudioCleanupEnabled {
+            if doNotMaintainTranscriptHistory {
+                Text("When enabled, no transcription history will be saved. This provides zero data retention for maximum privacy.")
+                    .font(.system(size: 13))
+                    .foregroundColor(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 2)
+            }
+            
+            if !doNotMaintainTranscriptHistory {
+                Divider()
+                    .padding(.vertical, 8)
+                
+                Text("Audio File Management")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.primary)
+                
+                Text("Automatically delete audio files from transcription history while preserving the text transcripts.")
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                
+                Toggle("Enable automatic audio cleanup", isOn: $isAudioCleanupEnabled)
+                    .toggleStyle(.switch)
+                    .padding(.vertical, 4)
+            }
+            
+            if isAudioCleanupEnabled && !doNotMaintainTranscriptHistory {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Retention Period")
                         .font(.system(size: 14, weight: .medium))

@@ -21,6 +21,9 @@ struct VoiceInkApp: App {
     // Audio cleanup manager for automatic deletion of old audio files
     private let audioCleanupManager = AudioCleanupManager.shared
     
+    // Transcription auto-cleanup service for zero data retention
+    private let transcriptionAutoCleanupService = TranscriptionAutoCleanupService.shared
+    
     init() {
         do {
             let schema = Schema([
@@ -98,6 +101,9 @@ struct VoiceInkApp: App {
                         
                         // Start the automatic audio cleanup process
                         audioCleanupManager.startAutomaticCleanup(modelContext: container.mainContext)
+                        
+                        // Start the transcription auto-cleanup service for zero data retention
+                        transcriptionAutoCleanupService.startMonitoring(modelContext: container.mainContext)
                     }
                     .background(WindowAccessor { window in
                         WindowManager.shared.configureWindow(window)
@@ -107,6 +113,9 @@ struct VoiceInkApp: App {
                         
                         // Stop the automatic audio cleanup process
                         audioCleanupManager.stopAutomaticCleanup()
+                        
+                        // Stop the transcription auto-cleanup service
+                        transcriptionAutoCleanupService.stopMonitoring()
                     }
             } else {
                 OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)

@@ -193,11 +193,11 @@ struct SettingsView: View {
                     }
                 }
 
-                // Audio Cleanup Section
+                // Data & Privacy Section
                 SettingsSection(
-                    icon: "trash.circle",
-                    title: "Audio Cleanup",
-                    subtitle: "Manage recording storage"
+                    icon: "lock.shield",
+                    title: "Data & Privacy",
+                    subtitle: "Control transcript history and storage"
                 ) {
                     AudioCleanupSettingsView()
                 }

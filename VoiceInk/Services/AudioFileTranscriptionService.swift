@@ -110,6 +110,7 @@ class AudioTranscriptionService: ObservableObject {
                     modelContext.insert(newTranscription)
                     do {
                         try modelContext.save()
+                        NotificationCenter.default.post(name: .transcriptionCreated, object: newTranscription)
                     } catch {
                         logger.error("❌ Failed to save transcription: \(error.localizedDescription)")
                     }
@@ -130,6 +131,7 @@ class AudioTranscriptionService: ObservableObject {
                     modelContext.insert(newTranscription)
                     do {
                         try modelContext.save()
+                        NotificationCenter.default.post(name: .transcriptionCreated, object: newTranscription)
                     } catch {
                         logger.error("❌ Failed to save transcription: \(error.localizedDescription)")
                     }
