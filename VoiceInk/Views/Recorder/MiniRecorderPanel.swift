@@ -40,7 +40,7 @@ class MiniRecorderPanel: NSPanel {
         let padding: CGFloat = 24
         
         let visibleFrame = screen.visibleFrame
-        let xPosition = visibleFrame.midX - (width / 2)
+        let xPosition = visibleFrame.midX - (width / 2) - 5
         let yPosition = visibleFrame.minY + padding
         
         return NSRect(
