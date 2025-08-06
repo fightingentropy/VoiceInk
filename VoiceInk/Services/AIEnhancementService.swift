@@ -18,6 +18,7 @@ class AIEnhancementService: ObservableObject {
                 selectedPromptId = customPrompts.first?.id
             }
             NotificationCenter.default.post(name: .AppSettingsDidChange, object: nil)
+            NotificationCenter.default.post(name: .enhancementToggleChanged, object: nil)
         }
     }
     

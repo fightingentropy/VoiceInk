@@ -40,6 +40,13 @@ class MiniWindowManager: ObservableObject {
             name: .powerModeConfigurationApplied,
             object: nil
         )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleFeedbackNotification),
+            name: .enhancementToggleChanged,
+            object: nil
+        )
     }
     
     @objc private func handleHideNotification() {

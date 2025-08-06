@@ -12,4 +12,5 @@ extension Notification.Name {
     static let promptSelectionChanged = Notification.Name("promptSelectionChanged")
     static let powerModeConfigurationApplied = Notification.Name("powerModeConfigurationApplied")
     static let transcriptionCreated = Notification.Name("transcriptionCreated")
+    static let enhancementToggleChanged = Notification.Name("enhancementToggleChanged")
 }
