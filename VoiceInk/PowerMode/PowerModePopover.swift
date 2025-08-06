@@ -17,25 +17,6 @@ struct PowerModePopover: View {
             
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
-                    if powerModeManager.activeConfiguration != nil {
-                        Button(action: {
-                            powerModeManager.setActiveConfiguration(nil)
-                            selectedConfig = nil
-                        }) {
-                            HStack {
-                                Text("Disable Power Mode")
-                                    .foregroundColor(.red.opacity(0.9))
-                                    .font(.system(size: 13))
-                                Spacer()
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.red.opacity(0.9))
-                            }
-                            .padding(.vertical, 4)
-                            .padding(.horizontal, 8)
-                        }
-                        .buttonStyle(.plain)
-                    }
-
                     ForEach(powerModeManager.configurations) { config in
                         PowerModeRow(
                             config: config,
