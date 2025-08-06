@@ -12,35 +12,34 @@ class MiniRecorderPanel: NSPanel {
             backing: .buffered,
             defer: false
         )
-        
-        self.isFloatingPanel = true
-        self.level = .floating
-        self.backgroundColor = .clear
-        self.isOpaque = false
-        self.hasShadow = false
-        self.isMovableByWindowBackground = true
-        self.hidesOnDeactivate = false
-        self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        
-        self.titlebarAppearsTransparent = true
-        self.titleVisibility = .hidden
-        
-        self.standardWindowButton(.closeButton)?.isHidden = true
-        
-        self.isMovable = true
+        configurePanel()
+    }
+    
+    private func configurePanel() {
+        isFloatingPanel = true
+        level = .floating
+        hidesOnDeactivate = false
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        isMovable = true
+        isMovableByWindowBackground = true
+        backgroundColor = .clear
+        isOpaque = false
+        hasShadow = false
+        titlebarAppearsTransparent = true
+        titleVisibility = .hidden
+        standardWindowButton(.closeButton)?.isHidden = true
     }
     
     static func calculateWindowMetrics() -> NSRect {
         guard let screen = NSScreen.main else {
-            return NSRect(x: 0, y: 0, width: 150, height: 34)
+            return NSRect(x: 0, y: 0, width: 160, height: 34)
         }
         
-        let width: CGFloat = 150  // Adjusted for new spacing and negative padding
+        let width: CGFloat = 160
         let height: CGFloat = 34
         let padding: CGFloat = 24
         
         let visibleFrame = screen.visibleFrame
-        
         let xPosition = visibleFrame.midX - (width / 2)
         let yPosition = visibleFrame.minY + padding
         

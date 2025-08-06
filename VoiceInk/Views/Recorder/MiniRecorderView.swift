@@ -4,11 +4,10 @@ struct MiniRecorderView: View {
     @ObservedObject var whisperState: WhisperState
     @ObservedObject var recorder: Recorder
     @EnvironmentObject var windowManager: MiniWindowManager
+    @EnvironmentObject private var enhancementService: AIEnhancementService
+    
     @State private var showPowerModePopover = false
     @State private var showEnhancementPromptPopover = false
-    @ObservedObject private var powerModeManager = PowerModeManager.shared
-    
-    @EnvironmentObject private var enhancementService: AIEnhancementService
     
     private var backgroundView: some View {
         ZStack {
@@ -34,8 +33,6 @@ struct MiniRecorderView: View {
         )
     }
     
-
-    
     var body: some View {
         Group {
             if windowManager.isVisible {
@@ -52,13 +49,12 @@ struct MiniRecorderView: View {
                             
                             statusView
                                 .frame(maxWidth: .infinity)
-                                .padding(.horizontal, 8)
+                                .padding(.horizontal, 6)
                             
                             RecorderPowerModeButton(showPopover: $showPowerModePopover)
                         }
                         .padding(.vertical, 8)
                     }
-                    .opacity(windowManager.isVisible ? 1 : 0)
             }
         }
     }

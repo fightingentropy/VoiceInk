@@ -128,7 +128,7 @@ struct RecorderPromptButton: View {
     let buttonSize: CGFloat
     let padding: EdgeInsets
     
-    init(showPopover: Binding<Bool>, buttonSize: CGFloat = 24, padding: EdgeInsets = EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 0)) {
+    init(showPopover: Binding<Bool>, buttonSize: CGFloat = 24, padding: EdgeInsets = EdgeInsets(top: 0, leading: 6, bottom: 0, trailing: 0)) {
         self._showPopover = showPopover
         self.buttonSize = buttonSize
         self.padding = padding
@@ -163,7 +163,7 @@ struct RecorderPowerModeButton: View {
     let buttonSize: CGFloat
     let padding: EdgeInsets
     
-    init(showPopover: Binding<Bool>, buttonSize: CGFloat = 24, padding: EdgeInsets = EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 8)) {
+    init(showPopover: Binding<Bool>, buttonSize: CGFloat = 24, padding: EdgeInsets = EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 6)) {
         self._showPopover = showPopover
         self.buttonSize = buttonSize
         self.padding = padding
