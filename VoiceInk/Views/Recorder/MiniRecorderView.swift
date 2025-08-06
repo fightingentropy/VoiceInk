@@ -8,6 +8,7 @@ struct MiniRecorderView: View {
     
     @State private var showPowerModePopover = false
     @State private var showEnhancementPromptPopover = false
+    @State private var isHovering = false
     
     private var backgroundView: some View {
         ZStack {
@@ -45,15 +46,46 @@ struct MiniRecorderView: View {
                     }
                     .overlay {
                         HStack(spacing: 0) {
-                            RecorderPromptButton(showPopover: $showEnhancementPromptPopover)
+                            // Left button zone
+                            Group {
+                                if windowManager.isExpanded {
+                                    RecorderPromptButton(showPopover: $showEnhancementPromptPopover)
+                                        .transition(.scale(scale: 0.5).combined(with: .opacity))
+                                }
+                            }
+                            .frame(width: windowManager.isExpanded ? nil : 0)
+                            .clipped()
+                            .animation(.easeInOut(duration: 0.25), value: windowManager.isExpanded)
                             
+                            // Fixed visualizer zone  
                             statusView
                                 .frame(maxWidth: .infinity)
                                 .padding(.horizontal, 6)
                             
-                            RecorderPowerModeButton(showPopover: $showPowerModePopover)
+                            // Right button zone
+                            Group {
+                                if windowManager.isExpanded {
+                                    RecorderPowerModeButton(showPopover: $showPowerModePopover)
+                                        .transition(.scale(scale: 0.5).combined(with: .opacity))
+                                }
+                            }
+                            .frame(width: windowManager.isExpanded ? nil : 0)
+                            .clipped()
+                            .animation(.easeInOut(duration: 0.25), value: windowManager.isExpanded)
                         }
                         .padding(.vertical, 8)
+                    }
+                    .onHover { hovering in
+                        isHovering = hovering
+                        if hovering {
+                            windowManager.expand()
+                        } else {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                if !isHovering {
+                                    windowManager.collapse()
+                                }
+                            }
+                        }
                     }
             }
         }

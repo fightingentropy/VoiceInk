@@ -30,17 +30,20 @@ class MiniRecorderPanel: NSPanel {
         standardWindowButton(.closeButton)?.isHidden = true
     }
     
-    static func calculateWindowMetrics() -> NSRect {
+    static func calculateWindowMetrics(expanded: Bool = false) -> NSRect {
         guard let screen = NSScreen.main else {
-            return NSRect(x: 0, y: 0, width: 160, height: 34)
+            return NSRect(x: 0, y: 0, width: expanded ? 160 : 70, height: 34)
         }
         
-        let width: CGFloat = 160
+        let compactWidth: CGFloat = 100
+        let expandedWidth: CGFloat = 160
+        let width = expanded ? expandedWidth : compactWidth
         let height: CGFloat = 34
         let padding: CGFloat = 24
         
         let visibleFrame = screen.visibleFrame
-        let xPosition = visibleFrame.midX - (width / 2) - 5
+        let centerX = visibleFrame.midX - 5
+        let xPosition = centerX - (width / 2)
         let yPosition = visibleFrame.minY + padding
         
         return NSRect(
@@ -52,9 +55,27 @@ class MiniRecorderPanel: NSPanel {
     }
     
     func show() {
-        let metrics = MiniRecorderPanel.calculateWindowMetrics()
+        let metrics = MiniRecorderPanel.calculateWindowMetrics(expanded: false)
         setFrame(metrics, display: true)
         orderFrontRegardless()
+    }
+    
+    func expandWindow(completion: (() -> Void)? = nil) {
+        let expandedMetrics = MiniRecorderPanel.calculateWindowMetrics(expanded: true)
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.25
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            animator().setFrame(expandedMetrics, display: true)
+        }, completionHandler: completion)
+    }
+    
+    func collapseWindow(completion: (() -> Void)? = nil) {
+        let compactMetrics = MiniRecorderPanel.calculateWindowMetrics(expanded: false)
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.25
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            animator().setFrame(compactMetrics, display: true)
+        }, completionHandler: completion)
     }
     
     func hide(completion: @escaping () -> Void) {

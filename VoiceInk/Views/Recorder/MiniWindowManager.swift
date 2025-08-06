@@ -3,6 +3,7 @@ import AppKit
 
 class MiniWindowManager: ObservableObject {
     @Published var isVisible = false
+    @Published var isExpanded = false
     private var windowController: NSWindowController?
     private var miniPanel: MiniRecorderPanel?
     private let whisperState: WhisperState
@@ -38,6 +39,26 @@ class MiniWindowManager: ObservableObject {
         initializeWindow(screen: activeScreen)
         self.isVisible = true
         miniPanel?.show()
+    }
+    
+    func expand() {
+        guard isVisible, !isExpanded else { return }
+        
+        withAnimation(.easeInOut(duration: 0.25)) {
+            isExpanded = true
+        }
+        
+        miniPanel?.expandWindow()
+    }
+    
+    func collapse() {
+        guard isVisible, isExpanded else { return }
+        
+        withAnimation(.easeInOut(duration: 0.25)) {
+            isExpanded = false
+        }
+        
+        miniPanel?.collapseWindow()
     }
     
     func hide() {
