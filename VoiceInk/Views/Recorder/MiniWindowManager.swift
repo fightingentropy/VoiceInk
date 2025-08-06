@@ -91,7 +91,7 @@ class MiniWindowManager: ObservableObject {
         guard isVisible else { return }
         
         self.isVisible = false
-        
+        self.isExpanded = false  
         self.miniPanel?.hide { [weak self] in
             guard let self = self else { return }
             self.deinitializeWindow()
