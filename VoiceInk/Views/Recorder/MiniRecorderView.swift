@@ -50,6 +50,7 @@ struct MiniRecorderView: View {
                             Group {
                                 if windowManager.isExpanded {
                                     RecorderPromptButton(showPopover: $showEnhancementPromptPopover)
+                                        .padding(.leading, 3)
                                         .transition(.scale(scale: 0.5).combined(with: .opacity))
                                 }
                             }
@@ -60,12 +61,12 @@ struct MiniRecorderView: View {
                             // Fixed visualizer zone  
                             statusView
                                 .frame(maxWidth: .infinity)
-                                .padding(.horizontal, 6)
                             
                             // Right button zone
                             Group {
                                 if windowManager.isExpanded {
                                     RecorderPowerModeButton(showPopover: $showPowerModePopover)
+                                        .padding(.trailing, 3)
                                         .transition(.scale(scale: 0.5).combined(with: .opacity))
                                 }
                             }
