@@ -10,6 +10,11 @@ struct MiniRecorderView: View {
     @State private var showEnhancementPromptPopover = false
     @State private var isHovering = false
     
+    // Computed property to check if any popover is currently showing
+    private var isAnyPopoverShowing: Bool {
+        showPowerModePopover || showEnhancementPromptPopover
+    }
+    
     private var backgroundView: some View {
         ZStack {
             Color.black.opacity(0.9)
@@ -76,10 +81,17 @@ struct MiniRecorderView: View {
                             windowManager.expand()
                         } else {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                                if !isHovering {
+                                // Only collapse if not hovering AND no popover is showing
+                                if !isHovering && !isAnyPopoverShowing {
                                     windowManager.collapse()
                                 }
                             }
+                        }
+                    }
+                    .onAppear {
+                        // Set up the callback so WindowManager can check popover and hover state
+                        windowManager.shouldPreventCollapse = {
+                            isAnyPopoverShowing || isHovering
                         }
                     }
             }

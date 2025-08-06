@@ -9,6 +9,9 @@ class MiniWindowManager: ObservableObject {
     private let whisperState: WhisperState
     private let recorder: Recorder
     
+    // Callback to check if collapse should be prevented (e.g., when popovers are showing)
+    var shouldPreventCollapse: (() -> Bool)?
+    
     init(whisperState: WhisperState, recorder: Recorder) {
         self.whisperState = whisperState
         self.recorder = recorder
@@ -59,7 +62,7 @@ class MiniWindowManager: ObservableObject {
         expand()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            if self.isExpanded {
+            if self.isExpanded && !(self.shouldPreventCollapse?() ?? false) {
                 self.collapse()
             }
         }
