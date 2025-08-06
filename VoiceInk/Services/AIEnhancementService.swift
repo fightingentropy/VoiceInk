@@ -46,6 +46,7 @@ class AIEnhancementService: ObservableObject {
         didSet {
             UserDefaults.standard.set(selectedPromptId?.uuidString, forKey: "selectedPromptId")
             NotificationCenter.default.post(name: .AppSettingsDidChange, object: nil)
+            NotificationCenter.default.post(name: .promptSelectionChanged, object: nil)
         }
     }
     

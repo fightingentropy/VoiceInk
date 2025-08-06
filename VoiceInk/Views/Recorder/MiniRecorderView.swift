@@ -50,28 +50,38 @@ struct MiniRecorderView: View {
                             Group {
                                 if windowManager.isExpanded {
                                     RecorderPromptButton(showPopover: $showEnhancementPromptPopover)
-                                        .padding(.leading, 3)
                                         .transition(.scale(scale: 0.5).combined(with: .opacity))
                                 }
                             }
                             .frame(width: windowManager.isExpanded ? nil : 0)
+                            .frame(maxWidth: windowManager.isExpanded ? .infinity : 0)
                             .clipped()
+                            .opacity(windowManager.isExpanded ? 1 : 0)
                             .animation(.easeInOut(duration: 0.25), value: windowManager.isExpanded)
+                            
+                            if windowManager.isExpanded {
+                                Spacer()
+                            }
                             
                             // Fixed visualizer zone  
                             statusView
                                 .frame(maxWidth: .infinity)
                             
+                            if windowManager.isExpanded {
+                                Spacer()
+                            }
+                            
                             // Right button zone
                             Group {
                                 if windowManager.isExpanded {
                                     RecorderPowerModeButton(showPopover: $showPowerModePopover)
-                                        .padding(.trailing, 3)
                                         .transition(.scale(scale: 0.5).combined(with: .opacity))
                                 }
                             }
                             .frame(width: windowManager.isExpanded ? nil : 0)
+                            .frame(maxWidth: windowManager.isExpanded ? .infinity : 0)
                             .clipped()
+                            .opacity(windowManager.isExpanded ? 1 : 0)
                             .animation(.easeInOut(duration: 0.25), value: windowManager.isExpanded)
                         }
                         .padding(.vertical, 8)

@@ -130,6 +130,10 @@ class PowerModeSessionManager {
            whisperState.currentTranscriptionModel?.name != modelName {
             await handleModelChange(to: selectedModel)
         }
+        
+        await MainActor.run {
+            NotificationCenter.default.post(name: .powerModeConfigurationApplied, object: nil)
+        }
     }
 
     private func restoreState(_ state: ApplicationState) async {

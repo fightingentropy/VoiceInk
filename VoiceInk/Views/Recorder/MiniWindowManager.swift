@@ -26,10 +26,36 @@ class MiniWindowManager: ObservableObject {
             name: NSNotification.Name("HideMiniRecorder"),
             object: nil
         )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleFeedbackNotification),
+            name: .promptSelectionChanged,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleFeedbackNotification),
+            name: .powerModeConfigurationApplied,
+            object: nil
+        )
     }
     
     @objc private func handleHideNotification() {
         hide()
+    }
+    
+    @objc private func handleFeedbackNotification() {
+        guard isVisible, !isExpanded else { return }
+        
+        expand()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            if self.isExpanded {
+                self.collapse()
+            }
+        }
     }
     func show() {
         if isVisible { return }
