@@ -27,40 +27,11 @@ struct PromptSelectionGrid: View {
         self.onAddNewPrompt = onAddNewPrompt
     }
     
-    private var sortedPrompts: [CustomPrompt] {
-        prompts.sorted { prompt1, prompt2 in
-            // Predefined prompts come first
-            if prompt1.isPredefined && !prompt2.isPredefined {
-                return true
-            }
-            if !prompt1.isPredefined && prompt2.isPredefined {
-                return false
-            }
-            
-            // Among predefined prompts: Default first, then Assistant
-            if prompt1.isPredefined && prompt2.isPredefined {
-                if prompt1.id == PredefinedPrompts.defaultPromptId {
-                    return true
-                }
-                if prompt2.id == PredefinedPrompts.defaultPromptId {
-                    return false
-                }
-                if prompt1.id == PredefinedPrompts.assistantPromptId {
-                    return true
-                }
-                if prompt2.id == PredefinedPrompts.assistantPromptId {
-                    return false
-                }
-            }
-            
-            // Custom prompts: sort alphabetically by title
-            return prompt1.title.localizedCaseInsensitiveCompare(prompt2.title) == .orderedAscending
-        }
-    }
+
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if sortedPrompts.isEmpty {
+            if prompts.isEmpty {
                 Text("No prompts available")
                     .foregroundColor(.secondary)
                     .font(.caption)
@@ -70,7 +41,7 @@ struct PromptSelectionGrid: View {
                 ]
                 
                 LazyVGrid(columns: columns, spacing: 16) {
-                    ForEach(sortedPrompts) { prompt in
+                    ForEach(prompts) { prompt in
                         prompt.promptIcon(
                             isSelected: selectedPromptId == prompt.id,
                             onTap: { 
