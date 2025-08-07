@@ -27,7 +27,7 @@ class WhisperState: NSObject, ObservableObject {
     @Published var clipboardMessage = ""
     @Published var miniRecorderError: String?
     @Published var shouldCancelRecording = false
-    @AppStorage("shouldPreserveClipboard") private var shouldPreserveClipboard = false
+
 
     @Published var recorderType: String = UserDefaults.standard.string(forKey: "RecorderType") ?? "mini" {
         didSet {
@@ -359,7 +359,7 @@ class WhisperState: NSObject, ObservableObject {
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 
-                CursorPaster.pasteAtCursor(text, shouldPreserveClipboard: self.shouldPreserveClipboard)
+                CursorPaster.pasteAtCursor(text, shouldPreserveClipboard: true)
 
                 let powerMode = PowerModeManager.shared
                 if let activeConfig = powerMode.currentActiveConfiguration, activeConfig.isAutoSendEnabled {

@@ -18,7 +18,7 @@ struct SettingsView: View {
     @State private var showResetOnboardingAlert = false
     @State private var currentShortcut = KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder)
     @State private var isCustomCancelEnabled = false
-    @AppStorage("shouldPreserveClipboard") private var shouldPreserveClipboard = false
+
     
     var body: some View {
         ScrollView {
@@ -133,11 +133,7 @@ struct SettingsView: View {
                         .toggleStyle(.switch)
                         .help("Automatically pause active media playback when recording starts and resume when recording stops")
 
-                        Toggle(isOn: $shouldPreserveClipboard) {
-                            Text("Preserve clipboard after paste")
-                        }
-                        .toggleStyle(.switch)
-                        .help("After pasting the transcript, the clipboard will be restored to its previous content.")
+
                     }
                 }
 
