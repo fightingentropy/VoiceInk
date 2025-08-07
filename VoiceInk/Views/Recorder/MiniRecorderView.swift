@@ -39,42 +39,50 @@ struct MiniRecorderView: View {
         )
     }
     
+    private var contentLayout: some View {
+        HStack(spacing: 0) {
+            if windowManager.isExpanded {
+                // Left button zone - only exists when expanded
+                RecorderPromptButton(showPopover: $showEnhancementPromptPopover)
+                    .padding(.leading, 6)
+                    .transition(.scale(scale: 0.5).combined(with: .opacity))
+                
+                Spacer()
+            }
+            
+            // Fixed visualizer zone - takes full width when compact
+            statusView
+                .frame(maxWidth: .infinity)
+            
+            if windowManager.isExpanded {
+                Spacer()
+                
+                // Right button zone - only exists when expanded
+                RecorderPowerModeButton(showPopover: $showPowerModePopover)
+                    .padding(.trailing, 6)
+                    .transition(.scale(scale: 0.5).combined(with: .opacity))
+            }
+        }
+        .padding(.vertical, 8)
+    }
+    
+    private var recorderCapsule: some View {
+        Capsule()
+            .fill(.clear)
+            .background(backgroundView)
+            .overlay {
+                Capsule()
+                    .strokeBorder(Color.white.opacity(0.3), lineWidth: 0.5)
+            }
+            .overlay {
+                contentLayout
+            }
+    }
+    
     var body: some View {
         Group {
             if windowManager.isVisible {
-                Capsule()
-                    .fill(.clear)
-                    .background(backgroundView)
-                    .overlay {
-                        Capsule()
-                            .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
-                    }
-                    .overlay {
-                        HStack(spacing: 0) {
-                            if windowManager.isExpanded {
-                                // Left button zone - only exists when expanded
-                                RecorderPromptButton(showPopover: $showEnhancementPromptPopover)
-                                    .padding(.leading, 6)
-                                    .transition(.scale(scale: 0.5).combined(with: .opacity))
-                                
-                                Spacer()
-                            }
-                            
-                            // Fixed visualizer zone - takes full width when compact
-                            statusView
-                                .frame(maxWidth: .infinity)
-                            
-                            if windowManager.isExpanded {
-                                Spacer()
-                                
-                                // Right button zone - only exists when expanded
-                                RecorderPowerModeButton(showPopover: $showPowerModePopover)
-                                    .padding(.trailing, 6)
-                                    .transition(.scale(scale: 0.5).combined(with: .opacity))
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    }
+                recorderCapsule
                     .onHover { hovering in
                         isHovering = hovering
                         if hovering {

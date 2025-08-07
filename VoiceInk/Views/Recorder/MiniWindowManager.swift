@@ -12,6 +12,9 @@ class MiniWindowManager: ObservableObject {
     // Callback to check if collapse should be prevented (e.g., when popovers are showing)
     var shouldPreventCollapse: (() -> Bool)?
     
+    // Debounced timer for auto-collapse
+    private var debounceTimer: Timer?
+    
     init(whisperState: WhisperState, recorder: Recorder) {
         self.whisperState = whisperState
         self.recorder = recorder
@@ -19,6 +22,7 @@ class MiniWindowManager: ObservableObject {
     }
     
     deinit {
+        debounceTimer?.invalidate()
         NotificationCenter.default.removeObserver(self)
     }
     
@@ -57,11 +61,17 @@ class MiniWindowManager: ObservableObject {
     }
     
     @objc private func handleFeedbackNotification() {
-        guard isVisible, !isExpanded else { return }
+        guard isVisible else { return }
         
-        expand()
+        // Only expand if not already expanded
+        if !isExpanded {
+            expand()
+        }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+        // Reset debounce timer - this cancels any existing timer and starts a new one
+        debounceTimer?.invalidate()
+        debounceTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
             if self.isExpanded && !(self.shouldPreventCollapse?() ?? false) {
                 self.collapse()
             }
@@ -99,6 +109,10 @@ class MiniWindowManager: ObservableObject {
     
     func hide() {
         guard isVisible else { return }
+        
+        // Cancel any pending auto-collapse timer
+        debounceTimer?.invalidate()
+        debounceTimer = nil
         
         self.isVisible = false
         self.isExpanded = false  
