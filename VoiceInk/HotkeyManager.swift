@@ -6,6 +6,7 @@ import AppKit
 extension KeyboardShortcuts.Name {
     static let toggleMiniRecorder = Self("toggleMiniRecorder")
     static let toggleMiniRecorder2 = Self("toggleMiniRecorder2")
+    static let pasteLastTranscription = Self("pasteLastTranscription")
 }
 
 @MainActor
@@ -119,6 +120,16 @@ class HotkeyManager: ObservableObject {
         self.selectedHotkey2 = HotkeyOption(rawValue: UserDefaults.standard.string(forKey: "selectedHotkey2") ?? "") ?? .none
         self.whisperState = whisperState
         self.miniRecorderShortcutManager = MiniRecorderShortcutManager(whisperState: whisperState)
+
+        // Register Paste Last Transcription shortcut (Control + V)
+        let pasteShortcut = KeyboardShortcuts.Shortcut(.v, modifiers: [.control])
+        KeyboardShortcuts.setShortcut(pasteShortcut, for: .pasteLastTranscription)
+        KeyboardShortcuts.onKeyUp(for: .pasteLastTranscription) { [weak self] in
+            guard let self = self else { return }
+            Task { @MainActor in
+                LastTranscriptionService.pasteLastTranscription(from: self.whisperState.modelContext)
+            }
+        }
         
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 100_000_000)

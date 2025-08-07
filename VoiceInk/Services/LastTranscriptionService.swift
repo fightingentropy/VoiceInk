@@ -45,4 +45,30 @@ class LastTranscriptionService: ObservableObject {
             }
         }
     }
+
+    static func pasteLastTranscription(from modelContext: ModelContext) {
+        guard let lastTranscription = getLastTranscription(from: modelContext) else {
+            Task { @MainActor in
+                NotificationManager.shared.showNotification(
+                    title: "No transcription available",
+                    type: .error
+                )
+            }
+            return
+        }
+        
+        // Use enhanced text if available and not empty, otherwise use original text
+        let textToPaste: String
+        if let enhancedText = lastTranscription.enhancedText, !enhancedText.isEmpty {
+            textToPaste = enhancedText
+        } else {
+            textToPaste = lastTranscription.text
+        }
+        
+        // Delay to give the user time to release modifier keys (especially Control)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            CursorPaster.pasteAtCursor(textToPaste + " ", shouldPreserveClipboard: true)
+        }
+        
+    }
 } 
