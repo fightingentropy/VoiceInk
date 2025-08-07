@@ -4,7 +4,6 @@ import SwiftUI
 enum PowerModeValidationError: Error, Identifiable {
     case emptyName
     case duplicateName(String)
-    case noTriggers
     case duplicateAppTrigger(String, String) // (app name, existing power mode name)
     case duplicateWebsiteTrigger(String, String) // (website, existing power mode name)
     
@@ -12,7 +11,6 @@ enum PowerModeValidationError: Error, Identifiable {
         switch self {
         case .emptyName: return "emptyName"
         case .duplicateName: return "duplicateName"
-        case .noTriggers: return "noTriggers"
         case .duplicateAppTrigger: return "duplicateAppTrigger"
         case .duplicateWebsiteTrigger: return "duplicateWebsiteTrigger"
         }
@@ -24,8 +22,6 @@ enum PowerModeValidationError: Error, Identifiable {
             return "Power mode name cannot be empty."
         case .duplicateName(let name):
             return "A power mode with the name '\(name)' already exists."
-        case .noTriggers:
-            return "You must add at least one application or website."
         case .duplicateAppTrigger(let appName, let powerModeName):
             return "The app '\(appName)' is already configured in the '\(powerModeName)' power mode."
         case .duplicateWebsiteTrigger(let website, let powerModeName):
@@ -59,10 +55,7 @@ struct PowerModeValidator {
             errors.append(.duplicateName(config.name))
         }
         
-        if (config.appConfigs == nil || config.appConfigs?.isEmpty == true) &&
-           (config.urlConfigs == nil || config.urlConfigs?.isEmpty == true) {
-            errors.append(.noTriggers)
-        }
+
         
         if let appConfigs = config.appConfigs {
             for appConfig in appConfigs {
