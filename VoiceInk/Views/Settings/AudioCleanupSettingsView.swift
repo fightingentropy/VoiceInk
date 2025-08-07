@@ -22,11 +22,6 @@ struct AudioCleanupSettingsView: View {
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             
-            Text("Data Retention")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.primary)
-                .padding(.top, 8)
-            
             Toggle("Do not maintain transcript history", isOn: $doNotMaintainTranscriptHistory)
                 .toggleStyle(.switch)
                 .padding(.vertical, 4)
@@ -43,15 +38,6 @@ struct AudioCleanupSettingsView: View {
                 Divider()
                     .padding(.vertical, 8)
                 
-                Text("Audio File Management")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.primary)
-                
-                Text("Automatically delete audio files from transcription history while preserving the text transcripts.")
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                
                 Toggle("Enable automatic audio cleanup", isOn: $isAudioCleanupEnabled)
                     .toggleStyle(.switch)
                     .padding(.vertical, 4)
@@ -59,9 +45,6 @@ struct AudioCleanupSettingsView: View {
             
             if isAudioCleanupEnabled && !doNotMaintainTranscriptHistory {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Retention Period")
-                        .font(.system(size: 14, weight: .medium))
-                    
                     Picker("Keep audio files for", selection: $audioRetentionPeriod) {
                         Text("1 day").tag(1)
                         Text("3 days").tag(3)
