@@ -214,7 +214,7 @@ import Foundation
            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .deepgram)
        ),
         CloudModel(
-            name: "voxtral-mini-2507",
+            name: "voxtral-mini-latest",
             displayName: "Voxtral Mini (Mistral)",
             description: "Mistral's latest SOTA transcription model.",
             provider: .mistral,
