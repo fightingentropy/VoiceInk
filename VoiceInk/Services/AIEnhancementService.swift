@@ -161,6 +161,12 @@ class AIEnhancementService: ObservableObject {
         }
         
         guard let activePrompt = activePrompt else {
+            // Use default prompt when none is selected
+            if let defaultPrompt = allPrompts.first(where: { $0.id == PredefinedPrompts.defaultPromptId }) {
+                var systemMessage = String(format: AIPrompts.customPromptTemplate, defaultPrompt.promptText)
+                systemMessage += contextSection
+                return systemMessage
+            }
             return AIPrompts.assistantMode + contextSection
         }
         

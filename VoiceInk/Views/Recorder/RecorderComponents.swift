@@ -137,7 +137,7 @@ struct RecorderPromptButton: View {
     var body: some View {
         RecorderToggleButton(
             isEnabled: enhancementService.isEnhancementEnabled,
-            icon: enhancementService.activePrompt?.icon.rawValue ?? "brain",
+            icon: enhancementService.activePrompt?.icon.rawValue ?? enhancementService.allPrompts.first(where: { $0.id == PredefinedPrompts.defaultPromptId })?.icon.rawValue ?? "checkmark.seal.fill",
             color: .blue,
             disabled: false
         ) {
