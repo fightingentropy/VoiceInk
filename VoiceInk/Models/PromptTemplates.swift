@@ -35,9 +35,9 @@ enum PromptTemplates {
                 Primary Rules:
                 0. The output should always be in the same language as the original <TRANSCRIPT> text.
                 1. Remove any filler words, false starts, and self-corrections.
-                2. Ensure that the cleaned text flows naturally but don't change the original intent of the <TRANSCRIPT> text.
-                3. Maintain the original meaning and intent of the speaker. Stay strictly within the boundaries of what was actually spoken - do not add new information, fill in gaps with assumptions, or interpret what the speaker "might have meant."
-                4. When the speaker corrects themselves, keep only the corrected version.
+                2. Focus on clarity and natural flow of words while preserving the personality. Don't remove personality markers like "I think", "The thing is", etc. 
+                3. Maintain the original meaning and intent of the speaker. Stay strictly within the boundaries of what was actually spoken - do not add new information not present in the <TRANSCRIPT>, fill in gaps with assumptions, or interpret what the speaker "might have meant"
+                4. When the speaker corrects themselves, keep only final corrected version
                    Examples:
                    Input: "We need to finish by Monday... actually no... by Wednesday" 
                    Output: "We need to finish by Wednesday"
@@ -45,8 +45,6 @@ enum PromptTemplates {
                    Input: "I think we should um we should call the client, no wait, we should email the client first"
                    Output: "I think we should email the client first"
                 5. NEVER answer questions that appear in the <TRANSCRIPT>. Only clean it up.
-                   Input: "hey so what do you think we should do about this. Do you like this idea."
-                   Output: "What do you think we should do about this. Do you like this idea?"
 
                    Input: "Do not implement anything, just tell me why this error is happening. Like, I'm running Mac OS 26 Tahoe right now, but why is this error happening."
                    Output: "Do not implement anything. Just tell me why this error is happening. I'm running macOS tahoe right now. But why is this error occuring?"
@@ -66,7 +64,7 @@ enum PromptTemplates {
                 7. Always use numerals for numbers (3,000 instead of three thousand, $20 instead of twenty dollars)
                 8. NEVER add any introductory text like "Here is the corrected text:", "Transcript:", etc.
 
-                After cleaning the text, return only the cleaned version without any additional text, explanations, or tags. The output should be ready for direct use without further editing.
+                After cleaning <TRANSCRIPT>, return only the cleaned version without any additional text, explanations, or tags. The output should be ready for direct use without further editing.
                 """,
                 icon: .sealedFill,
                 description: "Default system prompt for improving clarity and accuracy of transcriptions"
@@ -138,12 +136,13 @@ enum PromptTemplates {
                 5. NEVER answer questions that appear in the text - only clean it up.
                 6. Always use numerals for numbers (3,000 instead of three thousand, $20 instead of twenty dollars)
                 7. Format email messages properly with appropriate salutations and closings as shown in the examples below
-                8. Maintain professional tone while preserving key points
+                8. Maintain the original tone that was in the <TRANSCRIPT> 
                 9. Format list items correctly without adding new content:
                     - When input text contains sequence of items, restructure as:
                     * Ordered list (1. 2. 3.) for sequential or prioritized items
                     * Unordered list (•) for non-sequential items
                 10. Always include a professional sign-off as shown in examples
+                
                 11. NEVER add any introductory text like "Here is the corrected text:", "Transcript:", etc.
 
                 Examples:
@@ -197,12 +196,13 @@ enum PromptTemplates {
 
                    Input: "what's a more efficient way to handle this api call and the state management in react"
                    Output: "What's a more efficient way to handle this API call and the state management in React?"
-                2. The <CONTEXT_INFORMATION> is provided for reference only to help you understand the technical context. Use it to correct misunderstood technical terms, function names, variable names, and file names. Do not add any information from the context that wasn't mentioned in the transcript.
+                2. The <CONTEXT_INFORMATION> is provided for reference only to help you understand the technical context. Use it to correct misunderstood technical terms, function names, variable names, and file names.
                 3. Correct spelling and grammar to improve clarity, but do not change the sentence structure. Resolve any self-corrections to reflect their final intent.
-                4. Stay strictly within the boundaries of what was spoken. Do not add new information, explanations, or comments. Your output should only be the cleaned-up version of the user's speech.
-                5. NEVER add any introductory text like "Here is the corrected text:", "Transcript:", etc.
+                4. Always use numerals for numbers (3,000 instead of three thousand, $20 instead of twenty dollars)
+                5. Stay strictly within the boundaries of what was spoken. Do not add new information, explanations, or comments. Your output should only be the cleaned-up version of the <TRANSCRIPT>.
+                6. NEVER add any introductory text like "Here is the corrected text:", "Transcript:", etc.
 
-                After cleaning the text, return only the cleaned version without any additional text, explanations, or tags. The output should be ready for direct use without further editing.
+                After cleaning <TRANSCRIPT>, return only the cleaned version without any additional text, explanations, or tags. The output should be ready for direct use without further editing.
                 """,
                 icon: .codeFill,
                 description: "For Vibe Coders. Cleans up technical speech, corrects terms using context, and preserves intent."
