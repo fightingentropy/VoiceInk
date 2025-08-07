@@ -36,7 +36,7 @@ enum PromptTemplates {
                 0. The output should always be in the same language as the original <TRANSCRIPT> text.
                 1. Remove any filler words, false starts, and self-corrections.
                 2. Focus on clarity and natural flow of words while preserving the personality. Don't remove personality markers like "I think", "The thing is", etc. 
-                3. Maintain the original meaning and intent of the speaker. Stay strictly within the boundaries of what was actually spoken - do not add new information not present in the <TRANSCRIPT>, fill in gaps with assumptions, or interpret what the speaker "might have meant"
+                3. Maintain the original meaning and intent of the speaker. Do not add new information, do not fill in gaps with assumptions, and don't try interpret what the speaker "might have meant." Always stay strictly within the boundaries of what was actually spoken. 
                 4. When the speaker corrects themselves, keep only final corrected version
                    Examples:
                    Input: "We need to finish by Monday... actually no... by Wednesday" 
@@ -62,7 +62,7 @@ enum PromptTemplates {
                             2. Call mom
                             3. Finish the report
                 7. Always use numerals for numbers (3,000 instead of three thousand, $20 instead of twenty dollars)
-                8. NEVER add any introductory text like "Here is the corrected text:", "Transcript:", etc.
+                8. DO NOT add em-dashes or hyphens (unless the word itself is a compound word that uses a hyphen)
 
                 After cleaning <TRANSCRIPT>, return only the cleaned version without any additional text, explanations, or tags. The output should be ready for direct use without further editing.
                 """,
@@ -75,9 +75,8 @@ enum PromptTemplates {
                 promptText: """
                 Primary Rules:
                 We are in a casual chat conversation.
-                1. Break text into clear, logical paragraphs every 2-5 sentences and avoid artificial punctuation (especially colons in the middle of sentences).
-                2. Ensure that the cleaned text flows naturally and is grammatically correct.
-                3. Maintain the original meaning and intent of the speaker. Stay strictly within the boundaries of what was actually spoken - do not add new information, fill in gaps with assumptions, or interpret what the speaker "might have meant."
+                1. Break text into clear, logical paragraphs every 2-5 sentences.
+                3. Maintain the original meaning and intent of the speaker. Do not add new information, do not fill in gaps with assumptions, and don't try interpret what the speaker "might have meant." Always stay strictly within the boundaries of what was actually spoken. 
                 4. When the speaker corrects themselves, keep only the corrected version.
                    Example:
                    Input: "I'll be there at 5... no wait... at 6 PM"
@@ -86,7 +85,7 @@ enum PromptTemplates {
                 6. Always use numerals for numbers (3,000 instead of three thousand, $20 instead of twenty dollars)
                 7. Keep personality markers that show intent or style (e.g., "I think", "The thing is")
                 8. Maintain the casual tone while ensuring clarity
-                9. NEVER add any introductory text like "Here is the corrected text:", "Transcript:", etc.
+                9. DO NOT add em-dashes or hyphens (unless the word itself is a compound word that uses a hyphen)
 
                 Examples:
 
@@ -125,10 +124,10 @@ enum PromptTemplates {
                 title: "Email",
                 promptText: """
                 Primary Rules:
-                We are writing a professional email.
-                1. Break text into clear, logical paragraphs every 2-5 sentences and avoid artificial punctuation (especially colons in the middle of sentences).
+                We are working with an e-mail right now.
+                1. Break <TRANSCRIPT> into clear, logical paragraphs every 2-5 sentences and avoid artificial punctuation (especially colons in the middle of sentences).
                 2. Ensure that the cleaned text flows naturally and is grammatically correct.
-                3. Maintain the original meaning and intent of the speaker. Stay strictly within the boundaries of what was actually spoken - do not add new information, fill in gaps with assumptions, or interpret what the speaker "might have meant."
+                3. Maintain the original meaning and intent of the speaker. Do not add new information, do not fill in gaps with assumptions, and don't try interpret what the speaker "might have meant." Always stay strictly within the boundaries of what was actually spoken. 
                 4. When the speaker corrects themselves, keep only the corrected version.
                    Example:
                    Input: "Let's meet on Tuesday... sorry I meant Wednesday at 2 PM"
@@ -143,7 +142,7 @@ enum PromptTemplates {
                     * Unordered list (•) for non-sequential items
                 10. Always include a professional sign-off as shown in examples
                 
-                11. NEVER add any introductory text like "Here is the corrected text:", "Transcript:", etc.
+                11. DO NOT add em-dashes or hyphens (unless the word itself is a compound word that uses a hyphen)
 
                 Examples:
 
@@ -200,7 +199,7 @@ enum PromptTemplates {
                 3. Correct spelling and grammar to improve clarity, but do not change the sentence structure. Resolve any self-corrections to reflect their final intent.
                 4. Always use numerals for numbers (3,000 instead of three thousand, $20 instead of twenty dollars)
                 5. Stay strictly within the boundaries of what was spoken. Do not add new information, explanations, or comments. Your output should only be the cleaned-up version of the <TRANSCRIPT>.
-                6. NEVER add any introductory text like "Here is the corrected text:", "Transcript:", etc.
+                6. DO NOT add em-dashes or hyphens (unless the word itself is a compound word that uses a hyphen)
 
                 After cleaning <TRANSCRIPT>, return only the cleaned version without any additional text, explanations, or tags. The output should be ready for direct use without further editing.
                 """,
