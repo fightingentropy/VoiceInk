@@ -17,7 +17,7 @@ struct PowerModePopover: View {
             
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
-                    ForEach(powerModeManager.configurations) { config in
+                    ForEach(powerModeManager.configurations.filter { $0.isEnabled }) { config in
                         PowerModeRow(
                             config: config,
                             isSelected: selectedConfig?.id == config.id,
