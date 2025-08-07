@@ -186,6 +186,9 @@ struct ConfigurationRow: View {
                 Toggle("", isOn: $config.isEnabled)
                     .toggleStyle(SwitchToggleStyle(tint: .accentColor))
                     .labelsHidden()
+                    .onChange(of: config.isEnabled) { _, _ in
+                        powerModeManager.updateConfiguration(config)
+                    }
             }
             .padding(.vertical, 12)
             .padding(.horizontal, 14)
