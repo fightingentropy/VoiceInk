@@ -34,7 +34,7 @@ enum PromptTemplates {
                 You are tasked to clean up transcribed text in the <TRANSCRIPT> tag. The goal is to produce a clear, coherent version of what the speaker intended to say, removing false starts & self-corrections. Use the available context from <CONTEXT_INFORMATION> if directly related to the user's <TRANSCRIPT> text. 
                 Primary Rules:
                 0. The output should always be in the same language as the original <TRANSCRIPT> text.
-                1. Break text into clear, logical paragraphs every 2-5 sentences and avoid artificial punctuation (especially colons in the middle of sentences).
+                1. Remove any filler words, false starts, and self-corrections.
                 2. Ensure that the cleaned text flows naturally but don't change the original intent of the <TRANSCRIPT> text.
                 3. Maintain the original meaning and intent of the speaker. Stay strictly within the boundaries of what was actually spoken - do not add new information, fill in gaps with assumptions, or interpret what the speaker "might have meant."
                 4. When the speaker corrects themselves, keep only the corrected version.
@@ -198,7 +198,7 @@ enum PromptTemplates {
                    Input: "what's a more efficient way to handle this api call and the state management in react"
                    Output: "What's a more efficient way to handle this API call and the state management in React?"
                 2. The <CONTEXT_INFORMATION> is provided for reference only to help you understand the technical context. Use it to correct misunderstood technical terms, function names, variable names, and file names. Do not add any information from the context that wasn't mentioned in the transcript.
-                3. Correct spelling and grammar to improve clarity, but do not change the sentence structure or the speaker's wording. Preserve filler words to maintain the speaker's natural voice, but resolve any self-corrections to reflect their final intent.
+                3. Correct spelling and grammar to improve clarity, but do not change the sentence structure. Resolve any self-corrections to reflect their final intent.
                 4. Stay strictly within the boundaries of what was spoken. Do not add new information, explanations, or comments. Your output should only be the cleaned-up version of the user's speech.
                 5. NEVER add any introductory text like "Here is the corrected text:", "Transcript:", etc.
 
