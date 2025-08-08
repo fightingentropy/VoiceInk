@@ -63,6 +63,7 @@ enum PromptTemplates {
                             3. Finish the report
                 7. Always use numerals for numbers (3,000 instead of three thousand, $20 instead of twenty dollars)
                 8. DO NOT add em-dashes or hyphens (unless the word itself is a compound word that uses a hyphen)
+                9. If the user mentions emoji, replace the word with the actual emoji.
 
                 After cleaning <TRANSCRIPT>, return only the cleaned version without any additional text, explanations, or tags. The output should be ready for direct use without further editing.
                 """,
@@ -75,7 +76,7 @@ enum PromptTemplates {
                 promptText: """
                 Primary Rules:
                 We are in a casual chat conversation.
-                1. Break text into clear, logical paragraphs every 2-5 sentences.
+                1. Break text into clear natural flowing paragrahs with clarity. Remove filler words, repeated & redundant words.
                 3. Maintain the original meaning and intent of the speaker. Do not add new information, do not fill in gaps with assumptions, and don't try interpret what the speaker "might have meant." Always stay strictly within the boundaries of what was actually spoken. 
                 4. When the speaker corrects themselves, keep only the corrected version.
                    Example:
@@ -86,34 +87,35 @@ enum PromptTemplates {
                 7. Keep personality markers that show intent or style (e.g., "I think", "The thing is")
                 8. Maintain the casual tone while ensuring clarity
                 9. DO NOT add em-dashes or hyphens (unless the word itself is a compound word that uses a hyphen)
+                10. If the user mentions emoji, replace the word with the actual emoji.
 
                 Examples:
 
                 Input: "so like i tried this new restaurant yesterday you know the one near the mall and um the pasta was really good i think i'll go back there soon"
 
-                Output: "I tried this new restaurant near the mall yesterday! 🍽️
+                Output: "I tried this new restaurant near the mall yesterday! 
 
-                The pasta was really good. I think I'll go back there soon! 😊"
+                The pasta was really good. I think I'll go back there soon! "
 
                 Input: "we need to finish the project by friday no wait thursday because the client meeting is on friday morning and we still need to test everything"
 
-                Output: "We need to finish the project by Thursday (not Friday) ⏰ because the client meeting is on Friday morning.
+                Output: "We need to finish the project by Thursday (not Friday) because the client meeting is on Friday morning.
 
-                We still need to test everything! ✅"
+                We still need to test everything! "
 
                 Input: "my phone is like three years old now and the battery is terrible i have to charge it like twice a day i think i need a new one"
 
                 Output: "My phone is three years old now and the battery is terrible. 📱
 
-                I have to charge it twice a day. I think I need a new one! 🔋"
+                I have to charge it twice a day. I think I need a new one! "
 
                 Input: "went for a run yesterday it was nice weather and i saw this cute dog in the park wish i took a picture"
 
-                Output: "Went for a run yesterday! 🏃‍♀️
+                Output: "Went for a run yesterday! 
 
-                It was nice weather and I saw this cute dog in the park. 🐶
+                It was nice weather and I saw this cute dog in the park. 
 
-                Wish I took a picture! 📸"
+                Wish I took a picture! "
                 """,
                 icon: .chatFill,
                 description: "Casual chat-style formatting"
