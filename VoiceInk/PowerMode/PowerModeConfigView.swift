@@ -380,7 +380,13 @@ struct ConfigurationView: View {
                         } else if let selectedModel = effectiveModelName,
                                   let modelInfo = whisperState.allAvailableModels.first(where: { $0.name == selectedModel }),
                                   !modelInfo.isMultilingualModel {
-                            let _ = { selectedLanguage = "en" }()
+                            
+                            EmptyView()
+                                .onAppear {
+                                    if selectedLanguage == nil {
+                                        selectedLanguage = "en"
+                                    }
+                                }
                         }
                     }
                     .padding()
