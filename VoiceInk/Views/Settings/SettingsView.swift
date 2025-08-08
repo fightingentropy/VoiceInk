@@ -106,6 +106,23 @@ struct SettingsView: View {
                     }
                 }
 
+                SettingsSection(
+                    icon: "doc.on.clipboard.fill",
+                    title: "Paste Last Transcription",
+                    subtitle: "Configure shortcut to paste your most recent transcription"
+                ) {
+                    HStack(spacing: 12) {
+                        Text("Paste Shortcut")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+                        
+                        KeyboardShortcuts.Recorder(for: .pasteLastTranscription)
+                            .controlSize(.small)
+                        
+                        Spacer()
+                    }
+                }
+
                 // Recording Feedback Section
                 SettingsSection(
                     icon: "speaker.wave.2.bubble.left.fill",
