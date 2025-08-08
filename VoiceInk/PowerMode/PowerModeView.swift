@@ -79,7 +79,7 @@ struct PowerModeView: View {
                                                                  InfoTip(
                                      title: "What is Power Mode?",
                                      message: "Automatically apply custom configurations based on the app/website you are using",
-                                     learnMoreURL: "https://www.youtube.com/watch?v=-xFLvgNs_Iw"
+                                     learnMoreURL: "https://www.youtube.com/@tryvoiceink/videos"
                                  )
                             }
                             
