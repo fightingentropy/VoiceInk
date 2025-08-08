@@ -680,7 +680,7 @@ struct ConfigurationView: View {
             let enumerator = FileManager.default.enumerator(
                 at: baseURL,
                 includingPropertiesForKeys: [.isApplicationKey, .isDirectoryKey],
-                options: [.skipsHiddenFiles]
+                options: [.skipsHiddenFiles, .followsSymbolicLinks]
             )
             
             return enumerator?.compactMap { item -> URL? in
