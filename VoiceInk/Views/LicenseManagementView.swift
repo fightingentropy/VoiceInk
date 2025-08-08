@@ -92,11 +92,11 @@ struct LicenseManagementView: View {
                         .buttonStyle(.plain)
                         
                         Button {
-                            if let url = URL(string: "https://github.com/Beingpax/VoiceInk/issues") {
+                            if let url = URL(string: "https://buymeacoffee.com/beingpax") {
                                 NSWorkspace.shared.open(url)
                             }
                         } label: {
-                            featureItem(icon: "map.fill", title: "Roadmap", color: .green)
+                            animatedTipJarItem()
                         }
                         .buttonStyle(.plain)
                     }
@@ -250,6 +250,29 @@ struct LicenseManagementView: View {
                 .foregroundStyle(color)
             
             Text(title)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.primary)
+        }
+    }
+    
+    @State private var heartPulse = false
+    
+    private func animatedTipJarItem() -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "heart.fill")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(.pink)
+                .scaleEffect(heartPulse ? 1.3 : 1.0)
+                .animation(
+                    Animation.easeInOut(duration: 1.2)
+                        .repeatForever(autoreverses: true),
+                    value: heartPulse
+                )
+                .onAppear {
+                    heartPulse = true
+                }
+            
+            Text("Tip Jar")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.primary)
         }
