@@ -265,28 +265,28 @@ class AIEnhancementService: ObservableObject {
             request.addValue("application/json", forHTTPHeaderField: "Content-Type")
             request.addValue("Bearer \(aiService.apiKey)", forHTTPHeaderField: "Authorization")
             request.timeoutInterval = baseTimeout
-            
+
             let messages: [[String: Any]] = [
                 ["role": "system", "content": systemMessage],
                 ["role": "user", "content": formattedText]
             ]
-            
+
             let requestBody: [String: Any] = [
                 "model": aiService.currentModel,
                 "messages": messages,
-                "temperature": 0.3,
+                "temperature": aiService.currentModel.lowercased().hasPrefix("gpt-5") ? 1.0 : 0.3,
                 "stream": false
             ]
-            
+
             request.httpBody = try? JSONSerialization.data(withJSONObject: requestBody)
-            
+
             do {
                 let (data, response) = try await URLSession.shared.data(for: request)
-                
+
                 guard let httpResponse = response as? HTTPURLResponse else {
                     throw EnhancementError.invalidResponse
                 }
-                
+
                 if httpResponse.statusCode == 200 {
                     guard let jsonResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                           let choices = jsonResponse["choices"] as? [[String: Any]],
@@ -295,14 +295,14 @@ class AIEnhancementService: ObservableObject {
                           let enhancedText = message["content"] as? String else {
                         throw EnhancementError.enhancementFailed
                     }
-                    
+
                     let filteredText = AIEnhancementOutputFilter.filter(enhancedText.trimmingCharacters(in: .whitespacesAndNewlines))
                     return filteredText
                 } else {
                     let errorString = String(data: data, encoding: .utf8) ?? "Could not decode error response."
                     throw EnhancementError.customError("HTTP \(httpResponse.statusCode): \(errorString)")
                 }
-                
+
             } catch let error as EnhancementError {
                 throw error
             } catch {
