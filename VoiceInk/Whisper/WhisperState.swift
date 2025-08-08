@@ -359,7 +359,7 @@ class WhisperState: NSObject, ObservableObject {
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 
-                CursorPaster.pasteAtCursor(text, shouldPreserveClipboard: true)
+                CursorPaster.pasteAtCursor(text)
 
                 let powerMode = PowerModeManager.shared
                 if let activeConfig = powerMode.currentActiveConfiguration, activeConfig.isAutoSendEnabled {

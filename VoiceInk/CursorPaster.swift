@@ -2,21 +2,18 @@ import Foundation
 import AppKit
 
 class CursorPaster {
-    private static let pasteCompletionDelay: TimeInterval = 0.6
     
-    static func pasteAtCursor(_ text: String, shouldPreserveClipboard: Bool = true) {
+    static func pasteAtCursor(_ text: String) {
         let pasteboard = NSPasteboard.general
         
         var savedContents: [(NSPasteboard.PasteboardType, Data)] = []
         
-        if shouldPreserveClipboard {
-            let currentItems = pasteboard.pasteboardItems ?? []
-            
-            for item in currentItems {
-                for type in item.types {
-                    if let data = item.data(forType: type) {
-                        savedContents.append((type, data))
-                    }
+        let currentItems = pasteboard.pasteboardItems ?? []
+        
+        for item in currentItems {
+            for type in item.types {
+                if let data = item.data(forType: type) {
+                    savedContents.append((type, data))
                 }
             }
         }
@@ -30,11 +27,14 @@ class CursorPaster {
             pasteUsingCommandV()
         }
         
-        if shouldPreserveClipboard && !savedContents.isEmpty {
-            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + pasteCompletionDelay) {
-                pasteboard.clearContents()
-                for (type, data) in savedContents {
-                    pasteboard.setData(data, forType: type)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.075) {
+            pasteboard.clearContents()
+            
+            if !savedContents.isEmpty {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    for (type, data) in savedContents {
+                        pasteboard.setData(data, forType: type)
+                    }
                 }
             }
         }

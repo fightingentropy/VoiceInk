@@ -67,7 +67,7 @@ class LastTranscriptionService: ObservableObject {
         
         // Delay to give the user time to release modifier keys (especially Control)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            CursorPaster.pasteAtCursor(textToPaste + " ", shouldPreserveClipboard: true)
+            CursorPaster.pasteAtCursor(textToPaste + " ")
         }
         
     }
