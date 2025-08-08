@@ -30,14 +30,12 @@ class MiniRecorderPanel: NSPanel {
         standardWindowButton(.closeButton)?.isHidden = true
     }
     
-    static func calculateWindowMetrics(expanded: Bool = false) -> NSRect {
+    static func calculateWindowMetrics() -> NSRect {
         guard let screen = NSScreen.main else {
-            return NSRect(x: 0, y: 0, width: expanded ? 160 : 70, height: 34)
+            return NSRect(x: 0, y: 0, width: 160, height: 34)
         }
         
-        let compactWidth: CGFloat = 100
-        let expandedWidth: CGFloat = 160
-        let width = expanded ? expandedWidth : compactWidth
+        let width: CGFloat = 160
         let height: CGFloat = 34
         let padding: CGFloat = 24
         
@@ -55,27 +53,9 @@ class MiniRecorderPanel: NSPanel {
     }
     
     func show() {
-        let metrics = MiniRecorderPanel.calculateWindowMetrics(expanded: false)
+        let metrics = MiniRecorderPanel.calculateWindowMetrics()
         setFrame(metrics, display: true)
         orderFrontRegardless()
-    }
-    
-    func expandWindow(completion: (() -> Void)? = nil) {
-        let expandedMetrics = MiniRecorderPanel.calculateWindowMetrics(expanded: true)
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.25
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            animator().setFrame(expandedMetrics, display: true)
-        }, completionHandler: completion)
-    }
-    
-    func collapseWindow(completion: (() -> Void)? = nil) {
-        let compactMetrics = MiniRecorderPanel.calculateWindowMetrics(expanded: false)
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.25
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            animator().setFrame(compactMetrics, display: true)
-        }, completionHandler: completion)
     }
     
     func hide(completion: @escaping () -> Void) {

@@ -8,12 +8,6 @@ struct MiniRecorderView: View {
     
     @State private var showPowerModePopover = false
     @State private var showEnhancementPromptPopover = false
-    @State private var isHovering = false
-    
-    // Computed property to check if any popover is currently showing
-    private var isAnyPopoverShowing: Bool {
-        showPowerModePopover || showEnhancementPromptPopover
-    }
     
     private var backgroundView: some View {
         ZStack {
@@ -41,27 +35,21 @@ struct MiniRecorderView: View {
     
     private var contentLayout: some View {
         HStack(spacing: 0) {
-            if windowManager.isExpanded {
-                // Left button zone - only exists when expanded
-                RecorderPromptButton(showPopover: $showEnhancementPromptPopover)
-                    .padding(.leading, 6)
-                    .transition(.scale(scale: 0.5).combined(with: .opacity))
-                
-                Spacer()
-            }
+            // Left button zone - always visible
+            RecorderPromptButton(showPopover: $showEnhancementPromptPopover)
+                .padding(.leading, 6)
             
-            // Fixed visualizer zone - takes full width when compact
+            Spacer()
+            
+            // Fixed visualizer zone
             statusView
                 .frame(maxWidth: .infinity)
             
-            if windowManager.isExpanded {
-                Spacer()
-                
-                // Right button zone - only exists when expanded
-                RecorderPowerModeButton(showPopover: $showPowerModePopover)
-                    .padding(.trailing, 6)
-                    .transition(.scale(scale: 0.5).combined(with: .opacity))
-            }
+            Spacer()
+            
+            // Right button zone - always visible
+            RecorderPowerModeButton(showPopover: $showPowerModePopover)
+                .padding(.trailing, 6)
         }
         .padding(.vertical, 8)
     }
@@ -83,25 +71,6 @@ struct MiniRecorderView: View {
         Group {
             if windowManager.isVisible {
                 recorderCapsule
-                    .onHover { hovering in
-                        isHovering = hovering
-                        if hovering {
-                            windowManager.expand()
-                        } else {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                                // Only collapse if not hovering AND no popover is showing
-                                if !isHovering && !isAnyPopoverShowing {
-                                    windowManager.collapse()
-                                }
-                            }
-                        }
-                    }
-                    .onAppear {
-                        // Set up the callback so WindowManager can check popover and hover state
-                        windowManager.shouldPreventCollapse = {
-                            isAnyPopoverShowing || isHovering
-                        }
-                    }
             }
         }
     }
