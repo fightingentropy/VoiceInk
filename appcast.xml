@@ -6,7 +6,7 @@
             <title>1.47</title>
             <pubDate>Sat, 8 Aug 2025 12:20:00 +0545</pubDate>
             <sparkle:version>147</sparkle:version>
-            <sparkle:shortVersionString>1.47</sparkle:shortVersionString>
+            <sparkle:shortVersionString>1.48</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 
@@ -21,7 +21,7 @@
                 </ul> 
                             
             ]]></description>
-           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.47/VoiceInk.dmg" length="9108615" type="application/octet-stream" sparkle:edSignature="A6beDbbSzgba5A6KsOWFYnmP4jPrb6tFbuf3OsjSGfKPfkrEA7vmN+AKCvk1WLuAXvy3sIJ9WdWpECWGNT8JAA=="/>
+           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.47/VoiceInk.dmg" length="9112861" type="application/octet-stream" sparkle:edSignature="LNrgF/nr+hn9wg/Mx0zRgMjZRiGmnAV+YoPDKSnN9IkiH3CL+YFRmvlbO0dzsHg2JXFkjOhK3xQplz1i0F9YAw=="/>
         </item>
     </channel>
 </rss>
