@@ -37,7 +37,7 @@ struct MiniRecorderView: View {
         HStack(spacing: 0) {
             // Left button zone - always visible
             RecorderPromptButton(showPopover: $showEnhancementPromptPopover)
-                .padding(.leading, 6)
+                .padding(.leading, 7)
             
             Spacer()
             
@@ -49,9 +49,9 @@ struct MiniRecorderView: View {
             
             // Right button zone - always visible
             RecorderPowerModeButton(showPopover: $showPowerModePopover)
-                .padding(.trailing, 6)
+                .padding(.trailing, 7)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 9)
     }
     
     private var recorderCapsule: some View {

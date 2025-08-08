@@ -25,10 +25,10 @@ struct RecorderToggleButton: View {
             Group {
                 if isEmoji {
                     Text(icon)
-                        .font(.system(size: 12))
+                        .font(.system(size: 14))
                 } else {
                     Image(systemName: icon)
-                        .font(.system(size: 11))
+                        .font(.system(size: 13))
                 }
             }
             .foregroundColor(disabled ? .white.opacity(0.3) : (isEnabled ? .white : .white.opacity(0.6)))
@@ -49,19 +49,19 @@ struct RecorderRecordButton: View {
             ZStack {
                 Circle()
                     .fill(buttonColor)
-                    .frame(width: 22, height: 22)
+                    .frame(width: 25, height: 25)
                 
                 if isProcessing {
                     ProcessingIndicator(color: .white)
-                        .frame(width: 14, height: 14)
+                        .frame(width: 16, height: 16)
                 } else if isRecording {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color.white)
-                        .frame(width: 8, height: 8)
+                        .frame(width: 9, height: 9)
                 } else {
                     Circle()
                         .fill(Color.white)
-                        .frame(width: 8, height: 8)
+                        .frame(width: 9, height: 9)
                 }
             }
         }
@@ -88,8 +88,8 @@ struct ProcessingIndicator: View {
     var body: some View {
         Circle()
             .trim(from: 0.1, to: 0.9)
-            .stroke(color, lineWidth: 1.5)
-            .frame(width: 12, height: 12)
+            .stroke(color, lineWidth: 1.7)
+            .frame(width: 14, height: 14)
             .rotationEffect(.degrees(rotation))
             .onAppear {
                 withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
@@ -109,7 +109,7 @@ struct ProgressAnimation: View {
             ForEach(0..<5, id: \.self) { index in
                 Circle()
                     .fill(Color.white.opacity(index <= currentDot ? 0.8 : 0.2))
-                    .frame(width: 3, height: 3)
+                    .frame(width: 3.5, height: 3.5)
             }
         }
         .onAppear {
@@ -128,7 +128,7 @@ struct RecorderPromptButton: View {
     let buttonSize: CGFloat
     let padding: EdgeInsets
     
-    init(showPopover: Binding<Bool>, buttonSize: CGFloat = 24, padding: EdgeInsets = EdgeInsets(top: 0, leading: 6, bottom: 0, trailing: 0)) {
+    init(showPopover: Binding<Bool>, buttonSize: CGFloat = 28, padding: EdgeInsets = EdgeInsets(top: 0, leading: 7, bottom: 0, trailing: 0)) {
         self._showPopover = showPopover
         self.buttonSize = buttonSize
         self.padding = padding
@@ -163,7 +163,7 @@ struct RecorderPowerModeButton: View {
     let buttonSize: CGFloat
     let padding: EdgeInsets
     
-    init(showPopover: Binding<Bool>, buttonSize: CGFloat = 24, padding: EdgeInsets = EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 6)) {
+    init(showPopover: Binding<Bool>, buttonSize: CGFloat = 28, padding: EdgeInsets = EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 7)) {
         self._showPopover = showPopover
         self.buttonSize = buttonSize
         self.padding = padding
@@ -204,7 +204,7 @@ struct RecorderStatusDisplay: View {
                 VStack(spacing: 2) {
                     Text("Enhancing")
                         .foregroundColor(.white)
-                        .font(.system(size: 10, weight: .medium, design: .default))
+                        .font(.system(size: 11, weight: .medium, design: .default))
                         .lineLimit(1)
                         .minimumScaleFactor(0.5)
                     
@@ -214,7 +214,7 @@ struct RecorderStatusDisplay: View {
                 VStack(spacing: 2) {
                     Text("Transcribing")
                         .foregroundColor(.white)
-                        .font(.system(size: 10, weight: .medium, design: .default))
+                        .font(.system(size: 11, weight: .medium, design: .default))
                         .lineLimit(1)
                         .minimumScaleFactor(0.5)
                     
