@@ -45,7 +45,7 @@ enum AIProvider: String, CaseIterable {
     var defaultModel: String {
         switch self {
         case .cerebras:
-            return "qwen-3-32b"
+            return "gpt-oss-120b"
         case .groq:
             return "qwen/qwen3-32b"
         case .gemini:
@@ -65,7 +65,7 @@ enum AIProvider: String, CaseIterable {
         case .custom:
             return UserDefaults.standard.string(forKey: "customProviderModel") ?? ""
         case .openRouter:
-            return "openai/gpt-4o"
+            return "openai/gpt-oss-120b"
         }
     }
     
@@ -320,8 +320,7 @@ class AIService: ObservableObject {
             "model": currentModel,
             "messages": [
                 ["role": "user", "content": "test"]
-            ],
-            "max_tokens": 1
+            ]
         ]
         
         request.httpBody = try? JSONSerialization.data(withJSONObject: testBody)
