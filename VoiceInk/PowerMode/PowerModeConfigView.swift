@@ -676,28 +676,48 @@ struct ConfigurationView: View {
         let systemAppURLs = FileManager.default.urls(for: .applicationDirectory, in: .systemDomainMask)
         let allAppURLs = userAppURLs + localAppURLs + systemAppURLs
         
-        let apps = allAppURLs.flatMap { baseURL -> [URL] in
-            let enumerator = FileManager.default.enumerator(
-                at: baseURL,
-                includingPropertiesForKeys: [.isApplicationKey, .isDirectoryKey],
-                options: [.skipsHiddenFiles, .followsSymbolicLinks]
-            )
+        var allApps: [URL] = []
+        
+        func scanDirectory(_ baseURL: URL, depth: Int = 0) {
+            // Prevent infinite recursion in case of circular symlinks
+            guard depth < 5 else { return }
             
-            return enumerator?.compactMap { item -> URL? in
-                guard let url = item as? URL else { return nil }
+            guard let enumerator = FileManager.default.enumerator(
+                at: baseURL,
+                includingPropertiesForKeys: [.isApplicationKey, .isDirectoryKey, .isSymbolicLinkKey],
+                options: [.skipsHiddenFiles]
+            ) else { return }
+            
+            for item in enumerator {
+                guard let url = item as? URL else { continue }
                 
-                // If it's an app, return it and skip descending into it
-                if url.pathExtension == "app" {
-                    enumerator?.skipDescendants()
-                    return url
+                let resolvedURL = url.resolvingSymlinksInPath()
+                
+                // If it's an app, add it and skip descending into it
+                if resolvedURL.pathExtension == "app" {
+                    allApps.append(resolvedURL)
+                    enumerator.skipDescendants()
+                    continue
                 }
                 
-                // Continue searching in directories
-                return nil
-            } ?? []
+                // Check if this is a symlinked directory we should traverse manually
+                var isDirectory: ObjCBool = false
+                if url != resolvedURL && 
+                   FileManager.default.fileExists(atPath: resolvedURL.path, isDirectory: &isDirectory) && 
+                   isDirectory.boolValue {
+                    // This is a symlinked directory - traverse it manually
+                    enumerator.skipDescendants()
+                    scanDirectory(resolvedURL, depth: depth + 1)
+                }
+            }
         }
         
-        installedApps = apps.compactMap { url in
+        // Scan all app directories
+        for baseURL in allAppURLs {
+            scanDirectory(baseURL)
+        }
+        
+        installedApps = allApps.compactMap { url in
             guard let bundle = Bundle(url: url),
                   let bundleId = bundle.bundleIdentifier,
                   let name = (bundle.infoDictionary?["CFBundleName"] as? String) ??
