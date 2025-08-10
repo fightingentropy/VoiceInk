@@ -152,8 +152,8 @@ class Recorder: ObservableObject {
         audioMeter = AudioMeter(averagePower: 0, peakPower: 0)
         
         Task {
-            // Complete system audio operations first
             await mediaController.unmuteSystemAudio()
+            try? await Task.sleep(nanoseconds: 100_000_000)
             await playbackController.resumeMedia()
         }
         deviceManager.isRecordingActive = false
