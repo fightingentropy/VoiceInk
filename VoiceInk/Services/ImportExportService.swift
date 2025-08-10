@@ -21,6 +21,7 @@ struct GeneralSettings: Codable {
     let isSystemMuteEnabled: Bool?
     let isPauseMediaEnabled: Bool?
     let isTextFormattingEnabled: Bool?
+    let isExperimentalFeaturesEnabled: Bool?
 }
 
 struct VoiceInkExportedSettings: Codable {
@@ -96,7 +97,8 @@ class ImportExportService {
             isSoundFeedbackEnabled: soundManager.isEnabled,
             isSystemMuteEnabled: mediaController.isSystemMuteEnabled,
             isPauseMediaEnabled: playbackController.isPauseMediaEnabled,
-            isTextFormattingEnabled: UserDefaults.standard.object(forKey: keyIsTextFormattingEnabled) as? Bool ?? true
+            isTextFormattingEnabled: UserDefaults.standard.object(forKey: keyIsTextFormattingEnabled) as? Bool ?? true,
+            isExperimentalFeaturesEnabled: UserDefaults.standard.bool(forKey: "isExperimentalFeaturesEnabled")
         )
 
         let exportedSettings = VoiceInkExportedSettings(
@@ -251,6 +253,12 @@ class ImportExportService {
                         }
                         if let pauseMedia = general.isPauseMediaEnabled {
                             playbackController.isPauseMediaEnabled = pauseMedia
+                        }
+                        if let experimentalEnabled = general.isExperimentalFeaturesEnabled {
+                            UserDefaults.standard.set(experimentalEnabled, forKey: "isExperimentalFeaturesEnabled")
+                            if experimentalEnabled == false {
+                                playbackController.isPauseMediaEnabled = false
+                            }
                         }
                         if let textFormattingEnabled = general.isTextFormattingEnabled {
                             UserDefaults.standard.set(textFormattingEnabled, forKey: self.keyIsTextFormattingEnabled)

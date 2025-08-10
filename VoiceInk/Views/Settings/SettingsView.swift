@@ -137,15 +137,10 @@ struct SettingsView: View {
                         .toggleStyle(.switch)
                         .help("Automatically mute system audio when recording starts and restore when recording stops")
 
-                        Toggle(isOn: $playbackController.isPauseMediaEnabled) {
-                            Text("Pause media during recording (Experimental)")
-                        }
-                        .toggleStyle(.switch)
-                        .help("Automatically pause active media playback when recording starts and resume when recording stops. This feature is experimental and may occasionally cause unexpected behavior.")
-
-
                     }
                 }
+
+                ExperimentalFeaturesSection()
 
                 SettingsSection(
                     icon: "rectangle.on.rectangle",
