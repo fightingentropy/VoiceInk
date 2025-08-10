@@ -3,12 +3,19 @@
     <channel>
         <title>VoiceInk Releases</title>
         <item>
-            <title>1.49</title>
-            <pubDate>Sat, 8 Aug 2025 12:20:00 +0545</pubDate>
-            <sparkle:version>149</sparkle:version>
-            <sparkle:shortVersionString>1.49</sparkle:shortVersionString>
+            <title>1.50</title>
+            <pubDate>Sat, 9 Aug 2025 12:20:00 +0545</pubDate>
+            <sparkle:version>150</sparkle:version>
+            <sparkle:shortVersionString>1.50</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
+
+                <h3>What's New in Version 1.50 🚀</h3>
+                <ul>
+                  <li>Fix openAI API errors</li>
+                  <li>Marked Pause media during recording as experimental feature (causing music app to open randomly)</li>
+                  <li>Minor Improvements & fixes</li>
+                </ul> 
 
                 <h3>What's New in Version 1.49 🚀</h3>
                 <ul>
@@ -28,7 +35,7 @@
                 </ul> 
                             
             ]]></description>
-           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.49/VoiceInk.dmg" length="9100166" type="application/octet-stream" sparkle:edSignature="nAV8IS6wNJTNwQxo/24SWND5x2xu7f1K8uV/A+3o/tR02d0JS2S9ffWnwlvZjeGDnK54IbaO0PRcYxm4TJBjBg=="/>
+           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.50/VoiceInk.dmg" length="9120131" type="application/octet-stream" sparkle:edSignature="5n8VrxsvdyUFrmeLG5vR/qOgc28AZhpPcnLORpOZsU5nxJ3KShJygl9F/cT7M9Dd+sMMCeWhAl+l72hqnU4zBg=="/>
         </item>
     </channel>
 </rss>
