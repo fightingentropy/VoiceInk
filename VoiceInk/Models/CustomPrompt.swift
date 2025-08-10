@@ -234,7 +234,16 @@ extension CustomPrompt {
         .padding(.vertical, 6)
         .contentShape(Rectangle())
         .scaleEffect(isSelected ? 1.05 : 1.0)
-        .onTapGesture(perform: onTap)
+        .onTapGesture(count: 2) {
+            // Double tap to edit
+            if let onEdit = onEdit {
+                onEdit(self)
+            }
+        }
+        .onTapGesture(count: 1) {
+            // Single tap to select
+            onTap()
+        }
         .contextMenu {
             if onEdit != nil || onDelete != nil {
                 if let onEdit = onEdit {
@@ -341,4 +350,4 @@ extension CustomPrompt {
         .contentShape(Rectangle())
         .onTapGesture(perform: action)
     }
-} 
+}
