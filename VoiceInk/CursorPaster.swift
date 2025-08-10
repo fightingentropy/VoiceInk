@@ -27,7 +27,7 @@ class CursorPaster {
             pasteUsingCommandV()
         }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             if !savedContents.isEmpty {
                 pasteboard.clearContents()
                 for (type, data) in savedContents {
