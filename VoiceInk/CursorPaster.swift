@@ -27,14 +27,11 @@ class CursorPaster {
             pasteUsingCommandV()
         }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.075) {
-            pasteboard.clearContents()
-            
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if !savedContents.isEmpty {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    for (type, data) in savedContents {
-                        pasteboard.setData(data, forType: type)
-                    }
+                pasteboard.clearContents()
+                for (type, data) in savedContents {
+                    pasteboard.setData(data, forType: type)
                 }
             }
         }
