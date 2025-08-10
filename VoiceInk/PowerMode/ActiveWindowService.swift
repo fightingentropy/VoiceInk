@@ -52,6 +52,10 @@ class ActiveWindowService: ObservableObject {
             configToApply = PowerModeManager.shared.getConfigurationForApp(bundleIdentifier)
         }
 
+        if configToApply == nil {
+            configToApply = PowerModeManager.shared.getWildcardConfiguration()
+        }
+
         if let config = configToApply {
             await MainActor.run {
                 PowerModeManager.shared.setActiveConfiguration(config)

@@ -204,6 +204,17 @@ class PowerModeManager: ObservableObject {
         return nil
     }
     
+    func getWildcardConfiguration() -> PowerModeConfig? {
+        for config in configurations.filter({ $0.isEnabled }) {
+            if let urlConfigs = config.urlConfigs {
+                if urlConfigs.contains(where: { $0.url == "*" }) {
+                    return config
+                }
+            }
+        }
+        return nil
+    }
+    
     func enableConfiguration(with id: UUID) {
         if let index = configurations.firstIndex(where: { $0.id == id }) {
             configurations[index].isEnabled = true
