@@ -5,15 +5,19 @@ class CursorPaster {
     
     static func pasteAtCursor(_ text: String) {
         let pasteboard = NSPasteboard.general
+        let preserveTranscript = UserDefaults.standard.bool(forKey: "preserveTranscriptInClipboard")
         
         var savedContents: [(NSPasteboard.PasteboardType, Data)] = []
         
-        let currentItems = pasteboard.pasteboardItems ?? []
-        
-        for item in currentItems {
-            for type in item.types {
-                if let data = item.data(forType: type) {
-                    savedContents.append((type, data))
+        // Only save clipboard contents if we plan to restore them
+        if !preserveTranscript {
+            let currentItems = pasteboard.pasteboardItems ?? []
+            
+            for item in currentItems {
+                for type in item.types {
+                    if let data = item.data(forType: type) {
+                        savedContents.append((type, data))
+                    }
                 }
             }
         }
@@ -27,11 +31,14 @@ class CursorPaster {
             pasteUsingCommandV()
         }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            if !savedContents.isEmpty {
-                pasteboard.clearContents()
-                for (type, data) in savedContents {
-                    pasteboard.setData(data, forType: type)
+        // Only restore clipboard if preserve setting is disabled
+        if !preserveTranscript {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                if !savedContents.isEmpty {
+                    pasteboard.clearContents()
+                    for (type, data) in savedContents {
+                        pasteboard.setData(data, forType: type)
+                    }
                 }
             }
         }

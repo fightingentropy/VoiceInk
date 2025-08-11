@@ -137,6 +137,15 @@ struct SettingsView: View {
                         .toggleStyle(.switch)
                         .help("Automatically mute system audio when recording starts and restore when recording stops")
 
+                        Toggle(isOn: Binding(
+                            get: { UserDefaults.standard.bool(forKey: "preserveTranscriptInClipboard") },
+                            set: { UserDefaults.standard.set($0, forKey: "preserveTranscriptInClipboard") }
+                        )) {
+                            Text("Preserve transcript in clipboard")
+                        }
+                        .toggleStyle(.switch)
+                        .help("Keep the transcribed text in clipboard instead of restoring the original clipboard content")
+
                     }
                 }
 
