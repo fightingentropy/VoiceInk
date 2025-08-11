@@ -296,7 +296,7 @@ struct ConfigurationRow: View {
                     HStack(spacing: 4) {
                         Image(systemName: "hand.tap")
                             .font(.system(size: 10))
-                        Text("Right-click to edit/delete")
+                        Text("Double-click to edit • Right-click for more options")
                             .font(.caption2)
                     }
                     .foregroundColor(.secondary)
@@ -316,6 +316,9 @@ struct ConfigurationRow: View {
         withAnimation(.easeInOut(duration: 0.15)) {
             isHovering = hovering
         }
+    }
+    .onTapGesture(count: 2) {
+        onEditConfig(config)
     }
     .contextMenu {
         Button(action: {
