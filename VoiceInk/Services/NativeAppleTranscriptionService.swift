@@ -62,6 +62,9 @@ class NativeAppleTranscriptionService: TranscriptionService {
             throw ServiceError.unsupportedOS
         }
         
+        // Feature gated: SpeechAnalyzer/SpeechTranscriber are future APIs.
+        // Enable by defining ENABLE_NATIVE_SPEECH_ANALYZER in build settings once building against macOS 26+ SDKs.
+        #if canImport(Speech) && ENABLE_NATIVE_SPEECH_ANALYZER
         logger.notice("Starting Apple native transcription with SpeechAnalyzer.")
         
         let audioFile = try AVAudioFile(forReading: audioURL)
@@ -140,11 +143,15 @@ class NativeAppleTranscriptionService: TranscriptionService {
         
         logger.notice("Native transcription successful. Length: \(finalTranscription.count) characters.")
         return finalTranscription
+        #else
+        logger.notice("Native Apple transcription is disabled in this build (future Speech APIs not enabled).")
+        throw ServiceError.unsupportedOS
+        #endif
     }
     
     @available(macOS 26, *)
     private func deallocateExistingAssets() async throws {
-        #if canImport(Speech)
+        #if canImport(Speech) && ENABLE_NATIVE_SPEECH_ANALYZER
         // Deallocate any existing allocated locales to avoid conflicts
         for locale in await AssetInventory.allocatedLocales {
             await AssetInventory.deallocate(locale: locale)
@@ -155,7 +162,7 @@ class NativeAppleTranscriptionService: TranscriptionService {
     
     @available(macOS 26, *)
     private func allocateAssetsForLocale(_ locale: Locale) async throws {
-        #if canImport(Speech)
+        #if canImport(Speech) && ENABLE_NATIVE_SPEECH_ANALYZER
         do {
             try await AssetInventory.allocate(locale: locale)
             logger.notice("Successfully allocated assets for locale: '\(locale.identifier(.bcp47))'")
@@ -166,9 +173,11 @@ class NativeAppleTranscriptionService: TranscriptionService {
         #endif
     }
     
+    // Forward-compatibility: Use Any here because SpeechTranscriber is only available in future macOS SDKs.
+    // This avoids referencing an unavailable SDK symbol while keeping the method shape for later adoption.
     @available(macOS 26, *)
-    private func ensureModelIsAvailable(for transcriber: SpeechTranscriber, locale: Locale) async throws {
-        #if canImport(Speech)
+    private func ensureModelIsAvailable(for transcriber: Any, locale: Locale) async throws {
+        #if canImport(Speech) && ENABLE_NATIVE_SPEECH_ANALYZER
         let installedLocales = await SpeechTranscriber.installedLocales
         let isInstalled = installedLocales.map({ $0.identifier(.bcp47) }).contains(locale.identifier(.bcp47))
 
