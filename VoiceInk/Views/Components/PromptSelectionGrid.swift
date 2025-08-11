@@ -70,7 +70,7 @@ struct PromptSelectionGrid: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
-                    Text("Right-click on prompts to edit or delete")
+                    Text("Double-click to edit • Right-click for more options")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -80,4 +80,3 @@ struct PromptSelectionGrid: View {
         }
     }
 }
-
