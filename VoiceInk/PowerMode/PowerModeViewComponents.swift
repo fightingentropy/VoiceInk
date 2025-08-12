@@ -289,29 +289,7 @@ struct ConfigurationRow: View {
     }
     .background(CardBackground(isSelected: isEditing))
     .opacity(config.isEnabled ? 1.0 : 0.5)
-    .overlay(
-        Group {
-            if isHovering {
-                VStack {
-                    HStack(spacing: 4) {
-                        Image(systemName: "hand.tap")
-                            .font(.system(size: 10))
-                        Text("Double-click to edit • Right-click for more options")
-                            .font(.caption2)
-                    }
-                    .foregroundColor(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            Capsule()
-                                .fill(Color(NSColor.controlBackgroundColor).opacity(0.9))
-                        )
-                        .padding(.top, 8)
-                    Spacer()
-                }
-            }
-        }
-    )
+
     .onHover { hovering in
         withAnimation(.easeInOut(duration: 0.15)) {
             isHovering = hovering

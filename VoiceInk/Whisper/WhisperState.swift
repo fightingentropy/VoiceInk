@@ -170,7 +170,7 @@ class WhisperState: NSObject, ObservableObject {
                             self.recordedFile = permanentURL
         
                             try await self.recorder.startRecording(toOutputFile: permanentURL)
-        
+                            
                             await MainActor.run {
                                 self.recordingState = .recording
                             }

@@ -4,7 +4,7 @@ import CoreAudio
 import os
 
 @MainActor
-class Recorder: ObservableObject {
+class Recorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     private var recorder: AVAudioRecorder?
     private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "Recorder")
     private let deviceManager = AudioDeviceManager.shared
@@ -101,6 +101,7 @@ class Recorder: ObservableObject {
         
         do {
             recorder = try AVAudioRecorder(url: url, settings: recordSettings)
+            recorder?.delegate = self
             recorder?.isMeteringEnabled = true
             
             if recorder?.record() == false {
@@ -194,6 +195,32 @@ class Recorder: ObservableObject {
         }
         
         audioMeter = newAudioMeter
+    }
+    
+    // MARK: - AVAudioRecorderDelegate
+    
+    func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+        if !flag {
+            logger.error("❌ Recording finished unsuccessfully - file may be corrupted or empty")
+            Task { @MainActor in
+                NotificationManager.shared.showNotification(
+                    title: "Recording failed - audio file corrupted",
+                    type: .error
+                )
+            }
+        }
+    }
+    
+    func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
+        if let error = error {
+            logger.error("❌ Recording encode error during session: \(error.localizedDescription)")
+            Task { @MainActor in
+                NotificationManager.shared.showNotification(
+                    title: "Recording error: \(error.localizedDescription)",
+                    type: .error
+                )
+            }
+        }
     }
     
     deinit {
