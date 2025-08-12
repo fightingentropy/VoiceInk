@@ -122,7 +122,7 @@ class HotkeyManager: ObservableObject {
         self.miniRecorderShortcutManager = MiniRecorderShortcutManager(whisperState: whisperState)
 
         if KeyboardShortcuts.getShortcut(for: .pasteLastTranscription) == nil {
-            let defaultPasteShortcut = KeyboardShortcuts.Shortcut(.v, modifiers: [.control])
+            let defaultPasteShortcut = KeyboardShortcuts.Shortcut(.v, modifiers: [.command, .option])
             KeyboardShortcuts.setShortcut(defaultPasteShortcut, for: .pasteLastTranscription)
         }
         
