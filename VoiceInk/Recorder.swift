@@ -20,7 +20,8 @@ class Recorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
         case couldNotStartRecording
     }
     
-    init() {
+    override init() {
+        super.init()
         setupDeviceChangeObserver()
     }
     
@@ -77,7 +78,7 @@ class Recorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
         
         Task { 
             await playbackController.pauseMedia()
-            await mediaController.muteSystemAudio()
+            _ = await mediaController.muteSystemAudio()
         }
         
         let deviceID = deviceManager.getCurrentDevice()
@@ -199,7 +200,7 @@ class Recorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     
     // MARK: - AVAudioRecorderDelegate
     
-    func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+    nonisolated func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
         if !flag {
             logger.error("❌ Recording finished unsuccessfully - file may be corrupted or empty")
             Task { @MainActor in
@@ -211,7 +212,7 @@ class Recorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
         }
     }
     
-    func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
+    nonisolated func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
         if let error = error {
             logger.error("❌ Recording encode error during session: \(error.localizedDescription)")
             Task { @MainActor in
