@@ -160,9 +160,12 @@ struct ConfigurationRow: View {
                             .font(.system(size: 15, weight: .semibold))
                         
                         if config.isDefault {
-                            Image(systemName: "star.fill")
-                                .font(.system(size: 12))
-                                .foregroundColor(.accentColor)
+                            Text("Default")
+                                .font(.system(size: 11, weight: .medium))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Color.accentColor))
+                                .foregroundColor(.white)
                         }
                     }
                     
