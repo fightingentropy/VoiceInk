@@ -27,7 +27,6 @@ class ActiveWindowService: ObservableObject {
     func applyConfigurationForCurrentApp() async {
         guard let frontmostApp = NSWorkspace.shared.frontmostApplication,
               let bundleIdentifier = frontmostApp.bundleIdentifier else {
-            await PowerModeSessionManager.shared.endSession()
             return
         }
 
@@ -53,7 +52,7 @@ class ActiveWindowService: ObservableObject {
         }
 
         if configToApply == nil {
-            configToApply = PowerModeManager.shared.getWildcardConfiguration()
+            configToApply = PowerModeManager.shared.getDefaultConfiguration()
         }
 
         if let config = configToApply {
@@ -61,11 +60,7 @@ class ActiveWindowService: ObservableObject {
                 PowerModeManager.shared.setActiveConfiguration(config)
             }
             await PowerModeSessionManager.shared.beginSession(with: config)
-        } else {
-            await MainActor.run {
-                PowerModeManager.shared.setActiveConfiguration(nil)
-            }
-            await PowerModeSessionManager.shared.endSession()
         }
+        // If no config found, keep the current active configuration (don't clear it)
     }
 } 

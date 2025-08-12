@@ -220,7 +220,6 @@ class WhisperState: NSObject, ObservableObject {
             await MainActor.run {
                 recordingState = .idle
             }
-            await PowerModeSessionManager.shared.endSession()
             await cleanupModelResources()
             return
         }
@@ -377,7 +376,6 @@ class WhisperState: NSObject, ObservableObject {
             }
             
             await self.dismissMiniRecorder()
-            await PowerModeSessionManager.shared.endSession()
             
         } catch {
             do {
@@ -412,7 +410,6 @@ class WhisperState: NSObject, ObservableObject {
             }
             
             await self.dismissMiniRecorder()
-            await PowerModeSessionManager.shared.endSession()
         }
     }
 

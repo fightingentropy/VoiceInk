@@ -15,9 +15,10 @@ struct PowerModeConfig: Codable, Identifiable, Equatable {
     var selectedAIModel: String?
     var isAutoSendEnabled: Bool = false
     var isEnabled: Bool = true
+    var isDefault: Bool = false
         
     enum CodingKeys: String, CodingKey {
-        case id, name, emoji, appConfigs, urlConfigs, isAIEnhancementEnabled, selectedPrompt, selectedLanguage, useScreenCapture, selectedAIProvider, selectedAIModel, isAutoSendEnabled, isEnabled
+        case id, name, emoji, appConfigs, urlConfigs, isAIEnhancementEnabled, selectedPrompt, selectedLanguage, useScreenCapture, selectedAIProvider, selectedAIModel, isAutoSendEnabled, isEnabled, isDefault
         case selectedWhisperModel
         case selectedTranscriptionModelName
     }
@@ -25,7 +26,7 @@ struct PowerModeConfig: Codable, Identifiable, Equatable {
     init(id: UUID = UUID(), name: String, emoji: String, appConfigs: [AppConfig]? = nil,
          urlConfigs: [URLConfig]? = nil, isAIEnhancementEnabled: Bool, selectedPrompt: String? = nil,
          selectedTranscriptionModelName: String? = nil, selectedLanguage: String? = nil, useScreenCapture: Bool = false,
-         selectedAIProvider: String? = nil, selectedAIModel: String? = nil, isAutoSendEnabled: Bool = false, isEnabled: Bool = true) {
+         selectedAIProvider: String? = nil, selectedAIModel: String? = nil, isAutoSendEnabled: Bool = false, isEnabled: Bool = true, isDefault: Bool = false) {
         self.id = id
         self.name = name
         self.emoji = emoji
@@ -40,6 +41,7 @@ struct PowerModeConfig: Codable, Identifiable, Equatable {
         self.selectedTranscriptionModelName = selectedTranscriptionModelName ?? UserDefaults.standard.string(forKey: "CurrentTranscriptionModel")
         self.selectedLanguage = selectedLanguage ?? UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "en"
         self.isEnabled = isEnabled
+        self.isDefault = isDefault
     }
 
     init(from decoder: Decoder) throws {
@@ -57,6 +59,7 @@ struct PowerModeConfig: Codable, Identifiable, Equatable {
         selectedAIModel = try container.decodeIfPresent(String.self, forKey: .selectedAIModel)
         isAutoSendEnabled = try container.decodeIfPresent(Bool.self, forKey: .isAutoSendEnabled) ?? false
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
+        isDefault = try container.decodeIfPresent(Bool.self, forKey: .isDefault) ?? false
 
         if let newModelName = try container.decodeIfPresent(String.self, forKey: .selectedTranscriptionModelName) {
             selectedTranscriptionModelName = newModelName
@@ -83,6 +86,7 @@ struct PowerModeConfig: Codable, Identifiable, Equatable {
         try container.encode(isAutoSendEnabled, forKey: .isAutoSendEnabled)
         try container.encodeIfPresent(selectedTranscriptionModelName, forKey: .selectedTranscriptionModelName)
         try container.encode(isEnabled, forKey: .isEnabled)
+        try container.encode(isDefault, forKey: .isDefault)
     }
     
     
@@ -204,15 +208,26 @@ class PowerModeManager: ObservableObject {
         return nil
     }
     
-    func getWildcardConfiguration() -> PowerModeConfig? {
-        for config in configurations.filter({ $0.isEnabled }) {
-            if let urlConfigs = config.urlConfigs {
-                if urlConfigs.contains(where: { $0.url == "*" }) {
-                    return config
-                }
-            }
+    func getDefaultConfiguration() -> PowerModeConfig? {
+        return configurations.first { $0.isEnabled && $0.isDefault }
+    }
+    
+    func hasDefaultConfiguration() -> Bool {
+        return configurations.contains { $0.isDefault }
+    }
+    
+    func setAsDefault(configId: UUID) {
+        // Clear any existing default
+        for index in configurations.indices {
+            configurations[index].isDefault = false
         }
-        return nil
+        
+        // Set the specified config as default
+        if let index = configurations.firstIndex(where: { $0.id == configId }) {
+            configurations[index].isDefault = true
+        }
+        
+        saveConfigurations()
     }
     
     func enableConfiguration(with id: UUID) {

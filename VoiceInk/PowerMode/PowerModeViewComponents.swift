@@ -158,6 +158,12 @@ struct ConfigurationRow: View {
                     HStack(spacing: 6) {
                         Text(config.name)
                             .font(.system(size: 15, weight: .semibold))
+                        
+                        if config.isDefault {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(.accentColor)
+                        }
                     }
                     
                     HStack(spacing: 12) {
