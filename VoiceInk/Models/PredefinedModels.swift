@@ -213,6 +213,16 @@ import Foundation
            isMultilingual: true,
            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .deepgram)
        ),
+       CloudModel(
+           name: "nova-3-medical",
+           displayName: "Nova-3 Medical (Deepgram)",
+           description: "Specialized medical transcription model optimized for clinical environments.",
+           provider: .deepgram,
+           speed: 0.9,
+           accuracy: 0.96,
+           isMultilingual: false,
+           supportedLanguages: getLanguageDictionary(isMultilingual: false, provider: .deepgram)
+       ),
         CloudModel(
             name: "voxtral-mini-latest",
             displayName: "Voxtral Mini (Mistral)",
