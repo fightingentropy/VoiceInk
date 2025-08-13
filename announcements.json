@@ -1,0 +1,13 @@
+[
+  {
+    "id": "2025-08-welcome",
+    "title": "Thanks for using VoiceInk!",
+    "description": "We’re rolling out minor fixes and performance improvements this week. No action needed.",
+    "severity": "info",
+    "url": "https://beingpax.github.io/VoiceInk/",
+    "startAt": "2025-08-01T00:00:00Z",
+    "endAt": "2026-01-01T00:00:00Z"
+  }
+]
+
+
