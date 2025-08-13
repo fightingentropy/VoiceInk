@@ -78,7 +78,6 @@ struct VoiceInkApp: App {
         )
         _menuBarManager = StateObject(wrappedValue: menuBarManager)
         
-        // Configure ActiveWindowService with enhancementService
         let activeWindowService = ActiveWindowService.shared
         activeWindowService.configure(with: enhancementService)
         activeWindowService.configureWhisperState(whisperState)
@@ -99,11 +98,13 @@ struct VoiceInkApp: App {
                     .onAppear {
                         updaterViewModel.silentlyCheckForUpdates()
                         
-                        // Start the automatic audio cleanup process
-                        audioCleanupManager.startAutomaticCleanup(modelContext: container.mainContext)
-                        
-                        // Start the transcription auto-cleanup service for zero data retention
+                        // Start the transcription auto-cleanup service (handles immediate and scheduled transcript deletion)
                         transcriptionAutoCleanupService.startMonitoring(modelContext: container.mainContext)
+                        
+                        // Start the automatic audio cleanup process only if transcript cleanup is not enabled
+                        if !UserDefaults.standard.bool(forKey: "IsTranscriptionCleanupEnabled") {
+                            audioCleanupManager.startAutomaticCleanup(modelContext: container.mainContext)
+                        }
                     }
                     .background(WindowAccessor { window in
                         WindowManager.shared.configureWindow(window)
@@ -111,11 +112,11 @@ struct VoiceInkApp: App {
                     .onDisappear {
                         whisperState.unloadModel()
                         
-                        // Stop the automatic audio cleanup process
-                        audioCleanupManager.stopAutomaticCleanup()
-                        
                         // Stop the transcription auto-cleanup service
                         transcriptionAutoCleanupService.stopMonitoring()
+                        
+                        // Stop the automatic audio cleanup process
+                        audioCleanupManager.stopAutomaticCleanup()
                     }
             } else {
                 OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)

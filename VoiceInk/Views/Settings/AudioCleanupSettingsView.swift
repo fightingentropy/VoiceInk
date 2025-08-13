@@ -1,12 +1,12 @@
 import SwiftUI
 import SwiftData
 
-/// A view component for configuring audio cleanup settings
 struct AudioCleanupSettingsView: View {
     @EnvironmentObject private var whisperState: WhisperState
     
     // Audio cleanup settings
-    @AppStorage("DoNotMaintainTranscriptHistory") private var doNotMaintainTranscriptHistory = false
+    @AppStorage("IsTranscriptionCleanupEnabled") private var isTranscriptionCleanupEnabled = false
+    @AppStorage("TranscriptionRetentionMinutes") private var transcriptionRetentionMinutes = 24 * 60
     @AppStorage("IsAudioCleanupEnabled") private var isAudioCleanupEnabled = true
     @AppStorage("AudioRetentionPeriod") private var audioRetentionPeriod = 7
     @State private var isPerformingCleanup = false
@@ -14,6 +14,7 @@ struct AudioCleanupSettingsView: View {
     @State private var cleanupInfo: (fileCount: Int, totalSize: Int64, transcriptions: [Transcription]) = (0, 0, [])
     @State private var showResultAlert = false
     @State private var cleanupResult: (deletedCount: Int, errorCount: Int) = (0, 0)
+    @State private var showTranscriptCleanupResult = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -22,28 +23,60 @@ struct AudioCleanupSettingsView: View {
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             
-            Toggle("Do not maintain transcript history", isOn: $doNotMaintainTranscriptHistory)
+            Toggle("Automatically delete transcript history", isOn: $isTranscriptionCleanupEnabled)
                 .toggleStyle(.switch)
                 .padding(.vertical, 4)
             
-            if doNotMaintainTranscriptHistory {
-                Text("When enabled, no transcription history will be saved. This provides zero data retention for maximum privacy.")
-                    .font(.system(size: 13))
-                    .foregroundColor(.orange)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 2)
+            if isTranscriptionCleanupEnabled {
+                VStack(alignment: .leading, spacing: 8) {
+                    Picker("Delete transcripts older than", selection: $transcriptionRetentionMinutes) {
+                        Text("Immediately").tag(0)
+                        Text("1 hour").tag(60)
+                        Text("1 day").tag(24 * 60)
+                        Text("3 days").tag(3 * 24 * 60)
+                        Text("7 days").tag(7 * 24 * 60)
+                    }
+                    .pickerStyle(.menu)
+
+                    Text("Older transcripts will be deleted automatically based on your selection.")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 2)
+
+                    Button(action: {
+                        Task {
+                            await TranscriptionAutoCleanupService.shared.runManualCleanup(modelContext: whisperState.modelContext)
+                            await MainActor.run {
+                                showTranscriptCleanupResult = true
+                            }
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "trash.circle")
+                            Text("Run Transcript Cleanup Now")
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    .alert("Transcript Cleanup", isPresented: $showTranscriptCleanupResult) {
+                        Button("OK", role: .cancel) { }
+                    } message: {
+                        Text("Cleanup triggered. Old transcripts are cleaned up according to your retention setting.")
+                    }
+                }
+                .padding(.vertical, 4)
             }
-            
-            if !doNotMaintainTranscriptHistory {
+
+            if !isTranscriptionCleanupEnabled {
                 Divider()
                     .padding(.vertical, 8)
-                
                 Toggle("Enable automatic audio cleanup", isOn: $isAudioCleanupEnabled)
                     .toggleStyle(.switch)
                     .padding(.vertical, 4)
             }
-            
-            if isAudioCleanupEnabled && !doNotMaintainTranscriptHistory {
+
+            if isAudioCleanupEnabled && !isTranscriptionCleanupEnabled {
                 VStack(alignment: .leading, spacing: 8) {
                     Picker("Keep audio files for", selection: $audioRetentionPeriod) {
                         Text("1 day").tag(1)
@@ -141,6 +174,13 @@ struct AudioCleanupSettingsView: View {
                         Text("Successfully deleted \(cleanupResult.deletedCount) audio files.")
                     }
                 }
+            }
+        }
+        .onChange(of: isTranscriptionCleanupEnabled) { _, newValue in
+            if newValue {
+                AudioCleanupManager.shared.stopAutomaticCleanup()
+            } else if isAudioCleanupEnabled {
+                AudioCleanupManager.shared.startAutomaticCleanup(modelContext: whisperState.modelContext)
             }
         }
     }

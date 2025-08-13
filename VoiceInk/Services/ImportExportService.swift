@@ -13,7 +13,8 @@ struct GeneralSettings: Codable {
     let isMenuBarOnly: Bool?
     let useAppleScriptPaste: Bool?
     let recorderType: String?
-    let doNotMaintainTranscriptHistory: Bool?
+    let isTranscriptionCleanupEnabled: Bool?
+    let transcriptionRetentionMinutes: Int?
     let isAudioCleanupEnabled: Bool?
     let audioRetentionPeriod: Int?
 
@@ -45,8 +46,9 @@ class ImportExportService {
     private let keyIsMenuBarOnly = "IsMenuBarOnly"
     private let keyUseAppleScriptPaste = "UseAppleScriptPaste"
     private let keyRecorderType = "RecorderType"
-    private let keyDoNotMaintainTranscriptHistory = "DoNotMaintainTranscriptHistory"
     private let keyIsAudioCleanupEnabled = "IsAudioCleanupEnabled"
+    private let keyIsTranscriptionCleanupEnabled = "IsTranscriptionCleanupEnabled"
+    private let keyTranscriptionRetentionMinutes = "TranscriptionRetentionMinutes"
     private let keyAudioRetentionPeriod = "AudioRetentionPeriod"
 
     private let keyIsSoundFeedbackEnabled = "isSoundFeedbackEnabled"
@@ -90,7 +92,8 @@ class ImportExportService {
             isMenuBarOnly: menuBarManager.isMenuBarOnly,
             useAppleScriptPaste: UserDefaults.standard.bool(forKey: keyUseAppleScriptPaste),
             recorderType: whisperState.recorderType,
-            doNotMaintainTranscriptHistory: UserDefaults.standard.bool(forKey: keyDoNotMaintainTranscriptHistory),
+            isTranscriptionCleanupEnabled: UserDefaults.standard.bool(forKey: keyIsTranscriptionCleanupEnabled),
+            transcriptionRetentionMinutes: UserDefaults.standard.integer(forKey: keyTranscriptionRetentionMinutes),
             isAudioCleanupEnabled: UserDefaults.standard.bool(forKey: keyIsAudioCleanupEnabled),
             audioRetentionPeriod: UserDefaults.standard.integer(forKey: keyAudioRetentionPeriod),
 
@@ -235,8 +238,12 @@ class ImportExportService {
                         if let recType = general.recorderType {
                             whisperState.recorderType = recType
                         }
-                        if let doNotMaintainHistory = general.doNotMaintainTranscriptHistory {
-                            UserDefaults.standard.set(doNotMaintainHistory, forKey: self.keyDoNotMaintainTranscriptHistory)
+                        
+                        if let transcriptionCleanup = general.isTranscriptionCleanupEnabled {
+                            UserDefaults.standard.set(transcriptionCleanup, forKey: self.keyIsTranscriptionCleanupEnabled)
+                        }
+                        if let transcriptionMinutes = general.transcriptionRetentionMinutes {
+                            UserDefaults.standard.set(transcriptionMinutes, forKey: self.keyTranscriptionRetentionMinutes)
                         }
                         if let audioCleanup = general.isAudioCleanupEnabled {
                             UserDefaults.standard.set(audioCleanup, forKey: self.keyIsAudioCleanupEnabled)
