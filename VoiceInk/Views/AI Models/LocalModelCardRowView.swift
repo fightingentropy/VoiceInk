@@ -186,6 +186,91 @@ struct LocalModelCardView: View {
     }
 }
 
+// MARK: - Imported Local Model (minimal UI)
+struct ImportedLocalModelCardView: View {
+    let model: ImportedLocalModel
+    let isDownloaded: Bool
+    let isCurrent: Bool
+    let modelURL: URL?
+
+    var deleteAction: () -> Void
+    var setDefaultAction: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(model.displayName)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Color(.labelColor))
+                    if isCurrent {
+                        Text("Default")
+                            .font(.system(size: 11, weight: .medium))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(Color.accentColor))
+                            .foregroundColor(.white)
+                    } else if isDownloaded {
+                        Text("Imported")
+                            .font(.system(size: 11, weight: .medium))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(Color(.quaternaryLabelColor)))
+                            .foregroundColor(Color(.labelColor))
+                    }
+                    Spacer()
+                }
+
+                Text("Imported local model")
+                    .font(.system(size: 11))
+                    .foregroundColor(Color(.secondaryLabelColor))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 4)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 8) {
+                if isCurrent {
+                    Text("Default Model")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(.secondaryLabelColor))
+                } else if isDownloaded {
+                    Button(action: setDefaultAction) {
+                        Text("Set as Default")
+                            .font(.system(size: 12))
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+
+                if isDownloaded {
+                    Menu {
+                        Button(action: deleteAction) {
+                            Label("Delete Model", systemImage: "trash")
+                        }
+                        Button {
+                            if let modelURL = modelURL {
+                                NSWorkspace.shared.selectFile(modelURL.path, inFileViewerRootedAtPath: "")
+                            }
+                        } label: {
+                            Label("Show in Finder", systemImage: "folder")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.system(size: 14))
+                    }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .frame(width: 20, height: 20)
+                }
+            }
+        }
+        .padding(16)
+        .background(CardBackground(isSelected: isCurrent, useAccentGradientWhenSelected: isCurrent))
+    }
+}
+
 
 // MARK: - Helper Views and Functions
 

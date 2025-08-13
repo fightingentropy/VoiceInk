@@ -30,6 +30,15 @@ struct ModelCardRowView: View {
                         setDefaultAction: setDefaultAction,
                         downloadAction: downloadAction
                     )
+                } else if let importedModel = model as? ImportedLocalModel {
+                    ImportedLocalModelCardView(
+                        model: importedModel,
+                        isDownloaded: isDownloaded,
+                        isCurrent: isCurrent,
+                        modelURL: modelURL,
+                        deleteAction: deleteAction,
+                        setDefaultAction: setDefaultAction
+                    )
                 }
                     case .parakeet:
             if let parakeetModel = model as? ParakeetModel {

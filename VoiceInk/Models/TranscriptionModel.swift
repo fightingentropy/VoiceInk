@@ -139,3 +139,22 @@ struct LocalModel: TranscriptionModel {
         supportedLanguages.count > 1
     }
 } 
+
+// User-imported local models 
+struct ImportedLocalModel: TranscriptionModel {
+    let id = UUID()
+    let name: String
+    let displayName: String
+    let description: String
+    let provider: ModelProvider = .local
+    let isMultilingualModel: Bool
+    let supportedLanguages: [String: String]
+
+    init(fileBaseName: String) {
+        self.name = fileBaseName
+        self.displayName = fileBaseName
+        self.description = "Imported local model"
+        self.isMultilingualModel = true
+        self.supportedLanguages = PredefinedModels.getLanguageDictionary(isMultilingual: true, provider: .local)
+    }
+}

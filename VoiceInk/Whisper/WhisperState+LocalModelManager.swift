@@ -304,6 +304,11 @@ extension WhisperState {
         } catch {
             logError("Error deleting model: \(model.name)", error)
         }
+
+        // Ensure UI reflects removal of imported models as well
+        await MainActor.run {
+            self.refreshAllAvailableModels()
+        }
     }
     
     func unloadModel() {
@@ -342,6 +347,55 @@ extension WhisperState {
     
     private func logError(_ message: String, _ error: Error) {
         self.logger.error("\(message): \(error.localizedDescription)")
+    }
+
+    // MARK: - Import Local Model (User-provided .bin)
+
+    @MainActor
+    func importLocalModel(from sourceURL: URL) async {
+        // Accept only .bin files for ggml Whisper models
+        guard sourceURL.pathExtension.lowercased() == "bin" else { return }
+
+        // Build a destination URL inside the app-managed models directory
+        let baseName = sourceURL.deletingPathExtension().lastPathComponent
+        var destinationURL = modelsDirectory.appendingPathComponent("\(baseName).bin")
+
+        // Do not rename on collision; simply notify the user and abort
+        if FileManager.default.fileExists(atPath: destinationURL.path) {
+            await NotificationManager.shared.showNotification(
+                title: "A model named \(baseName).bin already exists",
+                type: .warning,
+                duration: 4.0
+            )
+            return
+        }
+
+        do {
+            try FileManager.default.createDirectory(at: modelsDirectory, withIntermediateDirectories: true)
+            try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+
+            // Append ONLY the newly imported model to in-memory lists (no full rescan)
+            let newWhisperModel = WhisperModel(name: baseName, url: destinationURL)
+            availableModels.append(newWhisperModel)
+
+            if !allAvailableModels.contains(where: { $0.name == baseName }) {
+                let imported = ImportedLocalModel(fileBaseName: baseName)
+                allAvailableModels.append(imported)
+            }
+
+            await NotificationManager.shared.showNotification(
+                title: "Imported \(destinationURL.lastPathComponent)",
+                type: .success,
+                duration: 3.0
+            )
+        } catch {
+            logError("Failed to import local model", error)
+            await NotificationManager.shared.showNotification(
+                title: "Failed to import model: \(error.localizedDescription)",
+                type: .error,
+                duration: 5.0
+            )
+        }
     }
 }
 
