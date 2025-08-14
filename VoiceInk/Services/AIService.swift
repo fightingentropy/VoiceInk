@@ -30,7 +30,7 @@ enum AIProvider: String, CaseIterable {
         case .openRouter:
             return "https://openrouter.ai/api/v1/chat/completions"
         case .mistral:
-            return "https://api.mistral.ai/v1/audio/transcriptions"
+            return "https://api.mistral.ai/v1/chat/completions"
         case .elevenLabs:
             return "https://api.elevenlabs.io/v1/speech-to-text"
         case .deepgram:
