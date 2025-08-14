@@ -279,7 +279,7 @@ class WhisperState: NSObject, ObservableObject {
             }
             
             let audioAsset = AVURLAsset(url: url)
-            let actualDuration = CMTimeGetSeconds(try await audioAsset.load(.duration))
+            let actualDuration = (try? CMTimeGetSeconds(await audioAsset.load(.duration))) ?? 0.0
             var promptDetectionResult: PromptDetectionService.PromptDetectionResult? = nil
             let originalText = text
             
@@ -380,7 +380,7 @@ class WhisperState: NSObject, ObservableObject {
         } catch {
             do {
                 let audioAsset = AVURLAsset(url: url)
-                let duration = CMTimeGetSeconds(try await audioAsset.load(.duration))
+                let duration = (try? CMTimeGetSeconds(await audioAsset.load(.duration))) ?? 0.0
                 
                 await MainActor.run {
                     let errorDescription = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
