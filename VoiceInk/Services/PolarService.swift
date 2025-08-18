@@ -5,7 +5,7 @@ class PolarService {
     private let organizationId = "Org"
     private let apiToken = "Token"
     private let baseURL = "https://api.polar.sh"
-    
+        
     struct LicenseValidationResponse: Codable {
         let status: String
         let limit_activations: Int?
@@ -73,7 +73,6 @@ class PolarService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
         
         let body: [String: Any] = [
             "key": key,
@@ -108,7 +107,6 @@ class PolarService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
         
         let deviceId = getDeviceIdentifier()
         let hostname = Host.current().localizedName ?? "Unknown Mac"
@@ -149,7 +147,6 @@ class PolarService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
         
         let body: [String: Any] = [
             "key": key,
