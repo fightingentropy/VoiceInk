@@ -84,7 +84,8 @@ enum AIProvider: String, CaseIterable {
                 "llama-3.3-70b-versatile",
                 "moonshotai/kimi-k2-instruct",
                 "qwen/qwen3-32b",
-                "meta-llama/llama-4-maverick-17b-128e-instruct"
+                "meta-llama/llama-4-maverick-17b-128e-instruct",
+                "openai/gpt-oss-120b"
             ]
         case .gemini:
             return [
