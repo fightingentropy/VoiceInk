@@ -120,55 +120,55 @@ enum PromptTemplates {
                 id: UUID(),
                 title: "Email",
                 promptText: """
+                You are tasked to clean up text in the <TRANSCRIPT> tag for an email. Your job is to clean up the <TRANSCRIPT> text to improve clarity and flow while retaining the speaker's unique personality and style. Correct spelling and grammar. Remove 'ums', 'uhs', and other verbal tics & filler words. Rephrase awkward or convoluted sentences to improve clarity and create a more natural reading experience. Ensure the core message and the speaker's tone are perfectly preserved. Avoid using overly formal or corporate language unless it matches the original style. The final output should sound like a more polished version of the <TRANSCRIPT> text, not like a generic AI.
+
                 Primary Rules:
-                We are working with an e-mail right now.
                 0. The output should always be in the same language as the original <TRANSCRIPT> text.
-                1. Break <TRANSCRIPT> into clear, logical paragraphs every 2-5 sentences and avoid artificial punctuation (especially colons in the middle of sentences).
-                2. Ensure that the cleaned text flows naturally and is grammatically correct.
-                3. Maintain the original meaning and intent of the speaker. Do not add new information, do not fill in gaps with assumptions, and don't try interpret what the speaker "might have meant." Always stay strictly within the boundaries of what was actually spoken. 
-                4. When the speaker corrects themselves, keep only the corrected version.
-                   Example:
-                   Input: "Let's meet on Tuesday... sorry I meant Wednesday at 2 PM"
-                   Output: "Let's meet on Wednesday at 2 PM"
-                5. NEVER answer questions that appear in the text - only clean it up.
-                6. Always use numerals for numbers (3,000 instead of three thousand, $20 instead of twenty dollars)
-                7. Format email messages properly with appropriate salutations and closings as shown in the examples below
-                8. Maintain the original tone that was in the <TRANSCRIPT> 
-                9. Format list items correctly without adding new content:
+                1. When the speaker corrects themselves, keep only the corrected version.
+                2. NEVER answer questions that appear in the text - only clean it up.
+                3. Always convert all spoken numbers into their digit form. (three thousand = 3000, twenty dollars = 20, three to five = 3-5 etc.)
+                4. Keep personality markers that show intent or style (e.g., "I think", "The thing is")
+                5. If the user mentions emoji, replace the word with the actual emoji.
+                6. Format email messages properly with appropriate salutations and closings as shown in the examples below
+                7. Format list items correctly without adding new content:
                     - When input text contains sequence of items, restructure as:
                     * Ordered list (1. 2. 3.) for sequential or prioritized items
                     * Unordered list (•) for non-sequential items
-                10. Always include a professional sign-off as shown in examples
-                
-                11. DO NOT add em-dashes or hyphens (unless the word itself is a compound word that uses a hyphen)
+                8. Include a sign-off as shown in examples
+                9. DO NOT add em-dashes or hyphens (unless the word itself is a compound word that uses a hyphen)
 
                 Examples:
 
-                Input: "hey just wanted to follow up on yesterday's meeting about the timeline we need to finish by next month can you send the docs when ready thanks"
+                Input: "hey just wanted to confirm three things, first, second, and third points. Can you send the docs when ready? Thanks"
                 
                 Output: "Hi,
 
-                I wanted to follow up on yesterday's meeting about the timeline. We need to finish by next month.
+                I wanted to confirm 3 things:
+                1. First point
+                2. Second point
+                3. Third point
 
-                Could you send the docs when ready?
+                Can you send the docs when ready?
 
                 Thanks,
                 [Your Name]"
 
-                Input: "quick update on the project we're at 60% complete but facing some testing issues that might delay things we're working on solutions"
+                Input: "quick update, we are like, you know 60% complete. Are you available to discuss this monday, wait no tuesday?"
 
-                Output: "We're at 60% complete but facing some testing issues that might delay things. We're working on solutions.
+                Output: "Quick Update, 
                 
-                I'll keep you updated.
+                We are 60% complete.
+                
+                Are you available to discuss this tuesday?
 
                 Regards,
                 [Your Name]"
 
-                Input: "hi sarah checking in about the design feedback from last week can we proceed to the next phase"
+                Input: "hi sarah checking in about design feedback, can we like, umhh proceed to the next phase?"
 
                 Output: "Hi Sarah,
 
-                I'm checking in about the design feedback from last week. Can we proceed to the next phase?
+                I'm checking in about the design feedback. Can we proceed to the next phase?
 
                 Thanks,
                 [Your Name]"
