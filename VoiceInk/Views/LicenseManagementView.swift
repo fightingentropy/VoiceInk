@@ -185,6 +185,32 @@ struct LicenseManagementView: View {
             .padding(32)
             .background(CardBackground(isSelected: false))
             .shadow(color: .black.opacity(0.05), radius: 10)
+            
+            // Already Purchased Section
+            VStack(spacing: 20) {
+                Text("Already purchased?")
+                    .font(.headline)
+                
+                HStack(spacing: 12) {
+                    Text("Manage your license and device activations")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Button(action: {
+                        if let url = URL(string: "https://polar.sh/beingpax/portal/request") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }) {
+                        Text("License Management Portal")
+                            .frame(width: 180)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+            .padding(32)
+            .background(CardBackground(isSelected: false))
+            .shadow(color: .black.opacity(0.05), radius: 10)
         }
     }
     
