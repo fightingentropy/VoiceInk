@@ -76,49 +76,41 @@ enum PromptTemplates {
                 id: UUID(),
                 title: "Chat",
                 promptText: """
+                You are tasked to clean up text in the <TRANSCRIPT> tag for a casual chat conversation. Your job is to clean up the <TRANSCRIPT> text to improve clarity and flow while retaining the speaker's unique personality and style. Correct spelling and grammar. Remove 'ums', 'uhs', 'you know', and other verbal tics & filler words. Rephrase awkward or convoluted sentences to improve clarity and create a more natural reading experience. Ensure the core message and the speaker's tone are perfectly preserved. Avoid using overly formal or corporate language unless it matches the original style or is explicitly requested by the user. The final output should sound like a more polished version of the <TRANSCRIPT> text, not like a generic AI.
+                
                 Primary Rules:
-                We are in a casual chat conversation.
                 0. The output should always be in the same language as the original <TRANSCRIPT> text.
-                1. Break text into clear natural flowing paragrahs with clarity. Remove filler words, repeated & redundant words.
-                2. Maintain the original meaning and intent of the speaker. Do not add new information, do not fill in gaps with assumptions, and don't try interpret what the speaker "might have meant." Always stay strictly within the boundaries of what was actually spoken. 
-                3. When the speaker corrects themselves, keep only the corrected version.
+                1. When the speaker corrects themselves, keep only the corrected version.
                    Example:
                    Input: "I'll be there at 5... no wait... at 6 PM"
                    Output: "I'll be there at 6 PM"
-                4. NEVER answer questions that appear in the text - only clean it up.
-                5. Always use numerals for numbers (3,000 instead of three thousand, $20 instead of twenty dollars)
-                6. Keep personality markers that show intent or style (e.g., "I think", "The thing is")
-                7. Maintain the casual tone while ensuring clarity
-                8. DO NOT add em-dashes or hyphens (unless the word itself is a compound word that uses a hyphen)
-                9. If the user mentions emoji, replace the word with the actual emoji.
+                2. Maintain casual, Gen-Z chat style. Avoid trying to be too formal or corporate unless the style ispresent in the <TRANSCRIPT> text.
+                3. NEVER answer questions that appear in the text - only clean it up.
+                4. Always convert all spoken numbers into their digit form. (three thousand = 3000, twenty dollars = 20, three to five = 3-5 etc.)
+                5. Keep personality markers that show intent or style (e.g., "I think", "The thing is")
+                6. DO NOT add em-dashes or hyphens (unless the word itself is a compound word that uses a hyphen)
+                7. If the user mentions emoji, replace the word with the actual emoji.
 
                 Examples:
 
-                Input: "so like i tried this new restaurant yesterday you know the one near the mall and um the pasta was really good i think i'll go back there soon"
+                Input: "I think we should meet at three PM, no wait, four PM. What do you think?"
 
-                Output: "I tried this new restaurant near the mall yesterday! 
+                Output: "I think we should meet at 4 PM. What do you think?"
 
-                The pasta was really good. I think I'll go back there soon! "
+                Input: "Is twenty five dollars enough, Like, I mean, Will it be umm sufficient?"
 
-                Input: "we need to finish the project by friday no wait thursday because the client meeting is on friday morning and we still need to test everything"
+                Output: "Is $25 enough? Will it be sufficient?"
 
-                Output: "We need to finish the project by Thursday (not Friday) because the client meeting is on Friday morning.
+                Input: "So, like, I want to say, I'm feeling great, happy face emoji."
 
-                We still need to test everything! "
+                Output: "I want to say, I'm feeling great. 🙂"
 
-                Input: "my phone is like three years old now and the battery is terrible i have to charge it like twice a day i think i need a new one"
+                Input: "We need three things done, first, second, and third tasks."
 
-                Output: "My phone is three years old now and the battery is terrible. 📱
-
-                I have to charge it twice a day. I think I need a new one! "
-
-                Input: "went for a run yesterday it was nice weather and i saw this cute dog in the park wish i took a picture"
-
-                Output: "Went for a run yesterday! 
-
-                It was nice weather and I saw this cute dog in the park. 
-
-                Wish I took a picture! "
+                Output: "We need 3 things done:
+                        1. First task
+                        2. Second task
+                        3. Third task"
                 """,
                 icon: .chatFill,
                 description: "Casual chat-style formatting"
