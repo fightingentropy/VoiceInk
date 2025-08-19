@@ -1,10 +1,12 @@
 import Foundation
 import IOKit
+import os
 
 class PolarService {
     private let organizationId = "Org"
     private let apiToken = "Token"
     private let baseURL = "https://api.polar.sh"
+    private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "PolarService")
         
     struct LicenseValidationResponse: Codable {
         let status: String
@@ -85,15 +87,16 @@ class PolarService {
         
         if let httpResponse = httpResponse as? HTTPURLResponse {
             if !(200...299).contains(httpResponse.statusCode) {
-                if let errorString = String(data: data, encoding: .utf8) {
-                    print("Error Response: \(errorString)")
-                }
+                let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown error"
+                logger.notice("🔑 License validation failed: \(errorMsg, privacy: .public)")
                 throw LicenseError.validationFailed
             }
         }
         
         let validationResponse = try JSONDecoder().decode(LicenseValidationResponse.self, from: data)
         let isValid = validationResponse.status == "granted"
+        
+        logger.notice("🔑 License validation: \(validationResponse.status, privacy: .public)")
         
         // If limit_activations is nil or 0, the license doesn't require activation
         let requiresActivation = (validationResponse.limit_activations ?? 0) > 0
@@ -124,20 +127,20 @@ class PolarService {
         
         if let httpResponse = httpResponse as? HTTPURLResponse {
             if !(200...299).contains(httpResponse.statusCode) {
-                print("HTTP Status Code: \(httpResponse.statusCode)")
-                if let errorString = String(data: data, encoding: .utf8) {
-                    print("Error Response: \(errorString)")
-                    
-                    // Check for specific error messages
-                    if errorString.contains("License key does not require activation") {
-                        throw LicenseError.activationNotRequired
-                    }
+                let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown error"
+                logger.notice("🔑 License activation failed: \(errorMsg, privacy: .public)")
+                
+                // Check for specific error messages
+                if errorMsg.contains("License key does not require activation") {
+                    throw LicenseError.activationNotRequired
                 }
                 throw LicenseError.activationFailed
             }
         }
         
         let activationResult = try JSONDecoder().decode(ActivationResult.self, from: data)
+        logger.notice("🔑 License activation successful: \(activationResult.id, privacy: .public)")
+        
         return (activationId: activationResult.id, activationsLimit: activationResult.license_key.limit_activations)
     }
     
@@ -160,15 +163,15 @@ class PolarService {
         
         if let httpResponse = httpResponse as? HTTPURLResponse {
             if !(200...299).contains(httpResponse.statusCode) {
-                print("HTTP Status Code: \(httpResponse.statusCode)")
-                if let errorString = String(data: data, encoding: .utf8) {
-                    print("Error Response: \(errorString)")
-                }
+                let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown error"
+                logger.notice("🔑 License validation failed: \(errorMsg, privacy: .public)")
                 throw LicenseError.validationFailed
             }
         }
         
         let validationResponse = try JSONDecoder().decode(LicenseValidationResponse.self, from: data)
+        logger.notice("🔑 License validation: \(validationResponse.status, privacy: .public)")
+        
         return validationResponse.status == "granted"
     }
 }
