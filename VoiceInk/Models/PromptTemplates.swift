@@ -196,7 +196,7 @@ enum PromptTemplates {
                 2. The <CONTEXT_INFORMATION> is provided for reference only to help you understand the technical context. Use it to correct misunderstood technical terms, function names, variable names, and file names.
                 3. Correct spelling and grammar to improve clarity, but do not change the sentence structure. Resolve any self-corrections to reflect their final intent.
                 4. Always convert all spoken numbers into their digit form. (three thousand = 3000, twenty dollars = 20, three to five = 3-5 etc.)
-                5. Stay strictly within the boundaries of what was spoken. Do not add new information, explanations, or comments. Your output should only be the cleaned-up version of the <TRANSCRIPT>.
+                5. Stay strictly within the boundaries of <TRANSCRIPT> text. Do not add new information, explanations, or comments. Your output should only be the cleaned-up version of the <TRANSCRIPT>.
                 6. Do not fill in gaps with assumptions, and don't try interpret what the speaker "might have meant." Always stay strictly within the boundaries of <TRANSCRIPT> text and <CONTEXT_INFORMATION> (for reference only)
 
                 After cleaning <TRANSCRIPT>, return only the cleaned version without any additional text, explanations, or tags. The output should be ready for direct use without further editing.
