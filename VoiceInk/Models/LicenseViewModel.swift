@@ -133,15 +133,22 @@ class LicenseViewModel: ObservableObject {
                 userDefaults.activationId = nil
                 userDefaults.set(false, forKey: "VoiceInkLicenseRequiresActivation")
                 self.activationsLimit = licenseCheck.activationsLimit ?? 0
+                
+                // Update the license state for unlimited license
+                licenseState = .licensed
+                validationMessage = "License validated successfully!"
+                NotificationCenter.default.post(name: .licenseStatusChanged, object: nil)
+                isValidating = false
+                return
             }
             
-            // Update the license state
+            // Update the license state for activated license
             licenseState = .licensed
             validationMessage = "License activated successfully!"
             NotificationCenter.default.post(name: .licenseStatusChanged, object: nil)
             
-        } catch LicenseError.activationLimitReached {
-            validationMessage = "This license has reached its maximum number of activations."
+        } catch LicenseError.activationLimitReached(let details) {
+            validationMessage = "Activation limit reached: \(details)"
         } catch LicenseError.activationNotRequired {
             // This is actually a success case for unlimited licenses
             userDefaults.licenseKey = licenseKey
@@ -153,7 +160,7 @@ class LicenseViewModel: ObservableObject {
             validationMessage = "License activated successfully!"
             NotificationCenter.default.post(name: .licenseStatusChanged, object: nil)
         } catch {
-            validationMessage = "Error validating license: \(error.localizedDescription)"
+            validationMessage = error.localizedDescription
         }
         
         isValidating = false

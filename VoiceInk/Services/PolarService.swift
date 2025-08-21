@@ -88,15 +88,13 @@ class PolarService {
         if let httpResponse = httpResponse as? HTTPURLResponse {
             if !(200...299).contains(httpResponse.statusCode) {
                 let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown error"
-                logger.notice("🔑 License validation failed: \(errorMsg, privacy: .public)")
-                throw LicenseError.validationFailed
+                logger.notice("🔑 License validation failed [HTTP \(httpResponse.statusCode)]: \(errorMsg, privacy: .public)")
+                throw LicenseError.validationFailed(errorMsg)
             }
         }
         
         let validationResponse = try JSONDecoder().decode(LicenseValidationResponse.self, from: data)
         let isValid = validationResponse.status == "granted"
-        
-        logger.notice("🔑 License validation: \(validationResponse.status, privacy: .public)")
         
         // If limit_activations is nil or 0, the license doesn't require activation
         let requiresActivation = (validationResponse.limit_activations ?? 0) > 0
@@ -128,18 +126,20 @@ class PolarService {
         if let httpResponse = httpResponse as? HTTPURLResponse {
             if !(200...299).contains(httpResponse.statusCode) {
                 let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown error"
-                logger.notice("🔑 License activation failed: \(errorMsg, privacy: .public)")
+                logger.notice("🔑 License activation failed [HTTP \(httpResponse.statusCode)]: \(errorMsg, privacy: .public)")
                 
                 // Check for specific error messages
+                if errorMsg.contains("activation limit") || errorMsg.contains("maximum activations") {
+                    throw LicenseError.activationLimitReached(errorMsg)
+                }
                 if errorMsg.contains("License key does not require activation") {
                     throw LicenseError.activationNotRequired
                 }
-                throw LicenseError.activationFailed
+                throw LicenseError.activationFailed(errorMsg)
             }
         }
         
         let activationResult = try JSONDecoder().decode(ActivationResult.self, from: data)
-        logger.notice("🔑 License activation successful: \(activationResult.id, privacy: .public)")
         
         return (activationId: activationResult.id, activationsLimit: activationResult.license_key.limit_activations)
     }
@@ -164,32 +164,31 @@ class PolarService {
         if let httpResponse = httpResponse as? HTTPURLResponse {
             if !(200...299).contains(httpResponse.statusCode) {
                 let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown error"
-                logger.notice("🔑 License validation failed: \(errorMsg, privacy: .public)")
-                throw LicenseError.validationFailed
+                logger.notice("🔑 License validation with activation failed [HTTP \(httpResponse.statusCode)]: \(errorMsg, privacy: .public)")
+                throw LicenseError.validationFailed(errorMsg)
             }
         }
         
         let validationResponse = try JSONDecoder().decode(LicenseValidationResponse.self, from: data)
-        logger.notice("🔑 License validation: \(validationResponse.status, privacy: .public)")
         
         return validationResponse.status == "granted"
     }
 }
 
 enum LicenseError: Error, LocalizedError {
-    case activationFailed
-    case validationFailed
-    case activationLimitReached
+    case activationFailed(String)
+    case validationFailed(String)
+    case activationLimitReached(String)
     case activationNotRequired
     
     var errorDescription: String? {
         switch self {
-        case .activationFailed:
-            return "Failed to activate license on this device."
-        case .validationFailed:
-            return "License validation failed."
-        case .activationLimitReached:
-            return "This license has reached its maximum number of activations."
+        case .activationFailed(let details):
+            return "Failed to activate license: \(details)"
+        case .validationFailed(let details):
+            return "License validation failed: \(details)"
+        case .activationLimitReached(let details):
+            return "Activation limit reached: \(details)"
         case .activationNotRequired:
             return "This license does not require activation."
         }
