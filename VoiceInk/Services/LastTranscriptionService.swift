@@ -29,7 +29,7 @@ class LastTranscriptionService: ObservableObject {
             return
         }
         
-        let success = ClipboardManager.copyToClipboard(lastTranscription.text)
+        let success = ClipboardManager.copyToClipboard(lastTranscription.enhancedText?.isEmpty == false ? lastTranscription.enhancedText! : lastTranscription.text)
         
         Task { @MainActor in
             if success {
@@ -69,6 +69,46 @@ class LastTranscriptionService: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             CursorPaster.pasteAtCursor(textToPaste + " ")
         }
-        
+    }
+    
+    static func retryLastTranscription(from modelContext: ModelContext, whisperState: WhisperState) {
+        Task { @MainActor in
+            guard let lastTranscription = getLastTranscription(from: modelContext),
+                  let audioURLString = lastTranscription.audioFileURL,
+                  let audioURL = URL(string: audioURLString),
+                  FileManager.default.fileExists(atPath: audioURL.path) else {
+                NotificationManager.shared.showNotification(
+                    title: "Cannot retry: Audio file not found",
+                    type: .error
+                )
+                return
+            }
+            
+            guard let currentModel = whisperState.currentTranscriptionModel else {
+                NotificationManager.shared.showNotification(
+                    title: "No transcription model selected",
+                    type: .error
+                )
+                return
+            }
+            
+            let transcriptionService = AudioTranscriptionService(modelContext: modelContext, whisperState: whisperState)
+            do {
+                let newTranscription = try await transcriptionService.retranscribeAudio(from: audioURL, using: currentModel)
+                
+                let textToCopy = newTranscription.enhancedText?.isEmpty == false ? newTranscription.enhancedText! : newTranscription.text
+                ClipboardManager.copyToClipboard(textToCopy)
+                
+                NotificationManager.shared.showNotification(
+                    title: "Copied to clipboard",
+                    type: .success
+                )
+            } catch {
+                NotificationManager.shared.showNotification(
+                    title: "Retry failed: \(error.localizedDescription)",
+                    type: .error
+                )
+            }
+        }
     }
 } 

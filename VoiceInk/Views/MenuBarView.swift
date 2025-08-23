@@ -147,6 +147,10 @@ struct MenuBarView: View {
             
             Divider()
             
+            Button("Retry Last Transcription") {
+                LastTranscriptionService.retryLastTranscription(from: whisperState.modelContext, whisperState: whisperState)
+            }
+            
             Button("Copy Last Transcription") {
                 LastTranscriptionService.copyLastTranscription(from: whisperState.modelContext)
             }
