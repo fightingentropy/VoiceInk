@@ -6,18 +6,21 @@ class DictionaryContextService {
     
     private init() {}
     
-    /// Gets dictionary context information to be included in AI enhancement
+    private let predefinedWords = "VoiceInk, chatGPT, GPT-4o, GPT-5-mini, Kimi-K2, GLM V4.5, Claude, Claude 4 sonnet, Claude opus, ultrathink, Vibe-coding, groq, cerebras, gpt-oss-120B, Wispr flow, deepseek, gemini-2.5, Veo 3, elevenlabs, Kyutai"
+    
     func getDictionaryContext() -> String {
-        guard let dictionaryWords = getDictionaryWords(), !dictionaryWords.isEmpty else {
-            return ""
+        var allWords: [String] = []
+        
+        allWords.append(predefinedWords)
+        
+        if let customWords = getCustomDictionaryWords() {
+            allWords.append(customWords.joined(separator: ", "))
         }
         
-        let wordsText = dictionaryWords.joined(separator: ", ")
+        let wordsText = allWords.joined(separator: ", ")
         return "Important Vocabulary: \(wordsText)"
     }
-    
-    /// Gets all custom dictionary words from UserDefaults
-    private func getDictionaryWords() -> [String]? {
+    private func getCustomDictionaryWords() -> [String]? {
         guard let data = UserDefaults.standard.data(forKey: "CustomDictionaryItems") else {
             return nil
         }
