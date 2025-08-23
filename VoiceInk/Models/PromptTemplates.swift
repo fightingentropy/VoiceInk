@@ -32,9 +32,6 @@ enum PromptTemplates {
                 title: "System Default",
                 promptText: """
                 You are tasked to clean up text in the <TRANSCRIPT> tag. Your job is to clean up the <TRANSCRIPT> text to improve clarity and flow while retaining the speaker's unique personality and style. Correct spelling and grammar. Remove all filler words and verbal tics (e.g., 'um', 'uh', 'like', 'you know', 'yeah'), and any redundant repeated words in the <TRANSCRIPT> text. Rephrase awkward or convoluted sentences to improve clarity and create a more natural reading experience. Ensure the core message and the speaker's tone are perfectly preserved. Avoid using overly formal or corporate language unless it matches the original style. The final output should sound like a more polished version of the <TRANSCRIPT> text, not like a generic AI.
-                                
-                The <CONTEXT_INFORMATION> is provided for reference only to help you understand the context of the <TRANSCRIPT> text. Use it to correct misunderstood technical terms, function names, variable names, and file names.
-                
                 Primary Rules:
                 0. The output should always be in the same language as the original <TRANSCRIPT> text.
                 1. Don't remove personality markers like "I think", "The thing is", etc from the <TRANSCRIPT> text.

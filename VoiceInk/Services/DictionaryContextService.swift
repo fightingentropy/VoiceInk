@@ -13,7 +13,7 @@ class DictionaryContextService {
         }
         
         let wordsText = dictionaryWords.joined(separator: ", ")
-        return "\n\nImportant Vocabulary: \(wordsText)"
+        return "Important Vocabulary: \(wordsText)"
     }
     
     /// Gets enabled custom dictionary words from UserDefaults
