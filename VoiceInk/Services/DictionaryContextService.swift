@@ -16,7 +16,7 @@ class DictionaryContextService {
         return "Important Vocabulary: \(wordsText)"
     }
     
-    /// Gets enabled custom dictionary words from UserDefaults
+    /// Gets all custom dictionary words from UserDefaults
     private func getDictionaryWords() -> [String]? {
         guard let data = UserDefaults.standard.data(forKey: "CustomDictionaryItems") else {
             return nil
@@ -24,8 +24,8 @@ class DictionaryContextService {
         
         do {
             let items = try JSONDecoder().decode([DictionaryItem].self, from: data)
-            let enabledWords = items.filter { $0.isEnabled }.map { $0.word }
-            return enabledWords.isEmpty ? nil : enabledWords
+            let words = items.map { $0.word }
+            return words.isEmpty ? nil : words
         } catch {
             return nil
         }
