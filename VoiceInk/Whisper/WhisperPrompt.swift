@@ -5,8 +5,6 @@ import Foundation
 class WhisperPrompt: ObservableObject {
     @Published var transcriptionPrompt: String = UserDefaults.standard.string(forKey: "TranscriptionPrompt") ?? ""
     
-    private var dictionaryWords: [String] = []
-    private let saveKey = "CustomDictionaryItems"
     private let customPromptsKey = "CustomLanguagePrompts"
     
     // Store user-customized prompts
@@ -55,7 +53,6 @@ class WhisperPrompt: ObservableObject {
     ]
     
     init() {
-        loadDictionaryItems()
         loadCustomPrompts()
         updateTranscriptionPrompt()
         
@@ -76,16 +73,6 @@ class WhisperPrompt: ObservableObject {
         updateTranscriptionPrompt()
     }
     
-    private func loadDictionaryItems() {
-        guard let data = UserDefaults.standard.data(forKey: saveKey) else { return }
-        
-        if let savedItems = try? JSONDecoder().decode([DictionaryItem].self, from: data) {
-            let enabledWords = savedItems.filter { $0.isEnabled }.map { $0.word }
-            dictionaryWords = enabledWords
-            updateTranscriptionPrompt()
-        }
-    }
-    
     private func loadCustomPrompts() {
         if let savedPrompts = UserDefaults.standard.dictionary(forKey: customPromptsKey) as? [String: String] {
             customPrompts = savedPrompts
@@ -97,25 +84,13 @@ class WhisperPrompt: ObservableObject {
         UserDefaults.standard.synchronize() // Force immediate synchronization
     }
     
-    func updateDictionaryWords(_ words: [String]) {
-        dictionaryWords = words
-        updateTranscriptionPrompt()
-    }
-    
     func updateTranscriptionPrompt() {
         // Get the currently selected language from UserDefaults
         let selectedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "en"
         
         // Get the prompt for the selected language (custom if available, otherwise default)
         let basePrompt = getLanguagePrompt(for: selectedLanguage)
-        
-        // Always include VoiceInk in the prompt
-        var prompt = basePrompt + "\nVoiceInk, "
-        
-        // Add dictionary words if available
-        if !dictionaryWords.isEmpty {
-            prompt += dictionaryWords.joined(separator: ", ")
-        }
+        let prompt = basePrompt.isEmpty ? "" : basePrompt
         
         transcriptionPrompt = prompt
         UserDefaults.standard.set(prompt, forKey: "TranscriptionPrompt")
@@ -143,13 +118,4 @@ class WhisperPrompt: ObservableObject {
         // Force update the UI
         objectWillChange.send()
     }
-    
-    func saveDictionaryItems(_ items: [DictionaryItem]) async {
-        if let encoded = try? JSONEncoder().encode(items) {
-            UserDefaults.standard.set(encoded, forKey: saveKey)
-            let enabledWords = items.filter { $0.isEnabled }.map { $0.word }
-            dictionaryWords = enabledWords
-            updateTranscriptionPrompt()
-        }
-    }
-} 
+}

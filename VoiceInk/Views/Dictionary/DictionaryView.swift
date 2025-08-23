@@ -29,20 +29,12 @@ class DictionaryManager: ObservableObject {
         
         if let savedItems = try? JSONDecoder().decode([DictionaryItem].self, from: data) {
             items = savedItems.sorted(by: { $0.dateAdded > $1.dateAdded })
-            updatePrompt()
         }
     }
     
     private func saveItems() {
         if let encoded = try? JSONEncoder().encode(items) {
             UserDefaults.standard.set(encoded, forKey: saveKey)
-            updatePrompt()
-        }
-    }
-    
-    private func updatePrompt() {
-        Task { @MainActor in
-            await whisperPrompt.saveDictionaryItems(items)
         }
     }
     

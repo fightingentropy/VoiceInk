@@ -198,8 +198,8 @@ class ImportExportService {
                     }
 
                     if let itemsToImport = importedSettings.dictionaryItems {
-                        Task {
-                            await whisperPrompt.saveDictionaryItems(itemsToImport)
+                        if let encoded = try? JSONEncoder().encode(itemsToImport) {
+                            UserDefaults.standard.set(encoded, forKey: "CustomDictionaryItems")
                         }
                     } else {
                         print("No dictionary items (for spelling) found in the imported file. Existing items remain unchanged.")
