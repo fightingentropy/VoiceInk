@@ -90,13 +90,13 @@ import Foundation
         // Parakeet Model
         ParakeetModel(
             name: "parakeet-tdt-0.6b",
-            displayName: "Parakeet",
-            description: "NVIDIA's ASR model for lightning-fast english transcription.",
-            size: "600 MB",
+            displayName: "Parakeet V3",
+            description: "NVIDIA's ASR model V3 for lightning-fast multilingual transcription with multi-lingual(English + European) support.",
+            size: "500 MB",
             speed: 0.99,
             accuracy: 0.94,
             ramUsage: 0.8,
-            supportedLanguages: getLanguageDictionary(isMultilingual: false, provider: .parakeet)
+            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .parakeet)
         ),
         
          // Local Models

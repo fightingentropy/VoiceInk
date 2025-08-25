@@ -26,15 +26,8 @@ class ParakeetTranscriptionService: TranscriptionService {
         logger.notice("🦜 Starting Parakeet model loading")
         
         do {
-            let asrConfig = ASRConfig(
-                maxSymbolsPerFrame: 3,
-                realtimeMode: true,
-                chunkSizeMs: 1500,
-                tdtConfig: TdtConfig(
-                    durations: [0, 1, 2, 3, 4],
-                    maxSymbolsPerStep: 3
-                )
-            )
+            let tdtConfig = TdtConfig(maxSymbolsPerStep: 3, durationBins: [0, 1, 2, 3, 4])
+            let asrConfig = ASRConfig(tdtConfig: tdtConfig)
             asrManager = AsrManager(config: asrConfig)
             
             let models: AsrModels
@@ -78,6 +71,9 @@ class ParakeetTranscriptionService: TranscriptionService {
             throw ASRError.notInitialized
         }
         
+        // Reset the decoder state before each transcription to ensure no state leaks from previous runs
+        try await asrManager.resetDecoderState(for: .microphone)
+        
         let audioSamples = try readAudioSamples(from: audioURL)
         
         // Validate audio data before transcription
@@ -110,7 +106,7 @@ class ParakeetTranscriptionService: TranscriptionService {
             let data = try Data(contentsOf: url)
             
             // Check minimum file size for valid WAV header
-            guard data.count > 44 else { 
+            guard data.count > 44 else {
                 logger.notice("🦜 Audio file too small (\(data.count) bytes), expected > 44 bytes")
                 throw ASRError.invalidAudioData
             }
@@ -129,4 +125,4 @@ class ParakeetTranscriptionService: TranscriptionService {
         }
     }
 
-} 
+}

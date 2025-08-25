@@ -41,6 +41,15 @@ struct ConfigurationView: View {
     // State for prompt editing (similar to EnhancementSettingsView)
     @State private var isEditingPrompt = false
     @State private var selectedPromptForEdit: CustomPrompt?
+
+    private func languageSelectionDisabled() -> Bool {
+        guard let selectedModelName = effectiveModelName,
+              let model = whisperState.allAvailableModels.first(where: { $0.name == selectedModelName })
+        else {
+            return false
+        }
+        return model.provider == .parakeet || model.provider == .gemini
+    }
     
     // Whisper state for model selection
     @EnvironmentObject private var whisperState: WhisperState
@@ -376,9 +385,21 @@ struct ConfigurationView: View {
                             }
                         }
                         
-                        if let selectedModel = effectiveModelName,
-                           let modelInfo = whisperState.allAvailableModels.first(where: { $0.name == selectedModel }),
-                           modelInfo.isMultilingualModel {
+                        if languageSelectionDisabled() {
+                            HStack {
+                                Text("Language")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                
+                                Text("Autodetected")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                
+                                Spacer()
+                            }
+                        } else if let selectedModel = effectiveModelName,
+                                  let modelInfo = whisperState.allAvailableModels.first(where: { $0.name == selectedModel }),
+                                  modelInfo.isMultilingualModel {
                             
                             let languageBinding = Binding<String?>(
                                 get: {
