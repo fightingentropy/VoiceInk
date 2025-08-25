@@ -5,6 +5,10 @@ struct PerformanceAnalysisView: View {
     let transcriptions: [Transcription]
     private let analysis: AnalysisResult
 
+    private let columns: [GridItem] = [
+        GridItem(.adaptive(minimum: 250), spacing: 16)
+    ]
+
     init(transcriptions: [Transcription]) {
         self.transcriptions = transcriptions
         self.analysis = Self.analyze(transcriptions: transcriptions)
@@ -96,8 +100,10 @@ struct PerformanceAnalysisView: View {
                 .font(.system(.title2, design: .default, weight: .bold))
                 .foregroundColor(.primary)
 
-            ForEach(analysis.transcriptionModels) { modelStat in
-                TranscriptionModelCard(modelStat: modelStat)
+            LazyVGrid(columns: columns, spacing: 16) {
+                ForEach(analysis.transcriptionModels) { modelStat in
+                    TranscriptionModelCard(modelStat: modelStat)
+                }
             }
         }
     }
@@ -108,8 +114,10 @@ struct PerformanceAnalysisView: View {
                 .font(.system(.title2, design: .default, weight: .bold))
                 .foregroundColor(.primary)
 
-            ForEach(analysis.enhancementModels) { modelStat in
-                EnhancementModelCard(modelStat: modelStat)
+            LazyVGrid(columns: columns, spacing: 16) {
+                ForEach(analysis.enhancementModels) { modelStat in
+                    EnhancementModelCard(modelStat: modelStat)
+                }
             }
         }
     }
@@ -242,16 +250,23 @@ struct SummaryCard: View {
     let color: Color
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(color)
+            
             Text(value)
-                .font(.system(.title3, design: .rounded, weight: .bold))
+                .font(.system(.title2, design: .rounded, weight: .bold))
                 .foregroundColor(.primary)
             
             Text(label)
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
-        .frame(maxWidth: .infinity)
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 100)
+        .background(MetricCardBackground(color: color))
+        .cornerRadius(12)
     }
 }
 
@@ -291,8 +306,8 @@ struct SystemInfoCard: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
-        .background(CardBackground(isSelected: false))
-        .cornerRadius(8)
+        .background(MetricCardBackground(color: .secondary))
+        .cornerRadius(12)
     }
 }
 
@@ -306,7 +321,9 @@ struct TranscriptionModelCard: View {
                 Text(modelStat.name)
                     .font(.headline)
                     .fontWeight(.semibold)
-                
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+
                 Spacer()
                 
                 Text("\(modelStat.fileCount) transcripts")
@@ -315,33 +332,40 @@ struct TranscriptionModelCard: View {
             }
             
             Divider()
-            
-            VStack(spacing: 12) {
-                // First row of metrics
-                HStack(spacing: 24) {
+
+            VStack(spacing: 16) {
+                // Main metric: Speed Factor
+                VStack {
+                    Text(String(format: "%.1fx", modelStat.speedFactor))
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundColor(.mint)
+                    Text("Faster than Real-time")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                
+                Divider()
+
+                // Secondary metrics
+                HStack {
                     MetricDisplay(
-                        title: "Avg. Transcript Duration", 
+                        title: "Avg. Audio",
                         value: formatDuration(modelStat.avgAudioDuration),
                         color: .indigo
                     )
-                    
+                    Spacer()
                     MetricDisplay(
-                        title: "Avg. Transcription Time",
+                        title: "Avg. Process Time",
                         value: String(format: "%.2f s", modelStat.avgProcessingTime),
                         color: .teal
-                    )
-                    
-                    MetricDisplay(
-                        title: "Speed Factor",
-                        value: String(format: "%.1fx faster", modelStat.speedFactor),
-                        color: .mint
                     )
                 }
             }
         }
         .padding(16)
-        .background(CardBackground(isSelected: false))
-        .cornerRadius(8)
+        .background(MetricCardBackground(color: .mint))
+        .cornerRadius(12)
     }
     
     private func formatDuration(_ duration: TimeInterval) -> String {
@@ -362,7 +386,9 @@ struct EnhancementModelCard: View {
                 Text(modelStat.name)
                     .font(.headline)
                     .fontWeight(.semibold)
-                
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+
                 Spacer()
                 
                 Text("\(modelStat.fileCount) transcripts")
@@ -372,19 +398,52 @@ struct EnhancementModelCard: View {
             
             Divider()
             
-            VStack(spacing: 12) {
-                HStack(spacing: 24) {
-                    MetricDisplay(
-                        title: "Avg. Enhancement Time",
-                        value: String(format: "%.2f s", modelStat.avgProcessingTime),
-                        color: .indigo
-                    )
-                }
+            VStack(alignment: .center) {
+                Text(String(format: "%.2f s", modelStat.avgProcessingTime))
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundColor(.indigo)
+                Text("Avg. Enhancement Time")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
+            .frame(maxWidth: .infinity)
         }
         .padding(16)
-        .background(CardBackground(isSelected: false))
-        .cornerRadius(8)
+        .background(MetricCardBackground(color: .indigo))
+        .cornerRadius(12)
+    }
+}
+
+struct MetricCardBackground: View {
+    let color: Color
+    
+    var body: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(
+                LinearGradient(
+                    gradient: Gradient(stops: [
+                        .init(color: color.opacity(0.15), location: 0),
+                        .init(color: Color(NSColor.windowBackgroundColor).opacity(0.1), location: 0.6)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color(NSColor.quaternaryLabelColor).opacity(0.3),
+                                Color(NSColor.quaternaryLabelColor).opacity(0.1)
+                            ]),
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 1
+                    )
+            )
+            .shadow(color: Color.black.opacity(0.05), radius: 5, y: 3)
     }
 }
 
