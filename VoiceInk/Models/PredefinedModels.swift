@@ -91,7 +91,7 @@ import Foundation
         ParakeetModel(
             name: "parakeet-tdt-0.6b",
             displayName: "Parakeet V3",
-            description: "NVIDIA's ASR model V3 for lightning-fast multilingual transcription with multi-lingual(English + European) support.",
+            description: "NVIDIA's ASR model V3 for lightning-fast transcription with multi-lingual(English + European) support.",
             size: "500 MB",
             speed: 0.99,
             accuracy: 0.94,
