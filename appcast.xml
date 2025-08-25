@@ -3,26 +3,26 @@
     <channel>
         <title>VoiceInk Releases</title>
         <item>
-            <title>1.51</title>
-            <pubDate>Sat, 19 Aug 2025 12:20:00 +0545</pubDate>
-            <sparkle:version>151</sparkle:version>
-            <sparkle:shortVersionString>1.51</sparkle:shortVersionString>
+            <title>1.52</title>
+            <pubDate>Sat, 25 Aug 2025 12:20:00 +0545</pubDate>
+            <sparkle:version>152</sparkle:version>
+            <sparkle:shortVersionString>1.52</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 
-                <h3>What's New in Version 1.51 🚀</h3>
+                <h3>What's New in Version 1.52 🚀</h3>
                 <ul>
-                    <li>Added the ability to add your custom fine-tuned whisper models.</li>
-                    <li>Added gpt-oss-120b model from Groq</li>
-                    <li>Added nova-3 medical model for transcription</li>
-                    <li>Power mode back with a way to set default power mode</li>
-                    <li>Improved transcription history cleanup settings</li>
-                    <li>Fixed License verification issue</li>
-                    <li>Minor Improvements/bug-fixes</li>
-                </ul>   
+                    <li>Added support for the Parakeet v3 (multilingual) model.</li>
+                    <li>Added support for Gemini 2.5 Pro and Flash transcription models.</li>
+                    <li>Added a link to the license portal for license management.</li>
+                    <li>Added an option in the menu bar to retry the last transcription.</li>
+                    <li>Improved the default prompts.</li>
+                    <li>Added dictionary word support using AI enhancement.</li>
+                    <li>Minor fixes and improvements.</li>
+              </ul> 
                 
             ]]></description>
-           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.51/VoiceInk.dmg" length="9201887" type="application/octet-stream" sparkle:edSignature="nYDi6EABdt5vzX7uDz1TYqqj9uyODHsLGBlqsBpYz5+8hb3cYFC80AF2bj8zeM3kQDBGWggBJTTCN4W3MuRWCg=="/>
+           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.52/VoiceInk.dmg" length="9346186" type="application/octet-stream" sparkle:edSignature="+mqkiiVmQuENlY5L+fcNxJQwPhklPc2v6PtqK+KY/wuDSCvU46GnZevShmHDdycxh5jAO4mfQRZEKut9zY6rCA=="/>
         </item>
     </channel>
 </rss>
