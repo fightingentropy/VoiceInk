@@ -101,7 +101,7 @@ struct TimeEfficiencyView: View {
     
     private var timeSavedView: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("TIME SAVED")
+            Text("YOU'VE SAVED ⏳")
                 .font(.system(size: 13, weight: .heavy))
                 .tracking(4)
                 .foregroundColor(.secondary)

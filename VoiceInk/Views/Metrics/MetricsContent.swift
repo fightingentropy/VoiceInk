@@ -39,19 +39,19 @@ struct MetricsContent: View {
     private var metricsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
             MetricCard(
-                title: "Words Captured",
+                title: "Words Dictated",
                 value: "\(totalWordsTranscribed)",
                 icon: "text.word.spacing",
                 color: .blue
             )
             MetricCard(
-                title: "Voice-to-Text Sessions",
+                title: "VoiceInk Sessions",
                 value: "\(transcriptions.count)",
                 icon: "mic.circle.fill",
                 color: .green
             )
             MetricCard(
-                title: "Average Words/Minute",
+                title: "WPM",
                 value: String(format: "%.1f", averageWordsPerMinute),
                 icon: "speedometer",
                 color: .orange
