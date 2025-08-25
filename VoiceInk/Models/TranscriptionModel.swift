@@ -8,6 +8,7 @@ enum ModelProvider: String, Codable, Hashable, CaseIterable {
     case elevenLabs = "ElevenLabs"
     case deepgram = "Deepgram"
     case mistral = "Mistral"
+    case gemini = "Gemini"
     case custom = "Custom"
     case nativeApple = "Native Apple"
     // Future providers can be added here

@@ -26,6 +26,9 @@ extension WhisperState {
             case .mistral:
                 let key = UserDefaults.standard.string(forKey: "MistralAPIKey")
                 return key != nil && !key!.isEmpty
+            case .gemini:
+                let key = UserDefaults.standard.string(forKey: "GeminiAPIKey")
+                return key != nil && !key!.isEmpty
             case .custom:
                 // Custom models are always usable since they contain their own API keys
                 return true

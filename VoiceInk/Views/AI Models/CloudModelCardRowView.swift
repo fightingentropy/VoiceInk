@@ -36,6 +36,8 @@ struct CloudModelCardView: View {
             return "Deepgram"
         case .mistral:
             return "Mistral"
+        case .gemini:
+            return "Gemini"
         default:
             return model.provider.rawValue
         }
@@ -277,6 +279,8 @@ struct CloudModelCardView: View {
             aiService.selectedProvider = .deepgram
         case .mistral:
             aiService.selectedProvider = .mistral
+        case .gemini:
+            aiService.selectedProvider = .gemini
         default:
             // This case should ideally not be hit for cloud models in this view
             print("Warning: verifyAPIKey called for unsupported provider \(model.provider.rawValue)")
