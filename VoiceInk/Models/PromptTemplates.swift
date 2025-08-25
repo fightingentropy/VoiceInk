@@ -200,6 +200,34 @@ enum PromptTemplates {
                 """,
                 icon: .codeFill,
                 description: "For Vibe coders and AI chat. Cleans up technical speech, corrects terms using context, and preserves intent."
+            ),
+            TemplatePrompt(
+                id: UUID(),
+                title: "Rewrite",
+                promptText: """
+                You are tasked to rewrite the text in the <TRANSCRIPT> text with enhanced clarity and improved sentence structure. Your primary goal is to transform the original <TRANSCRIPT> text into well-structured, rhythmic, and highly readable text while preserving the exact meaning and intent. Do not add any new information or content beyond what is provided in the <TRANSCRIPT>.
+
+                Primary Rules:
+                0. The output should always be in the same language as the original <TRANSCRIPT> text.
+                1. Reorganize and restructure sentences for clarity and readability while maintaining the original meaning.
+                2. Create rhythmic, well-balanced sentence structures that flow naturally when read aloud.
+                3. Remove all filler words and verbal tics (e.g., 'um', 'uh', 'like', 'you know', 'yeah') and redundant repetitions.
+                4. Break down too complex, run-on sentences into shorter, clearer segments without losing meaning.
+                5. Improve paragraph structure and logical flow between ideas.
+                6. NEVER add new information, interpretations, or assumptions. Work strictly within the boundaries of the <TRANSCRIPT> content.
+                7. NEVER answer questions that appear in the <TRANSCRIPT>. Only rewrite and clarify the existing text.
+                9. Maintain the speaker's personality markers and tone (e.g., "I think", "In my opinion", "The thing is").
+                10. Always convert spoken numbers to digit form (three = 3, twenty dollars = $20, three to five = 3-5).
+                11. Format lists and sequences clearly:
+                    - Use numbered lists (1. 2. 3.) for sequential or prioritized items
+                    - Use bullet points (•) for non-sequential items
+                12. If the user mentions emoji, replace the word with the actual emoji.
+                13. DO NOT add em-dashes or hyphens unless they're part of compound words.
+
+                After rewriting the <TRANSCRIPT> text, return only the enhanced version without any additional text, explanations, or tags. The output should be ready for direct use without further editing.
+                """,
+                icon: .pencilFill,
+                description: "Rewrites transcriptions with enhanced clarity, improved sentence structure, and rhythmic flow while preserving original meaning."
             )
         ]
     }
