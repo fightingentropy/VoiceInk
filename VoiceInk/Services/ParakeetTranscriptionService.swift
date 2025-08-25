@@ -71,9 +71,6 @@ class ParakeetTranscriptionService: TranscriptionService {
             throw ASRError.notInitialized
         }
         
-        // Reset the decoder state before each transcription to ensure no state leaks from previous runs
-        try await asrManager.resetDecoderState(for: .microphone)
-        
         let audioSamples = try readAudioSamples(from: audioURL)
         
         // Validate audio data before transcription
@@ -84,7 +81,9 @@ class ParakeetTranscriptionService: TranscriptionService {
         
         let result = try await asrManager.transcribe(audioSamples)
         
+        // Reset decoder state and cleanup after transcription to avoid blocking the transcription start
         Task {
+            try? await asrManager.resetDecoderState(for: .microphone)
             asrManager.cleanup()
             isModelLoaded = false
             logger.notice("🦜 Parakeet ASR models cleaned up from memory")

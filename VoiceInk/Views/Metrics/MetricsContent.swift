@@ -51,7 +51,7 @@ struct MetricsContent: View {
                 color: .green
             )
             MetricCard(
-                title: "WPM",
+                title: "Average Words/Minute",
                 value: String(format: "%.1f", averageWordsPerMinute),
                 icon: "speedometer",
                 color: .orange
