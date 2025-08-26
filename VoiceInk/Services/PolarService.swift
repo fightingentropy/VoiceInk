@@ -7,6 +7,16 @@ class PolarService {
     private let apiToken = "Token"
     private let baseURL = "https://api.polar.sh"
     private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "PolarService")
+    
+    // Create an authenticated URLRequest for the given endpoint
+    private func createAuthenticatedRequest(endpoint: String, method: String = "POST") -> URLRequest {
+        let url = URL(string: "\(baseURL)\(endpoint)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        return request
+    }
         
     struct LicenseValidationResponse: Codable {
         let status: String
@@ -43,10 +53,7 @@ class PolarService {
     
     // Check if a license key requires activation
     func checkLicenseRequiresActivation(_ key: String) async throws -> (isValid: Bool, requiresActivation: Bool, activationsLimit: Int?) {
-        let url = URL(string: "\(baseURL)/v1/customer-portal/license-keys/validate")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var request = createAuthenticatedRequest(endpoint: "/v1/license-keys/validate")
         
         let body: [String: Any] = [
             "key": key,
@@ -81,10 +88,7 @@ class PolarService {
     
     // Activate a license key on this device
     func activateLicenseKey(_ key: String) async throws -> (activationId: String, activationsLimit: Int) {
-        let url = URL(string: "\(baseURL)/v1/customer-portal/license-keys/activate")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var request = createAuthenticatedRequest(endpoint: "/v1/license-keys/activate")
         
         let deviceId = getDeviceIdentifier()
         let hostname = Host.current().localizedName ?? "Unknown Mac"
@@ -128,10 +132,7 @@ class PolarService {
     
     // Validate a license key with an activation ID
     func validateLicenseKeyWithActivation(_ key: String, activationId: String) async throws -> Bool {
-        let url = URL(string: "\(baseURL)/v1/customer-portal/license-keys/validate")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var request = createAuthenticatedRequest(endpoint: "/v1/license-keys/validate")
         
         let body: [String: Any] = [
             "key": key,
