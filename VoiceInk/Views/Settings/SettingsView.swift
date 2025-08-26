@@ -188,50 +188,17 @@ struct SettingsView: View {
                 }
 
                 SettingsSection(
-                    icon: "dock.rectangle",
-                    title: "App Appearance",
-                    subtitle: "Dock and Menu Bar options"
+                    icon: "gear",
+                    title: "General",
+                    subtitle: "Appearance, startup, and updates"
                 ) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Choose how VoiceInk appears in your system.")
-                            .settingsDescription()
-                        
+                    VStack(alignment: .leading, spacing: 12) {
                         Toggle("Hide Dock Icon (Menu Bar Only)", isOn: $menuBarManager.isMenuBarOnly)
                             .toggleStyle(.switch)
-                    }
-                }
-
-                SettingsSection(
-                    icon: "lock.shield",
-                    title: "Data & Privacy",
-                    subtitle: "Control transcript history and storage"
-                ) {
-                    AudioCleanupSettingsView()
-                }
-                
-                SettingsSection(
-                    icon: "power",
-                    title: "Startup",
-                    subtitle: "Launch options"
-                ) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Choose whether VoiceInk should start automatically when you log in.")
-                            .settingsDescription()
                         
                         LaunchAtLogin.Toggle()
                             .toggleStyle(.switch)
-                    }
-                }
-                
-                SettingsSection(
-                    icon: "arrow.triangle.2.circlepath",
-                    title: "Updates",
-                    subtitle: "Keep VoiceInk up to date"
-                ) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Choose whether VoiceInk should automatically check for updates on launch and every other day.")
-                            .settingsDescription()
-                        
+
                         Toggle("Enable automatic update checks", isOn: $autoUpdateCheck)
                             .toggleStyle(.switch)
                             .onChange(of: autoUpdateCheck) { _, newValue in
@@ -244,18 +211,9 @@ struct SettingsView: View {
                         .buttonStyle(.bordered)
                         .controlSize(.large)
                         .disabled(!updaterViewModel.canCheckForUpdates)
-                    }
-                }
-
-                SettingsSection(
-                    icon: "arrow.counterclockwise",
-                    title: "Reset Onboarding",
-                    subtitle: "View the introduction again"
-                ) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Reset the onboarding process to view the app introduction again.")
-                            .settingsDescription()
                         
+                        Divider()
+
                         Button("Reset Onboarding") {
                             showResetOnboardingAlert = true
                         }
@@ -263,7 +221,15 @@ struct SettingsView: View {
                         .controlSize(.large)
                     }
                 }
-
+                
+                SettingsSection(
+                    icon: "lock.shield",
+                    title: "Data & Privacy",
+                    subtitle: "Control transcript history and storage"
+                ) {
+                    AudioCleanupSettingsView()
+                }
+                
                 SettingsSection(
                     icon: "arrow.up.arrow.down.circle",
                     title: "Data Management",
