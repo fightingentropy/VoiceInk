@@ -172,6 +172,8 @@ struct VoiceInkApp: App {
 }
 
 class UpdaterViewModel: ObservableObject {
+    @AppStorage("autoUpdateCheck") private var autoUpdateCheck = true
+    
     private let updaterController: SPUStandardUpdaterController
     
     @Published var canCheckForUpdates = false
@@ -180,11 +182,15 @@ class UpdaterViewModel: ObservableObject {
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
         
         // Enable automatic update checking
-        updaterController.updater.automaticallyChecksForUpdates = true
+        updaterController.updater.automaticallyChecksForUpdates = autoUpdateCheck
         updaterController.updater.updateCheckInterval = 24 * 60 * 60
         
         updaterController.updater.publisher(for: \.canCheckForUpdates)
             .assign(to: &$canCheckForUpdates)
+    }
+    
+    func toggleAutoUpdates(_ value: Bool) {
+        updaterController.updater.automaticallyChecksForUpdates = value
     }
     
     func checkForUpdates() {

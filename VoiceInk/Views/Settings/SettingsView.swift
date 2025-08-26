@@ -14,6 +14,7 @@ struct SettingsView: View {
     @ObservedObject private var mediaController = MediaController.shared
     @ObservedObject private var playbackController = PlaybackController.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
+    @AppStorage("autoUpdateCheck") private var autoUpdateCheck = true
     @State private var showResetOnboardingAlert = false
     @State private var currentShortcut = KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder)
     @State private var isCustomCancelEnabled = false
@@ -228,8 +229,14 @@ struct SettingsView: View {
                     subtitle: "Keep VoiceInk up to date"
                 ) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("VoiceInk automatically checks for updates on launch and every other day.")
+                        Text("Choose whether VoiceInk should automatically check for updates on launch and every other day.")
                             .settingsDescription()
+                        
+                        Toggle("Enable automatic update checks", isOn: $autoUpdateCheck)
+                            .toggleStyle(.switch)
+                            .onChange(of: autoUpdateCheck) { _, newValue in
+                                updaterViewModel.toggleAutoUpdates(newValue)
+                            }
                         
                         Button("Check for Updates Now") {
                             updaterViewModel.checkForUpdates()
