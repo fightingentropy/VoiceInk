@@ -124,7 +124,7 @@ class AudioTranscriptionManager: ObservableObject {
                    enhancementService.isConfigured {
                     processingPhase = .enhancing
                     do {
-                        let (enhancedText, enhancementDuration) = try await enhancementService.enhance(text)
+                        let (enhancedText, enhancementDuration, promptName) = try await enhancementService.enhance(text)
                         let transcription = Transcription(
                             text: text,
                             duration: duration,
@@ -132,6 +132,7 @@ class AudioTranscriptionManager: ObservableObject {
                             audioFileURL: permanentURL.absoluteString,
                             transcriptionModelName: currentModel.displayName,
                             aiEnhancementModelName: enhancementService.getAIService()?.currentModel,
+                            promptName: promptName,
                             transcriptionDuration: transcriptionDuration,
                             enhancementDuration: enhancementDuration
                         )
@@ -146,6 +147,7 @@ class AudioTranscriptionManager: ObservableObject {
                             duration: duration,
                             audioFileURL: permanentURL.absoluteString,
                             transcriptionModelName: currentModel.displayName,
+                            promptName: nil,
                             transcriptionDuration: transcriptionDuration
                         )
                         modelContext.insert(transcription)
@@ -159,6 +161,7 @@ class AudioTranscriptionManager: ObservableObject {
                         duration: duration,
                         audioFileURL: permanentURL.absoluteString,
                         transcriptionModelName: currentModel.displayName,
+                        promptName: nil,
                         transcriptionDuration: transcriptionDuration
                     )
                     modelContext.insert(transcription)

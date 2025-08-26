@@ -11,10 +11,11 @@ final class Transcription {
     var audioFileURL: String?
     var transcriptionModelName: String?
     var aiEnhancementModelName: String?
+    var promptName: String?
     var transcriptionDuration: TimeInterval?
     var enhancementDuration: TimeInterval?
     
-    init(text: String, duration: TimeInterval, enhancedText: String? = nil, audioFileURL: String? = nil, transcriptionModelName: String? = nil, aiEnhancementModelName: String? = nil, transcriptionDuration: TimeInterval? = nil, enhancementDuration: TimeInterval? = nil) {
+    init(text: String, duration: TimeInterval, enhancedText: String? = nil, audioFileURL: String? = nil, transcriptionModelName: String? = nil, aiEnhancementModelName: String? = nil, promptName: String? = nil, transcriptionDuration: TimeInterval? = nil, enhancementDuration: TimeInterval? = nil) {
         self.id = UUID()
         self.text = text
         self.enhancedText = enhancedText
@@ -23,6 +24,7 @@ final class Transcription {
         self.audioFileURL = audioFileURL
         self.transcriptionModelName = transcriptionModelName
         self.aiEnhancementModelName = aiEnhancementModelName
+        self.promptName = promptName
         self.transcriptionDuration = transcriptionDuration
         self.enhancementDuration = enhancementDuration
     }

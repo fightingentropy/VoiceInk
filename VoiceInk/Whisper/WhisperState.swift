@@ -297,7 +297,7 @@ class WhisperState: NSObject, ObservableObject {
 
                     await MainActor.run { self.recordingState = .enhancing }
                     let textForAI = promptDetectionResult?.processedText ?? text
-                    let (enhancedText, enhancementDuration) = try await enhancementService.enhance(textForAI)
+                    let (enhancedText, enhancementDuration, promptName) = try await enhancementService.enhance(textForAI)
                     let newTranscription = Transcription(
                         text: originalText,
                         duration: actualDuration,
@@ -305,6 +305,7 @@ class WhisperState: NSObject, ObservableObject {
                         audioFileURL: url.absoluteString,
                         transcriptionModelName: model.displayName,
                         aiEnhancementModelName: enhancementService.getAIService()?.currentModel,
+                        promptName: promptName,
                         transcriptionDuration: transcriptionDuration,
                         enhancementDuration: enhancementDuration
                     )
@@ -319,6 +320,7 @@ class WhisperState: NSObject, ObservableObject {
                         enhancedText: "Enhancement failed: \(error)",
                         audioFileURL: url.absoluteString,
                         transcriptionModelName: model.displayName,
+                        promptName: nil,
                         transcriptionDuration: transcriptionDuration
                     )
                     modelContext.insert(newTranscription)
@@ -338,6 +340,7 @@ class WhisperState: NSObject, ObservableObject {
                     duration: actualDuration,
                     audioFileURL: url.absoluteString,
                     transcriptionModelName: model.displayName,
+                    promptName: nil,
                     transcriptionDuration: transcriptionDuration
                 )
                 modelContext.insert(newTranscription)
@@ -391,7 +394,8 @@ class WhisperState: NSObject, ObservableObject {
                         text: "Transcription Failed: \(fullErrorText)",
                         duration: duration,
                         enhancedText: nil,
-                        audioFileURL: url.absoluteString
+                        audioFileURL: url.absoluteString,
+                        promptName: nil
                     )
                     
                     modelContext.insert(failedTranscription)

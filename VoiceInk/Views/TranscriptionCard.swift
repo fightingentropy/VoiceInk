@@ -99,6 +99,9 @@ struct TranscriptionCard: View {
                         if let aiModel = transcription.aiEnhancementModelName {
                             metadataRow(icon: "sparkles", label: "Enhancement Model", value: aiModel)
                         }
+                        if let promptName = transcription.promptName {
+                            metadataRow(icon: "text.bubble.fill", label: "Prompt Used", value: promptName)
+                        }
                         if let duration = transcription.transcriptionDuration {
                             metadataRow(icon: "clock.fill", label: "Transcription Time", value: formatTiming(duration))
                         }
@@ -139,6 +142,7 @@ struct TranscriptionCard: View {
     private var hasMetadata: Bool {
         transcription.transcriptionModelName != nil ||
         transcription.aiEnhancementModelName != nil ||
+        transcription.promptName != nil ||
         transcription.transcriptionDuration != nil ||
         transcription.enhancementDuration != nil
     }

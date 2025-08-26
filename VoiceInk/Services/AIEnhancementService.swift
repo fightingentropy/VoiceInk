@@ -325,15 +325,16 @@ class AIEnhancementService: ObservableObject {
         }
     }
     
-    func enhance(_ text: String) async throws -> (String, TimeInterval) {
+    func enhance(_ text: String) async throws -> (String, TimeInterval, String?) {
         let startTime = Date()
         let enhancementPrompt: EnhancementPrompt = .transcriptionEnhancement
+        let promptName = activePrompt?.title
         
         do {
             let result = try await makeRequest(text: text, mode: enhancementPrompt)
             let endTime = Date()
             let duration = endTime.timeIntervalSince(startTime)
-            return (result, duration)
+            return (result, duration, promptName)
         } catch {
             throw error
         }

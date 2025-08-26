@@ -95,7 +95,7 @@ class AudioTranscriptionService: ObservableObject {
                enhancementService.isEnhancementEnabled,
                enhancementService.isConfigured {
                 do {
-                    let (enhancedText, enhancementDuration) = try await enhancementService.enhance(text)
+                    let (enhancedText, enhancementDuration, promptName) = try await enhancementService.enhance(text)
                     
                     let newTranscription = Transcription(
                         text: text,
@@ -104,6 +104,7 @@ class AudioTranscriptionService: ObservableObject {
                         audioFileURL: permanentURLString,
                         transcriptionModelName: model.displayName,
                         aiEnhancementModelName: enhancementService.getAIService()?.currentModel,
+                        promptName: promptName,
                         transcriptionDuration: transcriptionDuration,
                         enhancementDuration: enhancementDuration
                     )
@@ -126,6 +127,7 @@ class AudioTranscriptionService: ObservableObject {
                         duration: duration,
                         audioFileURL: permanentURLString,
                         transcriptionModelName: model.displayName,
+                        promptName: nil,
                         transcriptionDuration: transcriptionDuration
                     )
                     modelContext.insert(newTranscription)
@@ -148,6 +150,7 @@ class AudioTranscriptionService: ObservableObject {
                     duration: duration,
                     audioFileURL: permanentURLString,
                     transcriptionModelName: model.displayName,
+                    promptName: nil,
                     transcriptionDuration: transcriptionDuration
                 )
                 modelContext.insert(newTranscription)
