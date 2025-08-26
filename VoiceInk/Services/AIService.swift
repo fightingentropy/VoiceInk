@@ -114,6 +114,7 @@ enum AIProvider: String, CaseIterable {
         case .mistral:
             return [
                 "mistral-large-latest",
+                "mistral-medium-latest",
                 "mistral-small-latest",
                 "mistral-saba-latest"
             ]
