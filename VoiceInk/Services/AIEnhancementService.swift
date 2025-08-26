@@ -148,7 +148,7 @@ class AIEnhancementService: ObservableObject {
         let clipboardContext = if useClipboardContext,
                               let clipboardText = NSPasteboard.general.string(forType: .string),
                               !clipboardText.isEmpty {
-            "\n\nAvailable Clipboard Context: \(clipboardText)"
+            "\n\n<CLIPBOARD_CONTEXT>\n\(clipboardText)\n</CLIPBOARD_CONTEXT>"
         } else {
             ""
         }
