@@ -27,7 +27,7 @@ class ParakeetTranscriptionService: TranscriptionService {
         
         do {
          
-	    asrManager = AsrManager(config: .default) 
+            asrManager = AsrManager(config: .default) 
             let models: AsrModels
             if let customDirectory = customModelsDirectory {
                 logger.notice("🦜 Loading models from custom directory: \(customDirectory.path)")
