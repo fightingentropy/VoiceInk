@@ -81,7 +81,6 @@ class ParakeetTranscriptionService: TranscriptionService {
         
         // Reset decoder state and cleanup after transcription to avoid blocking the transcription start
         Task {
-            try? await asrManager.resetDecoderState(for: .microphone)
             asrManager.cleanup()
             isModelLoaded = false
             logger.notice("🦜 Parakeet ASR models cleaned up from memory")
