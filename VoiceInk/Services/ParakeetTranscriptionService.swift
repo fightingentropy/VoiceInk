@@ -26,10 +26,8 @@ class ParakeetTranscriptionService: TranscriptionService {
         logger.notice("🦜 Starting Parakeet model loading")
         
         do {
-            let tdtConfig = TdtConfig(maxSymbolsPerStep: 3, durationBins: [0, 1, 2, 3, 4])
-            let asrConfig = ASRConfig(tdtConfig: tdtConfig)
-            asrManager = AsrManager(config: asrConfig)
-            
+         
+            asrManager = AsrManager(config: .default) 
             let models: AsrModels
             if let customDirectory = customModelsDirectory {
                 logger.notice("🦜 Loading models from custom directory: \(customDirectory.path)")
@@ -83,7 +81,6 @@ class ParakeetTranscriptionService: TranscriptionService {
         
         // Reset decoder state and cleanup after transcription to avoid blocking the transcription start
         Task {
-            try? await asrManager.resetDecoderState(for: .microphone)
             asrManager.cleanup()
             isModelLoaded = false
             logger.notice("🦜 Parakeet ASR models cleaned up from memory")
