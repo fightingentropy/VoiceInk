@@ -26,6 +26,7 @@ extension KeyboardShortcuts.Name {
     static let selectPowerMode7 = Self("selectPowerMode7")
     static let selectPowerMode8 = Self("selectPowerMode8")
     static let selectPowerMode9 = Self("selectPowerMode9")
+    static let selectPowerMode10 = Self("selectPowerMode10")
 }
 
 @MainActor
@@ -166,6 +167,7 @@ class MiniRecorderShortcutManager: ObservableObject {
         KeyboardShortcuts.setShortcut(.init(.seven, modifiers: .option), for: .selectPowerMode7)
         KeyboardShortcuts.setShortcut(.init(.eight, modifiers: .option), for: .selectPowerMode8)
         KeyboardShortcuts.setShortcut(.init(.nine, modifiers: .option), for: .selectPowerMode9)
+        KeyboardShortcuts.setShortcut(.init(.zero, modifiers: .option), for: .selectPowerMode10)
         
         // Setup handlers
         setupPowerModeHandler(for: .selectPowerMode1, index: 0)
@@ -177,6 +179,7 @@ class MiniRecorderShortcutManager: ObservableObject {
         setupPowerModeHandler(for: .selectPowerMode7, index: 6)
         setupPowerModeHandler(for: .selectPowerMode8, index: 7)
         setupPowerModeHandler(for: .selectPowerMode9, index: 8)
+        setupPowerModeHandler(for: .selectPowerMode10, index: 9)
     }
     
     private func setupPowerModeHandler(for shortcutName: KeyboardShortcuts.Name, index: Int) {
@@ -209,6 +212,7 @@ class MiniRecorderShortcutManager: ObservableObject {
         KeyboardShortcuts.setShortcut(nil, for: .selectPowerMode7)
         KeyboardShortcuts.setShortcut(nil, for: .selectPowerMode8)
         KeyboardShortcuts.setShortcut(nil, for: .selectPowerMode9)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPowerMode10)
     }
     
     private func setupPromptShortcuts() {
