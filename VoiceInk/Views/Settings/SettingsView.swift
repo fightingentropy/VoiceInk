@@ -77,7 +77,7 @@ struct SettingsView: View {
                         // Custom Cancel Shortcut
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(spacing: 8) {
-                                Toggle(isOn: $isCustomCancelEnabled) {
+                                Toggle(isOn: $isCustomCancelEnabled.animation()) {
                                     Text("Custom Cancel Shortcut")
                                 }
                                 .toggleStyle(.switch)

@@ -41,8 +41,10 @@ struct ExperimentalFeaturesSection: View {
                 }
                 .toggleStyle(.switch)
                 .help("Automatically pause active media playback during recordings and resume afterward.")
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+        .animation(.easeInOut(duration: 0.3), value: isExperimentalFeaturesEnabled)
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(CardBackground(isSelected: false, useAccentGradientWhenSelected: true))
