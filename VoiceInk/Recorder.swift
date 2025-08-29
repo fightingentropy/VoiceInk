@@ -77,10 +77,13 @@ class Recorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
         
         hasDetectedAudioInCurrentSession = false
         
-        Task { 
-            await playbackController.pauseMedia()
-            _ = await mediaController.muteSystemAudio()
-        }
+        // Coordinate media control and system audio sequentially for better reliability
+        await playbackController.pauseMedia()
+        
+        // Small delay to allow media command to process before muting system audio
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        
+        _ = await mediaController.muteSystemAudio()
         
         let deviceID = deviceManager.getCurrentDevice()
         if deviceID != 0 {

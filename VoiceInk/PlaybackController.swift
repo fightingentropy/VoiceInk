@@ -15,6 +15,12 @@ class PlaybackController: ObservableObject {
     @Published var isPauseMediaEnabled: Bool = UserDefaults.standard.bool(forKey: "isPauseMediaEnabled") {
         didSet {
             UserDefaults.standard.set(isPauseMediaEnabled, forKey: "isPauseMediaEnabled")
+            
+            if isPauseMediaEnabled {
+                startMediaTracking()
+            } else {
+                stopMediaTracking()
+            }
         }
     }
     
@@ -25,17 +31,38 @@ class PlaybackController: ObservableObject {
             UserDefaults.standard.set(false, forKey: "isPauseMediaEnabled")
         }
         
-        mediaController.startListening()
+        setupMediaControllerCallbacks()
+        
+        if isPauseMediaEnabled {
+            startMediaTracking()
+        }
+    }
+    
+    private func setupMediaControllerCallbacks() {
         mediaController.onTrackInfoReceived = { [weak self] trackInfo in
             self?.isMediaPlaying = trackInfo.payload.isPlaying ?? false
             self?.lastKnownTrackInfo = trackInfo
         }
         
-        mediaController.onListenerTerminated = {
+        mediaController.onListenerTerminated = { [weak self] in
+            guard let self = self, self.isPauseMediaEnabled else { return }
+            
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                self.mediaController.startListening()
+                self.startMediaTracking()
             }
         }
+    }
+    
+    private func startMediaTracking() {
+        mediaController.startListening()
+    }
+    
+    private func stopMediaTracking() {
+        mediaController.stopListening()
+        isMediaPlaying = false
+        lastKnownTrackInfo = nil
+        wasPlayingWhenRecordingStarted = false
+        originalMediaAppBundleId = nil
     }
     
     func pauseMedia() async {
@@ -51,18 +78,25 @@ class PlaybackController: ObservableObject {
         
         wasPlayingWhenRecordingStarted = true
         originalMediaAppBundleId = bundleId
+        
+        // Add a small delay to ensure state is set before sending command
+        try? await Task.sleep(nanoseconds: 50_000_000) 
+        
         mediaController.pause()
     }
 
     func resumeMedia() async {
+        let shouldResume = wasPlayingWhenRecordingStarted
+        let originalBundleId = originalMediaAppBundleId
+        
         defer {
             wasPlayingWhenRecordingStarted = false
             originalMediaAppBundleId = nil
         }
         
         guard isPauseMediaEnabled,
-              wasPlayingWhenRecordingStarted,
-              let bundleId = originalMediaAppBundleId else {
+              shouldResume,
+              let bundleId = originalBundleId else {
             return
         }
         
@@ -76,6 +110,8 @@ class PlaybackController: ObservableObject {
               currentTrackInfo.payload.isPlaying == false else {
             return
         }
+        
+        try? await Task.sleep(nanoseconds: 50_000_000)
         
         mediaController.play()
     }
@@ -92,3 +128,4 @@ extension UserDefaults {
         set { set(newValue, forKey: "isPauseMediaEnabled") }
     }
 } 
+
