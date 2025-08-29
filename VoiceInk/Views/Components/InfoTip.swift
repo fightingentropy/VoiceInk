@@ -30,7 +30,7 @@ struct InfoTip: View {
                         .font(.headline)
                     
                     Text(message)
-                        .frame(width: width)
+                        .frame(width: width, alignment: .leading)
                         .padding(.bottom, learnMoreLink != nil ? 5 : 0)
                     
                     if let url = learnMoreLink {

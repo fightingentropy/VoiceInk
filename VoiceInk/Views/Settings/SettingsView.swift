@@ -25,7 +25,7 @@ struct SettingsView: View {
             VStack(spacing: 24) {
                 SettingsSection(
                     icon: "command.circle",
-                    title: "VoiceInk Shortcut",
+                    title: "VoiceInk Shortcuts",
                     subtitle: "Choose how you want to trigger VoiceInk"
                 ) {
                     VStack(alignment: .leading, spacing: 18) {
@@ -65,97 +65,109 @@ struct SettingsView: View {
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                SettingsSection(
+                    icon: "keyboard.badge.ellipsis",
+                    title: "Other App Shortcuts",
+                    subtitle: "Additional shortcuts for VoiceInk"
+                ) {
+                    VStack(alignment: .leading, spacing: 18) {
+                        // Custom Cancel Shortcut
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: 8) {
+                                Toggle(isOn: $isCustomCancelEnabled) {
+                                    Text("Custom Cancel Shortcut")
+                                }
+                                .toggleStyle(.switch)
+                                .onChange(of: isCustomCancelEnabled) { _, newValue in
+                                    if !newValue {
+                                        KeyboardShortcuts.setShortcut(nil, for: .cancelRecorder)
+                                    }
+                                }
+                                
+                                InfoTip(
+                                    title: "Dismiss Recording",
+                                    message: "Shortcut for cancelling the current recording session. Default: double-tap Escape."
+                                )
+                            }
+                            
+                            if isCustomCancelEnabled {
+                                HStack(spacing: 12) {
+                                    Text("Cancel Shortcut")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                    
+                                    KeyboardShortcuts.Recorder(for: .cancelRecorder)
+                                        .controlSize(.small)
+                                    
+                                    Spacer()
+                                }
+                                .padding(.leading, 16)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                            }
+                        }
 
                         Divider()
 
-                        Toggle(isOn: $isCustomCancelEnabled) {
-                            Text("Override default double-tap Escape cancellation")
-                        }
-                        .toggleStyle(.switch)
-                        .onChange(of: isCustomCancelEnabled) { _, newValue in
-                            if !newValue {
-                                KeyboardShortcuts.setShortcut(nil, for: .cancelRecorder)
-                            }
-                        }
-                        
-                        if isCustomCancelEnabled {
-                            HStack(spacing: 12) {
-                                Text("Custom Cancel Shortcut")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.secondary)
-                                
-                                KeyboardShortcuts.Recorder(for: .cancelRecorder)
-                                    .controlSize(.small)
-                                
-                                Spacer()
-                            }
-                            .padding(.leading, 16)
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                        }
-
-                        Text("By default, double-tap Escape to cancel recordings. Enable override above for single-press custom cancellation (useful for Vim users).")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.top, 8)
-                    }
-                }
-
-                SettingsSection(
-                    icon: "doc.on.clipboard.fill",
-                    title: "Paste Last Transcription",
-                    subtitle: "Configure shortcut to paste your most recent transcription"
-                ) {
-                    HStack(spacing: 12) {
-                        Text("Paste Shortcut")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
-                        
-                        KeyboardShortcuts.Recorder(for: .pasteLastTranscription)
-                            .controlSize(.small)
-                        
-                        Spacer()
-                    }
-                }
-
-                SettingsSection(
-                    icon: "computermouse.fill",
-                    title: "Middle-Click Toggle",
-                    subtitle: "Optionally use your middle mouse button to toggle recording"
-                ) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Toggle("Enable Middle-Click Toggle", isOn: $hotkeyManager.isMiddleClickToggleEnabled.animation())
-                            .toggleStyle(.switch)
-
-                        if hotkeyManager.isMiddleClickToggleEnabled {
-                            HStack {
-                                Text("Activation Delay")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.secondary)
-                                
-                                TextField("", value: $hotkeyManager.middleClickActivationDelay, formatter: {
-                                    let formatter = NumberFormatter()
-                                    formatter.numberStyle = .none
-                                    formatter.minimum = 0
-                                    return formatter
-                                }())
-                                .textFieldStyle(PlainTextFieldStyle())
-                                .padding(EdgeInsets(top: 3, leading: 6, bottom: 3, trailing: 6))
-                                .background(Color(NSColor.textBackgroundColor))
-                                .cornerRadius(5)
-                                .frame(width: 70)
-                                
-                                Text("ms")
-                                    .foregroundColor(.secondary)
-                                
-                                Spacer()
-                            }
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                            
-                            Text("A short delay to prevent accidental toggles when closing browser tabs.")
-                                .font(.system(size: 12))
+                                                // Paste Last Transcription
+                        HStack(spacing: 12) {
+                            Text("Paste Last Transcription")
+                                .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                            
+                            KeyboardShortcuts.Recorder(for: .pasteLastTranscription)
+                                .controlSize(.small)
+                            
+                            InfoTip(
+                                title: "Paste Last Transcription",
+                                message: "Shortcut for pasting the most recent transcription at current cursor position."
+                            )
+                            
+                            Spacer()
+                        }
+
+                        Divider()
+
+                        // Middle-Click Toggle
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: 8) {
+                                Toggle("Enable Middle-Click Toggle", isOn: $hotkeyManager.isMiddleClickToggleEnabled.animation())
+                                    .toggleStyle(.switch)
+                                
+                                InfoTip(
+                                    title: "Middle-Click Toggle",
+                                    message: "Use middle mouse button to toggle VoiceInk recording."
+                                )
+                            }
+
+                            if hotkeyManager.isMiddleClickToggleEnabled {
+                                HStack(spacing: 8) {
+                                    Text("Activation Delay")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                    
+                                    TextField("", value: $hotkeyManager.middleClickActivationDelay, formatter: {
+                                        let formatter = NumberFormatter()
+                                        formatter.numberStyle = .none
+                                        formatter.minimum = 0
+                                        return formatter
+                                    }())
+                                    .textFieldStyle(PlainTextFieldStyle())
+                                    .padding(EdgeInsets(top: 3, leading: 6, bottom: 3, trailing: 6))
+                                    .background(Color(NSColor.textBackgroundColor))
+                                    .cornerRadius(5)
+                                    .frame(width: 70)
+                                    
+                                    Text("ms")
+                                        .foregroundColor(.secondary)
+                                    
+                                    Spacer()
+                                }
+                                .padding(.leading, 16)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                            }
                         }
                     }
                 }
