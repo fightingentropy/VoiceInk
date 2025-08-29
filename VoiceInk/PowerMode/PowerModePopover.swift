@@ -33,7 +33,7 @@ struct PowerModePopover: View {
             }
         }
         .frame(width: 180)
-        .frame(maxHeight: 300)
+        .frame(maxHeight: 340)
         .padding(.vertical, 8)
         .background(Color.black)
         .environment(\.colorScheme, .dark)
