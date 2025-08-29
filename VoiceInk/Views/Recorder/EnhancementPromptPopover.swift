@@ -31,6 +31,10 @@ struct EnhancementPromptPopover: View {
                             isSelected: selectedPrompt?.id == prompt.id,
                             isDisabled: !enhancementService.isEnhancementEnabled,
                             action: {
+                                // If enhancement is disabled, enable it first
+                                if !enhancementService.isEnhancementEnabled {
+                                    enhancementService.isEnhancementEnabled = true
+                                }
                                 enhancementService.setActivePrompt(prompt)
                                 selectedPrompt = prompt
                             }
@@ -68,17 +72,17 @@ struct EnhancementPromptRow: View {
                 // Use the icon from the prompt
                 Image(systemName: prompt.icon.rawValue)
                     .font(.system(size: 14))
-                    .foregroundColor(isDisabled ? .white.opacity(0.2) : .white.opacity(0.7))
+                    .foregroundColor(isDisabled ? .white.opacity(0.6) : .white.opacity(0.7))
                 
                 Text(prompt.title)
-                    .foregroundColor(isDisabled ? .white.opacity(0.3) : .white.opacity(0.9))
+                    .foregroundColor(isDisabled ? .white.opacity(0.7) : .white.opacity(0.9))
                     .font(.system(size: 13))
                     .lineLimit(1)
                 
                 if isSelected {
                     Spacer()
                     Image(systemName: "checkmark")
-                        .foregroundColor(isDisabled ? .green.opacity(0.3) : .green)
+                        .foregroundColor(isDisabled ? .green.opacity(0.7) : .green)
                         .font(.system(size: 10))
                 }
             }
@@ -89,6 +93,5 @@ struct EnhancementPromptRow: View {
         .buttonStyle(.plain)
         .background(isSelected ? Color.white.opacity(0.1) : Color.clear)
         .cornerRadius(4)
-        .disabled(isDisabled)
     }
 } 
