@@ -111,9 +111,9 @@ struct DictionaryView: View {
                 TextField("Add word to dictionary", text: $newWord)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: 13))
-                    .onSubmit { addWord() }
+                    .onSubmit { addWords() }
                 
-                Button(action: addWord) {
+                Button(action: addWords) {
                     Image(systemName: "plus.circle.fill")
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.blue)
@@ -158,17 +158,34 @@ struct DictionaryView: View {
         }
     }
     
-    private func addWord() {
-        let word = newWord.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !word.isEmpty else { return }
+    private func addWords() {
+        let input = newWord.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !input.isEmpty else { return }
         
-        if dictionaryManager.items.contains(where: { $0.word.lowercased() == word.lowercased() }) {
-            alertMessage = "'\(word)' is already in the dictionary"
-            showAlert = true
+        let parts = input
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        
+        guard !parts.isEmpty else { return }
+        
+        if parts.count == 1, let word = parts.first {
+            if dictionaryManager.items.contains(where: { $0.word.lowercased() == word.lowercased() }) {
+                alertMessage = "'\(word)' is already in the dictionary"
+                showAlert = true
+                return
+            }
+            dictionaryManager.addWord(word)
+            newWord = ""
             return
         }
         
-        dictionaryManager.addWord(word)
+        for word in parts {
+            let lower = word.lowercased()
+            if !dictionaryManager.items.contains(where: { $0.word.lowercased() == lower }) {
+                dictionaryManager.addWord(word)
+            }
+        }
         newWord = ""
     }
 }
