@@ -180,6 +180,11 @@ class PowerModeManager: ObservableObject {
         }
     }
 
+    func moveConfigurations(fromOffsets: IndexSet, toOffset: Int) {
+        configurations.move(fromOffsets: fromOffsets, toOffset: toOffset)
+        saveConfigurations()
+    }
+
     func getConfigurationForURL(_ url: String) -> PowerModeConfig? {
         let cleanedURL = cleanURL(url)
         
