@@ -41,7 +41,7 @@ struct EnhancementPromptPopover: View {
             }
         }
         .frame(width: 200)
-        .frame(maxHeight: 300)
+        .frame(maxHeight: 340)
         .padding(.vertical, 8)
         .background(Color.black)
         .environment(\.colorScheme, .dark)
