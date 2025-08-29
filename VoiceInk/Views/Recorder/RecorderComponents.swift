@@ -121,6 +121,7 @@ struct ProcessingIndicator: View {
 // MARK: - Progress Animation Component
 struct ProgressAnimation: View {
     @State private var currentDot = 0
+    @State private var timer: Timer?
     let animationSpeed: Double
     
     var body: some View {
@@ -132,10 +133,14 @@ struct ProgressAnimation: View {
             }
         }
         .onAppear {
-            Timer.scheduledTimer(withTimeInterval: animationSpeed, repeats: true) { _ in
+            timer = Timer.scheduledTimer(withTimeInterval: animationSpeed, repeats: true) { _ in
                 currentDot = (currentDot + 1) % 7
                 if currentDot >= 5 { currentDot = -1 }
             }
+        }
+        .onDisappear {
+            timer?.invalidate()
+            timer = nil
         }
     }
 }
