@@ -119,6 +119,48 @@ struct SettingsView: View {
                 }
 
                 SettingsSection(
+                    icon: "computermouse.fill",
+                    title: "Middle-Click Toggle",
+                    subtitle: "Optionally use your middle mouse button to toggle recording"
+                ) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Toggle("Enable Middle-Click Toggle", isOn: $hotkeyManager.isMiddleClickToggleEnabled.animation())
+                            .toggleStyle(.switch)
+
+                        if hotkeyManager.isMiddleClickToggleEnabled {
+                            HStack {
+                                Text("Activation Delay")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.secondary)
+                                
+                                TextField("", value: $hotkeyManager.middleClickActivationDelay, formatter: {
+                                    let formatter = NumberFormatter()
+                                    formatter.numberStyle = .none
+                                    formatter.minimum = 0
+                                    return formatter
+                                }())
+                                .textFieldStyle(PlainTextFieldStyle())
+                                .padding(EdgeInsets(top: 3, leading: 6, bottom: 3, trailing: 6))
+                                .background(Color(NSColor.textBackgroundColor))
+                                .cornerRadius(5)
+                                .frame(width: 70)
+                                
+                                Text("ms")
+                                    .foregroundColor(.secondary)
+                                
+                                Spacer()
+                            }
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                            
+                            Text("A short delay to prevent accidental toggles when closing browser tabs.")
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+
+                SettingsSection(
                     icon: "speaker.wave.2.bubble.left.fill",
                     title: "Recording Feedback",
                     subtitle: "Customize app & system feedback"
