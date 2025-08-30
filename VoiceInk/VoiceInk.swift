@@ -84,6 +84,11 @@ struct VoiceInkApp: App {
         activeWindowService.configureWhisperState(whisperState)
         _activeWindowService = StateObject(wrappedValue: activeWindowService)
         
+        // Ensure no lingering recording state from previous runs
+        Task {
+            await whisperState.resetOnLaunch()
+        }
+        
         AppShortcuts.updateAppShortcutParameters()
     }
     

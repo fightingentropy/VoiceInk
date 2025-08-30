@@ -80,6 +80,19 @@ extension WhisperState {
         }
     }
     
+    func resetOnLaunch() async {
+        logger.notice("🔄 Resetting recording state on launch")
+        await recorder.stopRecording()
+        hideRecorderPanel()
+        await MainActor.run {
+            isMiniRecorderVisible = false
+            shouldCancelRecording = false
+            miniRecorderError = nil
+            recordingState = .idle
+        }
+        await cleanupModelResources()
+    }
+    
     func cancelRecording() async {
         SoundManager.shared.playEscSound()
         shouldCancelRecording = true
