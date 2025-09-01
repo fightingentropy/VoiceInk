@@ -5,6 +5,7 @@ struct ModelSettingsView: View {
     @AppStorage("SelectedLanguage") private var selectedLanguage: String = "en"
     @AppStorage("IsTextFormattingEnabled") private var isTextFormattingEnabled = true
     @AppStorage("IsVADEnabled") private var isVADEnabled = true
+    @AppStorage("AppendTrailingSpace") private var appendTrailingSpace = true
     @State private var customPrompt: String = ""
     @State private var isEditing: Bool = false
     
@@ -65,6 +66,18 @@ struct ModelSettingsView: View {
             }
 
             Divider().padding(.vertical, 4)
+
+            HStack {
+                Toggle(isOn: $appendTrailingSpace) {
+                    Text("Add space after paste")
+                }
+                .toggleStyle(.switch)
+                
+                InfoTip(
+                    title: "Trailing Space",
+                    message: "Automatically add a space after pasted text. Useful for space-delimited languages."
+                )
+            }
 
             HStack {
                 Toggle(isOn: $isTextFormattingEnabled) {
