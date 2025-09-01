@@ -16,17 +16,33 @@ struct PowerModePopover: View {
                 .background(Color.white.opacity(0.1))
             
             ScrollView {
+                let enabledConfigs = powerModeManager.configurations.filter { $0.isEnabled }
                 VStack(alignment: .leading, spacing: 4) {
-                    ForEach(powerModeManager.configurations.filter { $0.isEnabled }) { config in
-                        PowerModeRow(
-                            config: config,
-                            isSelected: selectedConfig?.id == config.id,
-                            action: {
-                                powerModeManager.setActiveConfiguration(config)
-                                selectedConfig = config
-                                applySelectedConfiguration()
-                            }
-                        )
+                    if enabledConfigs.isEmpty {
+                        VStack(alignment: .center, spacing: 8) {
+                            Image(systemName: "sparkles")
+                                .foregroundColor(.white.opacity(0.6))
+                                .font(.system(size: 16))
+                            Text("No Power Modes Available")
+                                .foregroundColor(.white.opacity(0.8))
+                                .font(.system(size: 13))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                    } else {
+                        ForEach(enabledConfigs) { config in
+                            PowerModeRow(
+                                config: config,
+                                isSelected: selectedConfig?.id == config.id,
+                                action: {
+                                    powerModeManager.setActiveConfiguration(config)
+                                    selectedConfig = config
+                                    applySelectedConfiguration()
+                                }
+                            )
+                        }
                     }
                 }
                 .padding(.horizontal)

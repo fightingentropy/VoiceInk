@@ -72,10 +72,10 @@ struct EnhancementPromptRow: View {
                 // Use the icon from the prompt
                 Image(systemName: prompt.icon.rawValue)
                     .font(.system(size: 14))
-                    .foregroundColor(isDisabled ? .white.opacity(0.6) : .white.opacity(0.7))
+                    .foregroundColor(isDisabled ? .white.opacity(0.4) : .white.opacity(0.7))
                 
                 Text(prompt.title)
-                    .foregroundColor(isDisabled ? .white.opacity(0.7) : .white.opacity(0.9))
+                    .foregroundColor(isDisabled ? .white.opacity(0.4) : .white.opacity(0.9))
                     .font(.system(size: 13))
                     .lineLimit(1)
                 
