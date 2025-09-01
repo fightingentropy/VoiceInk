@@ -44,13 +44,7 @@ class PlaybackController: ObservableObject {
             self?.lastKnownTrackInfo = trackInfo
         }
         
-        mediaController.onListenerTerminated = { [weak self] in
-            guard let self = self, self.isPauseMediaEnabled else { return }
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                self.startMediaTracking()
-            }
-        }
+        mediaController.onListenerTerminated = { }
     }
     
     private func startMediaTracking() {
