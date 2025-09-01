@@ -5,7 +5,7 @@
         <item>
             <title>1.53</title>
             <pubDate>Sat, 1 Sep 2025 12:20:00 +0545</pubDate>
-            <sparkle:version>153</sparkle:version>
+            <sparkle:version>154</sparkle:version>
             <sparkle:shortVersionString>1.53</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
@@ -23,7 +23,7 @@
               </ul> 
                 
             ]]></description>
-           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.53/VoiceInk.dmg" length="9417604" type="application/octet-stream" sparkle:edSignature="dTZQqwhf4Nnqh0f3xkEBn6P70HvTTMGlITCoCtnaLHxmLXVPFY5HqKu5zVl2sa1+PmiScqSUEp5DFJjGIUYYCw=="/>
+           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.53/VoiceInk.dmg" length="9415783" type="application/octet-stream" sparkle:edSignature="0VhMPxvoSO53H8/8PhYuJRE4uSl3Wj5Fr8bAniXlyQEud68rxCc7qG4UsRWZYX96X3WJLQuNuFITkf+wk5RJBg=="/>
         </item>
     </channel>
 </rss>
