@@ -18,11 +18,8 @@
                     <li>Add prompt details used during enhancement in history</li>
                     <li>Fix memory issues with Perl</li>
                     <li>Add a setting to disable auto update checks – @vaygr</li>
-                    <li>Add App Intents support – @gritse</li>
-                    <li>Sync parakeet config with upstream – @BrandonWeng</li>
-                    <li>Implement Retry Logic for AI Enhancement Service – @gdmka</li>
                     <li>Implement Hover-to-Show Popovers for Recorder Controls – @gdmka</li>
-                    <li>Add Middle-Click to Toggle Recording – @gdmka</li>
+                    <li>Add mouse middle-Click to Toggle Recording – @gdmka</li>
               </ul> 
                 
             ]]></description>
