@@ -14,4 +14,5 @@ extension Notification.Name {
     static let powerModeConfigurationApplied = Notification.Name("powerModeConfigurationApplied")
     static let transcriptionCreated = Notification.Name("transcriptionCreated")
     static let enhancementToggleChanged = Notification.Name("enhancementToggleChanged")
+    static let openFileForTranscription = Notification.Name("openFileForTranscription")
 }
