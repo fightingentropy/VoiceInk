@@ -71,13 +71,34 @@ class ParakeetTranscriptionService: TranscriptionService {
         
         let audioSamples = try readAudioSamples(from: audioURL)
         
-        // Validate audio data before transcription
-        guard audioSamples.count >= 16000 else {
-            logger.notice("🦜 Audio too short for transcription: \(audioSamples.count) samples")
+        // Validate audio data before VAD
+        guard !audioSamples.isEmpty else {
+            logger.notice("🦜 Audio is empty, skipping transcription.")
+            throw ASRError.invalidAudioData
+        }
+
+        // Use VAD to get speech segments
+        let speechAudio: [Float]
+        if let modelPath = await VADModelManager.shared.getModelPath() {
+            if let vad = VoiceActivityDetector(modelPath: modelPath) {
+                speechAudio = vad.process(audioSamples: audioSamples)
+                logger.notice("🦜 VAD processed audio, resulting in \(speechAudio.count) samples.")
+            } else {
+                logger.warning("🦜 VAD could not be initialized. Transcribing original audio.")
+                speechAudio = audioSamples
+            }
+        } else {
+            logger.warning("🦜 VAD model path not found. Transcribing original audio.")
+            speechAudio = audioSamples
+        }
+        
+        // Validate audio data after VAD
+        guard speechAudio.count >= 16000 else {
+            logger.notice("🦜 Audio too short for transcription after VAD: \(speechAudio.count) samples")
             throw ASRError.invalidAudioData
         }
         
-        let result = try await asrManager.transcribe(audioSamples)
+        let result = try await asrManager.transcribe(speechAudio)
         
         // Reset decoder state and cleanup after transcription to avoid blocking the transcription start
         Task {
