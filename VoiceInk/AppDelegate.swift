@@ -1,5 +1,6 @@
 import Cocoa
 import SwiftUI
+import UniformTypeIdentifiers
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -50,14 +51,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         defaults.removeObject(forKey: "isPowerModeEnabled")
     }
     
-    // Keep in sync with AudioTranscribeView.supportedExtensions
-    private let supportedExtensions = ["wav", "mp3", "m4a", "aiff", "mp4", "mov", "aac", "flac", "caf"]
-    
     // Stash URL when app cold-starts to avoid spawning a new window/tab
     var pendingOpenFileURL: URL?
     
     func application(_ application: NSApplication, open urls: [URL]) {
-        guard let url = urls.first(where: { supportedExtensions.contains($0.pathExtension.lowercased()) }) else {
+        guard let url = urls.first(where: { SupportedMedia.isSupported(url: $0) }) else {
             return
         }
         

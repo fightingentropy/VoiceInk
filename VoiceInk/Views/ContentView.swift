@@ -164,8 +164,7 @@ struct ContentView: View {
     @State private var hasLoadedData = false
     let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     @StateObject private var licenseViewModel = LicenseViewModel()
-    // Capture the hosting window to update tab/window title dynamically
-    @State private var hostingWindow: NSWindow?
+    
     
     private var isSetupComplete: Bool {
         hasLoadedData &&
@@ -191,13 +190,6 @@ struct ContentView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 940, minHeight: 730)
-        // Resolve hosting NSWindow and set initial title
-        .background(
-            WindowTitleAccessor { window in
-                self.hostingWindow = window
-                self.hostingWindow?.title = selectedView.rawValue
-            }
-        )
         .onAppear {
             hasLoadedData = true
         }
@@ -237,10 +229,6 @@ struct ContentView: View {
                 print("ContentView: No destination in notification")
             }
         }
-        // Update the tab/window title whenever the active view changes
-        .onChange(of: selectedView) { newValue in
-            hostingWindow?.title = newValue.rawValue
-        }
     }
     
     @ViewBuilder
@@ -278,20 +266,4 @@ struct ContentView: View {
     }
 }
 
-struct WindowTitleAccessor: NSViewRepresentable {
-    var onResolve: (NSWindow?) -> Void
-
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        DispatchQueue.main.async { [weak view] in
-            onResolve(view?.window)
-        }
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        DispatchQueue.main.async { [weak nsView] in
-            onResolve(nsView?.window)
-        }
-    }
-}
+ 
