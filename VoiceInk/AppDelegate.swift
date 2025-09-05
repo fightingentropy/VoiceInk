@@ -49,4 +49,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         defaults.removeObject(forKey: "defaultPowerModeConfigV2")
         defaults.removeObject(forKey: "isPowerModeEnabled")
     }
+    
+    // Keep in sync with AudioTranscribeView.supportedExtensions
+    private let supportedExtensions = ["wav", "mp3", "m4a", "aiff", "mp4", "mov", "aac", "flac", "caf"]
+    
+    // Stash URL when app cold-starts to avoid spawning a new window/tab
+    var pendingOpenFileURL: URL?
+    
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard let url = urls.first(where: { supportedExtensions.contains($0.pathExtension.lowercased()) }) else {
+            return
+        }
+        
+        NSApp.activate(ignoringOtherApps: true)
+        
+        if NSApp.windows.isEmpty {
+            // Cold start: do NOT create a window here to avoid extra window/tab.
+            // Defer to SwiftUI’s WindowGroup-created ContentView and let it process this later.
+            pendingOpenFileURL = url
+        } else {
+            // Running: focus current window and route in-place to Transcribe Audio
+            NSApp.windows.first?.makeKeyAndOrderFront(nil)
+            NotificationCenter.default.post(name: .navigateToDestination, object: nil, userInfo: ["destination": "Transcribe Audio"])
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .openFileForTranscription, object: nil, userInfo: ["url": url])
+            }
+        }
+    }
 }

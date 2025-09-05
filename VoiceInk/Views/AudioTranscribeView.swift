@@ -112,6 +112,12 @@ struct AudioTranscribeView: View {
                 Text(errorMessage)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .openFileForTranscription)) { notification in
+            if let url = notification.userInfo?["url"] as? URL {
+                // Do not auto-start; only select file for manual transcription
+                validateAndSetAudioFile(url)
+            }
+        }
     }
     
     private var dropZoneView: some View {
@@ -381,4 +387,4 @@ struct AudioTranscribeView: View {
         let seconds = Int(duration) % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
-} 
+}
