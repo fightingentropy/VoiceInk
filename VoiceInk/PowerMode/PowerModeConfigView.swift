@@ -182,18 +182,16 @@ struct ConfigurationView: View {
                         }
                         
                         // Default Power Mode Toggle
-                        if !powerModeManager.hasDefaultConfiguration() || isCurrentConfigDefault {
-                            HStack {
-                                Toggle("Set as default power mode", isOn: $isDefault)
-                                    .font(.system(size: 14))
-                                
-                                InfoTip(
-                                    title: "Default Power Mode",
-                                    message: "Default power mode is used when no specific app or website matches are found"
-                                )
-                                
-                                Spacer()
-                            }
+                        HStack {
+                            Toggle("Set as default power mode", isOn: $isDefault)
+                                .font(.system(size: 14))
+                            
+                            InfoTip(
+                                title: "Default Power Mode",
+                                message: "Default power mode is used when no specific app or website matches are found"
+                            )
+                            
+                            Spacer()
                         }
                     }
                     .padding(.horizontal, 20)
