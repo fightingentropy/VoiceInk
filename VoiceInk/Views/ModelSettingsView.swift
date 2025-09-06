@@ -99,7 +99,7 @@ struct ModelSettingsView: View {
                 
                 InfoTip(
                     title: "Voice Activity Detection",
-                    message: "Detects speech segments and filters out silence to reduce hallucinations in local Whisper models."
+                    message: "Detect speech segments and filter out silence to improve accuracy of local models."
                 )
             }
 
