@@ -137,10 +137,16 @@ class ParakeetTranscriptionService: TranscriptionService {
             logger.notice("🦜 Warning: Empty transcription result for \(audioSamples.count) samples - possible vocabulary issue")
         }
         
+        var text = result.text
+        
         if UserDefaults.standard.object(forKey: "IsTextFormattingEnabled") as? Bool ?? true {
-            return WhisperTextFormatter.format(result.text)
+            text = WhisperTextFormatter.format(text)
         }
-        return result.text
+        
+        // Apply hallucination and filler word filtering
+        text = WhisperHallucinationFilter.filter(text)
+        
+        return text
     }
 
     private func readAudioSamples(from url: URL) throws -> [Float] {
