@@ -37,7 +37,7 @@ struct ExperimentalFeaturesSection: View {
 
             if isExperimentalFeaturesEnabled {
                 Toggle(isOn: $playbackController.isPauseMediaEnabled) {
-                    Text("Pause Media on Playback")
+                    Text("Pause Media during recording")
                 }
                 .toggleStyle(.switch)
                 .help("Automatically pause active media playback during recordings and resume afterward.")
