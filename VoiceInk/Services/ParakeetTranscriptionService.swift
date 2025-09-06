@@ -79,34 +79,41 @@ class ParakeetTranscriptionService: TranscriptionService {
 
         // Use VAD to get speech segments
         var speechAudio: [Float] = []
-        if let modelPath = await VADModelManager.shared.getModelPath() {
-            if let vad = VoiceActivityDetector(modelPath: modelPath) {
-                let speechSegments = vad.process(audioSamples: audioSamples)
-                logger.notice("🦜 VAD detected \(speechSegments.count) speech segments.")
+        let isVADEnabled = UserDefaults.standard.object(forKey: "IsVADEnabled") as? Bool ?? true
 
-                let sampleRate = 16000 // Assuming 16kHz sample rate
-                for segment in speechSegments {
-                    let startSample = Int(segment.start * Double(sampleRate))
-                    var endSample = Int(segment.end * Double(sampleRate))
+        if isVADEnabled {
+            if let modelPath = await VADModelManager.shared.getModelPath() {
+                if let vad = VoiceActivityDetector(modelPath: modelPath) {
+                    let speechSegments = vad.process(audioSamples: audioSamples)
+                    logger.notice("🦜 VAD detected \(speechSegments.count) speech segments.")
 
-                    // Cap endSample to the audio buffer size
-                    if endSample > audioSamples.count {
-                        endSample = audioSamples.count
+                    let sampleRate = 16000 // Assuming 16kHz sample rate
+                    for segment in speechSegments {
+                        let startSample = Int(segment.start * Double(sampleRate))
+                        var endSample = Int(segment.end * Double(sampleRate))
+
+                        // Cap endSample to the audio buffer size
+                        if endSample > audioSamples.count {
+                            endSample = audioSamples.count
+                        }
+
+                        if startSample < endSample {
+                            speechAudio.append(contentsOf: audioSamples[startSample..<endSample])
+                        } else {
+                            logger.warning("🦜 Invalid sample range for segment: start=\(startSample), end=\(endSample). Skipping.")
+                        }
                     }
-
-                    if startSample < endSample {
-                        speechAudio.append(contentsOf: audioSamples[startSample..<endSample])
-                    } else {
-                        logger.warning("🦜 Invalid sample range for segment: start=\(startSample), end=\(endSample). Skipping.")
-                    }
+                    logger.notice("🦜 Extracted \(speechAudio.count) samples from VAD segments.")
+                } else {
+                    logger.warning("🦜 VAD could not be initialized. Transcribing original audio.")
+                    speechAudio = audioSamples
                 }
-                logger.notice("🦜 Extracted \(speechAudio.count) samples from VAD segments.")
             } else {
-                logger.warning("🦜 VAD could not be initialized. Transcribing original audio.")
+                logger.warning("🦜 VAD model path not found. Transcribing original audio.")
                 speechAudio = audioSamples
             }
         } else {
-            logger.warning("🦜 VAD model path not found. Transcribing original audio.")
+            logger.notice("🦜 VAD is disabled by user setting. Transcribing original audio.")
             speechAudio = audioSamples
         }
         
