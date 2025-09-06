@@ -130,6 +130,25 @@ struct SettingsView: View {
 
                         Divider()
 
+                        // Retry Last Transcription
+                        HStack(spacing: 12) {
+                            Text("Retry Last Transcription")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.secondary)
+
+                            KeyboardShortcuts.Recorder(for: .retryLastTranscription)
+                                .controlSize(.small)
+
+                            InfoTip(
+                                title: "Retry Last Transcription",
+                                message: "Re-transcribe the last recorded audio using the current model and copy the result."
+                            )
+
+                            Spacer()
+                        }
+
+                        Divider()
+
                         // Middle-Click Toggle
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(spacing: 8) {

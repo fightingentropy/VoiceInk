@@ -7,6 +7,7 @@ extension KeyboardShortcuts.Name {
     static let toggleMiniRecorder = Self("toggleMiniRecorder")
     static let toggleMiniRecorder2 = Self("toggleMiniRecorder2")
     static let pasteLastTranscription = Self("pasteLastTranscription")
+    static let retryLastTranscription = Self("retryLastTranscription")
 }
 
 @MainActor
@@ -140,16 +141,22 @@ class HotkeyManager: ObservableObject {
         
         self.whisperState = whisperState
         self.miniRecorderShortcutManager = MiniRecorderShortcutManager(whisperState: whisperState)
-
         if KeyboardShortcuts.getShortcut(for: .pasteLastTranscription) == nil {
             let defaultPasteShortcut = KeyboardShortcuts.Shortcut(.v, modifiers: [.command, .option])
             KeyboardShortcuts.setShortcut(defaultPasteShortcut, for: .pasteLastTranscription)
         }
-        
+
         KeyboardShortcuts.onKeyUp(for: .pasteLastTranscription) { [weak self] in
             guard let self = self else { return }
             Task { @MainActor in
                 LastTranscriptionService.pasteLastTranscription(from: self.whisperState.modelContext)
+            }
+        }
+
+        KeyboardShortcuts.onKeyUp(for: .retryLastTranscription) { [weak self] in
+            guard let self = self else { return }
+            Task { @MainActor in
+                LastTranscriptionService.retryLastTranscription(from: self.whisperState.modelContext, whisperState: self.whisperState)
             }
         }
         
