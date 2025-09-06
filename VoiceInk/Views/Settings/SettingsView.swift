@@ -74,6 +74,42 @@ struct SettingsView: View {
                     subtitle: "Additional shortcuts for VoiceInk"
                 ) {
                     VStack(alignment: .leading, spacing: 18) {
+                        // Paste Last Transcription
+                        HStack(spacing: 12) {
+                            Text("Paste Last Transcription")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.secondary)
+                            
+                            KeyboardShortcuts.Recorder(for: .pasteLastTranscription)
+                                .controlSize(.small)
+                            
+                            InfoTip(
+                                title: "Paste Last Transcription",
+                                message: "Shortcut for pasting the most recent transcription at current cursor position."
+                            )
+                            
+                            Spacer()
+                        }
+
+                        // Retry Last Transcription
+                        HStack(spacing: 12) {
+                            Text("Retry Last Transcription")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.secondary)
+
+                            KeyboardShortcuts.Recorder(for: .retryLastTranscription)
+                                .controlSize(.small)
+
+                            InfoTip(
+                                title: "Retry Last Transcription",
+                                message: "Re-transcribe the last recorded audio using the current model and copy the result."
+                            )
+
+                            Spacer()
+                        }
+
+                        
+                        
                         // Custom Cancel Shortcut
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(spacing: 8) {
@@ -108,46 +144,6 @@ struct SettingsView: View {
                                 .transition(.opacity.combined(with: .move(edge: .top)))
                             }
                         }
-
-                        Divider()
-
-                                                // Paste Last Transcription
-                        HStack(spacing: 12) {
-                            Text("Paste Last Transcription")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.secondary)
-                            
-                            KeyboardShortcuts.Recorder(for: .pasteLastTranscription)
-                                .controlSize(.small)
-                            
-                            InfoTip(
-                                title: "Paste Last Transcription",
-                                message: "Shortcut for pasting the most recent transcription at current cursor position."
-                            )
-                            
-                            Spacer()
-                        }
-
-                        Divider()
-
-                        // Retry Last Transcription
-                        HStack(spacing: 12) {
-                            Text("Retry Last Transcription")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.secondary)
-
-                            KeyboardShortcuts.Recorder(for: .retryLastTranscription)
-                                .controlSize(.small)
-
-                            InfoTip(
-                                title: "Retry Last Transcription",
-                                message: "Re-transcribe the last recorded audio using the current model and copy the result."
-                            )
-
-                            Spacer()
-                        }
-
-                        Divider()
 
                         // Middle-Click Toggle
                         VStack(alignment: .leading, spacing: 12) {
