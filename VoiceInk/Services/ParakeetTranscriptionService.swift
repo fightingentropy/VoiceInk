@@ -78,11 +78,29 @@ class ParakeetTranscriptionService: TranscriptionService {
         }
 
         // Use VAD to get speech segments
-        let speechAudio: [Float]
+        var speechAudio: [Float] = []
         if let modelPath = await VADModelManager.shared.getModelPath() {
             if let vad = VoiceActivityDetector(modelPath: modelPath) {
-                speechAudio = vad.process(audioSamples: audioSamples)
-                logger.notice("🦜 VAD processed audio, resulting in \(speechAudio.count) samples.")
+                let speechSegments = vad.process(audioSamples: audioSamples)
+                logger.notice("🦜 VAD detected \(speechSegments.count) speech segments.")
+
+                let sampleRate = 16000 // Assuming 16kHz sample rate
+                for segment in speechSegments {
+                    let startSample = Int(segment.start * Double(sampleRate))
+                    var endSample = Int(segment.end * Double(sampleRate))
+
+                    // Cap endSample to the audio buffer size
+                    if endSample > audioSamples.count {
+                        endSample = audioSamples.count
+                    }
+
+                    if startSample < endSample {
+                        speechAudio.append(contentsOf: audioSamples[startSample..<endSample])
+                    } else {
+                        logger.warning("🦜 Invalid sample range for segment: start=\(startSample), end=\(endSample). Skipping.")
+                    }
+                }
+                logger.notice("🦜 Extracted \(speechAudio.count) samples from VAD segments.")
             } else {
                 logger.warning("🦜 VAD could not be initialized. Transcribing original audio.")
                 speechAudio = audioSamples
