@@ -23,15 +23,10 @@ class WordReplacementManager: ObservableObject {
     }
     
     func addReplacement(original: String, replacement: String) {
-        // Support comma-separated originals mapping to the same replacement
-        let tokens = original
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        guard !tokens.isEmpty else { return }
-        for token in tokens {
-            replacements[token] = replacement
-        }
+        // Preserve comma-separated originals as a single entry
+        let trimmed = original.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        replacements[trimmed] = replacement
     }
     
     func removeReplacement(original: String) {
@@ -39,18 +34,11 @@ class WordReplacementManager: ObservableObject {
     }
     
     func updateReplacement(oldOriginal: String, newOriginal: String, newReplacement: String) {
-        // Always remove the old key being edited
+        // Replace old key with the new comma-preserved key
         replacements.removeValue(forKey: oldOriginal)
-        
-        // Add one or more new keys (comma-separated) pointing to the same replacement
-        let tokens = newOriginal
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        guard !tokens.isEmpty else { return }
-        for token in tokens {
-            replacements[token] = newReplacement
-        }
+        let trimmed = newOriginal.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        replacements[trimmed] = newReplacement
     }
 }
 
@@ -272,10 +260,11 @@ struct AddReplacementSheet: View {
                     
                     // Example Section
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Example")
+                        Text("Examples")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                         
+                        // Single original -> replacement
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Original:")
@@ -297,6 +286,34 @@ struct AddReplacementSheet: View {
                                     .font(.callout)
                             }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .background(Color(.textBackgroundColor))
+                        .cornerRadius(8)
+
+                        // Comma-separated originals -> single replacement
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Original:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("Voicing, Voice ink, Voiceing")
+                                    .font(.callout)
+                            }
+                            
+                            Image(systemName: "arrow.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Replacement:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("VoiceInk")
+                                    .font(.callout)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(12)
                         .background(Color(.textBackgroundColor))
                         .cornerRadius(8)
@@ -307,7 +324,7 @@ struct AddReplacementSheet: View {
                 .padding(.vertical)
             }
         }
-        .frame(width: 460, height: 480)
+        .frame(width: 460, height: 520)
     }
     
     private func addReplacement() {

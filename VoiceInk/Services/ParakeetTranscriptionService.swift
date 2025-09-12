@@ -124,6 +124,7 @@ class ParakeetTranscriptionService: TranscriptionService {
         }
         
         let result = try await asrManager.transcribe(speechAudio)
+        print(result.text)
         
         // Reset decoder state and cleanup after transcription to avoid blocking the transcription start
         Task {

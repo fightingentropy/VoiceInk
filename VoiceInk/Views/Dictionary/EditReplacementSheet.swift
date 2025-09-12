@@ -23,7 +23,7 @@ struct EditReplacementSheet: View {
             Divider()
             formContent
         }
-        .frame(width: 460, height: 480)
+        .frame(width: 460, height: 560)
     }
 
     // MARK: – Subviews

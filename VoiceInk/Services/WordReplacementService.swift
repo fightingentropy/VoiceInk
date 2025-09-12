@@ -14,24 +14,32 @@ class WordReplacementService {
         var modifiedText = text
         
         // Apply replacements (case-insensitive)
-        for (original, replacement) in replacements {
-            let usesBoundaries = usesWordBoundaries(for: original)
+        for (originalGroup, replacement) in replacements {
+            // Split comma-separated originals at apply time only
+            let variants = originalGroup
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
 
-            if usesBoundaries {
-                // Word-boundary regex for full original string
-                let pattern = "\\b\(NSRegularExpression.escapedPattern(for: original))\\b"
-                if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
-                    let range = NSRange(modifiedText.startIndex..., in: modifiedText)
-                    modifiedText = regex.stringByReplacingMatches(
-                        in: modifiedText,
-                        options: [],
-                        range: range,
-                        withTemplate: replacement
-                    )
+            for original in variants {
+                let usesBoundaries = usesWordBoundaries(for: original)
+
+                if usesBoundaries {
+                    // Word-boundary regex for full original string
+                    let pattern = "\\b\(NSRegularExpression.escapedPattern(for: original))\\b"
+                    if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
+                        let range = NSRange(modifiedText.startIndex..., in: modifiedText)
+                        modifiedText = regex.stringByReplacingMatches(
+                            in: modifiedText,
+                            options: [],
+                            range: range,
+                            withTemplate: replacement
+                        )
+                    }
+                } else {
+                    // Fallback substring replace for non-spaced scripts
+                    modifiedText = modifiedText.replacingOccurrences(of: original, with: replacement, options: .caseInsensitive)
                 }
-            } else {
-                // Fallback substring replace for non-spaced scripts
-                modifiedText = modifiedText.replacingOccurrences(of: original, with: replacement, options: .caseInsensitive)
             }
         }
         
