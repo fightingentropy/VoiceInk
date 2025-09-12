@@ -154,13 +154,6 @@ class HotkeyManager: ObservableObject {
             }
         }
 
-        KeyboardShortcuts.onKeyUp(for: .pasteLastEnhancement) { [weak self] in
-            guard let self = self else { return }
-            Task { @MainActor in
-                LastTranscriptionService.pasteLastEnhancement(from: self.whisperState.modelContext)
-            }
-        }
-
         KeyboardShortcuts.onKeyUp(for: .retryLastTranscription) { [weak self] in
             guard let self = self else { return }
             Task { @MainActor in
@@ -442,4 +435,3 @@ class HotkeyManager: ObservableObject {
         }
     }
 }
-

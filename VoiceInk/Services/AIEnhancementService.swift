@@ -261,6 +261,8 @@ class AIEnhancementService: ObservableObject {
                     
                     let filteredText = AIEnhancementOutputFilter.filter(enhancedText.trimmingCharacters(in: .whitespacesAndNewlines))
                     return filteredText
+                } else if httpResponse.statusCode == 429 {
+                    throw EnhancementError.rateLimitExceeded
                 } else if (500...599).contains(httpResponse.statusCode) {
                     throw EnhancementError.serverError
                 } else {
@@ -316,6 +318,8 @@ class AIEnhancementService: ObservableObject {
 
                     let filteredText = AIEnhancementOutputFilter.filter(enhancedText.trimmingCharacters(in: .whitespacesAndNewlines))
                     return filteredText
+                } else if httpResponse.statusCode == 429 {
+                    throw EnhancementError.rateLimitExceeded
                 } else if (500...599).contains(httpResponse.statusCode) {
                     throw EnhancementError.serverError
                 } else {
@@ -342,7 +346,7 @@ class AIEnhancementService: ObservableObject {
                 return try await makeRequest(text: text, mode: mode)
             } catch let error as EnhancementError {
                 switch error {
-                case .networkError, .serverError:
+                case .networkError, .serverError, .rateLimitExceeded:
                     retries += 1
                     if retries < maxRetries {
                         logger.warning("Request failed, retrying in \(currentDelay)s... (Attempt \(retries)/\(maxRetries))")
@@ -458,6 +462,7 @@ enum EnhancementError: Error {
     case enhancementFailed
     case networkError
     case serverError
+    case rateLimitExceeded
     case customError(String)
 }
 
@@ -474,6 +479,8 @@ extension EnhancementError: LocalizedError {
             return "Network connection failed. Check your internet."
         case .serverError:
             return "The AI provider's server encountered an error. Please try again later."
+        case .rateLimitExceeded:
+            return "Rate limit exceeded. Please try again later."
         case .customError(let message):
             return message
         }

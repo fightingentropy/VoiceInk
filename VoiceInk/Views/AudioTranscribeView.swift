@@ -112,6 +112,12 @@ struct AudioTranscribeView: View {
                 Text(errorMessage)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .openFileForTranscription)) { notification in
+            if let url = notification.userInfo?["url"] as? URL {
+                // Do not auto-start; only select file for manual transcription
+                validateAndSetAudioFile(url)
+            }
+        }
     }
     
     private var dropZoneView: some View {
@@ -347,29 +353,8 @@ struct AudioTranscribeView: View {
             }
         }
         
-        // Validate file type by extension
-        let supportedExtensions = ["wav", "mp3", "m4a", "aiff", "mp4", "mov", "aac", "flac", "caf"]
-        let fileExtension = url.pathExtension.lowercased()
-        
-        // Check file extension first
-        if !fileExtension.isEmpty && supportedExtensions.contains(fileExtension) {
-            print("File type validated by extension: \(fileExtension)")
-        } else {
-            print("Unsupported file extension: \(fileExtension)")
-            // Try to validate by UTType as well
-            if let resourceValues = try? url.resourceValues(forKeys: [.contentTypeKey]),
-               let contentType = resourceValues.contentType {
-                if contentType.conforms(to: .audio) || contentType.conforms(to: .movie) {
-                    print("File type validated by UTType: \(contentType.identifier)")
-                } else {
-                    print("File does not conform to audio or movie type: \(contentType.identifier)")
-                    return
-                }
-            } else {
-                print("Could not validate file type")
-                return
-            }
-        }
+        // Validate file type
+        guard SupportedMedia.isSupported(url: url) else { return }
         
         print("File validated successfully: \(url.lastPathComponent)")
         selectedAudioURL = url
@@ -381,4 +366,4 @@ struct AudioTranscribeView: View {
         let seconds = Int(duration) % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
-} 
+}

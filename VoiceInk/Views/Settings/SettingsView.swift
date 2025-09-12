@@ -130,6 +130,8 @@ struct SettingsView: View {
 
                         Divider()
 
+                        
+                        
                         // Custom Cancel Shortcut
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(spacing: 8) {

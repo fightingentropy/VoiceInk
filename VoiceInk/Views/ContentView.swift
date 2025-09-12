@@ -165,6 +165,7 @@ struct ContentView: View {
     let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     @StateObject private var licenseViewModel = LicenseViewModel()
     
+    
     private var isSetupComplete: Bool {
         hasLoadedData &&
         whisperState.currentTranscriptionModel != nil &&
@@ -192,6 +193,7 @@ struct ContentView: View {
         .onAppear {
             hasLoadedData = true
         }
+        // inside ContentView body:
         .onReceive(NotificationCenter.default.publisher(for: .navigateToDestination)) { notification in
             print("ContentView: Received navigation notification")
             if let destination = notification.userInfo?["destination"] as? String {
@@ -215,6 +217,10 @@ struct ContentView: View {
                 case "Enhancement":
                     print("ContentView: Navigating to Enhancement")
                     selectedView = .enhancement
+                case "Transcribe Audio":
+                    // Ensure we switch to the Transcribe Audio view in-place
+                    print("ContentView: Navigating to Transcribe Audio")
+                    selectedView = .transcribeAudio
                 default:
                     print("ContentView: No matching destination found for: \(destination)")
                     break
@@ -259,3 +265,5 @@ struct ContentView: View {
         }
     }
 }
+
+ 

@@ -23,7 +23,10 @@ class WordReplacementManager: ObservableObject {
     }
     
     func addReplacement(original: String, replacement: String) {
-        replacements[original] = replacement
+        // Preserve comma-separated originals as a single entry
+        let trimmed = original.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        replacements[trimmed] = replacement
     }
     
     func removeReplacement(original: String) {
@@ -31,12 +34,11 @@ class WordReplacementManager: ObservableObject {
     }
     
     func updateReplacement(oldOriginal: String, newOriginal: String, newReplacement: String) {
-        // Remove the old key if the original text has changed
-        if oldOriginal != newOriginal {
-            replacements.removeValue(forKey: oldOriginal)
-        }
-        // Update (or insert) the new key/value pair
-        replacements[newOriginal] = newReplacement
+        // Replace old key with the new comma-preserved key
+        replacements.removeValue(forKey: oldOriginal)
+        let trimmed = newOriginal.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        replacements[trimmed] = newReplacement
     }
 }
 
@@ -142,7 +144,7 @@ struct EmptyStateView: View {
             Text("No Replacements")
                 .font(.headline)
             
-            Text("Add word replacements to automatically replace text during AI enhancement.")
+            Text("Add word replacements to automatically replace text.")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -200,7 +202,7 @@ struct AddReplacementSheet: View {
             ScrollView {
                 VStack(spacing: 20) {
                     // Description
-                    Text("Define a word or phrase to be automatically replaced during AI enhancement.")
+                    Text("Define a word or phrase to be automatically replaced.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -221,9 +223,12 @@ struct AddReplacementSheet: View {
                                     .foregroundColor(.secondary)
                             }
                             
-                            TextField("Enter word or phrase to replace", text: $originalWord)
+                            TextField("Enter word or phrase to replace (use commas for multiple)", text: $originalWord)
                                 .textFieldStyle(.roundedBorder)
                                 .font(.body)
+                            Text("Separate multiple originals with commas, e.g. Voicing, Voice ink, Voiceing")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                         .padding(.horizontal)
                         
@@ -255,10 +260,11 @@ struct AddReplacementSheet: View {
                     
                     // Example Section
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Example")
+                        Text("Examples")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                         
+                        // Single original -> replacement
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Original:")
@@ -280,6 +286,34 @@ struct AddReplacementSheet: View {
                                     .font(.callout)
                             }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .background(Color(.textBackgroundColor))
+                        .cornerRadius(8)
+
+                        // Comma-separated originals -> single replacement
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Original:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("Voicing, Voice ink, Voiceing")
+                                    .font(.callout)
+                            }
+                            
+                            Image(systemName: "arrow.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Replacement:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("VoiceInk")
+                                    .font(.callout)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(12)
                         .background(Color(.textBackgroundColor))
                         .cornerRadius(8)
@@ -290,14 +324,19 @@ struct AddReplacementSheet: View {
                 .padding(.vertical)
             }
         }
-        .frame(width: 460, height: 480)
+        .frame(width: 460, height: 520)
     }
     
     private func addReplacement() {
         let original = originalWord
         let replacement = replacementWord
         
-        guard !original.isEmpty && !replacement.isEmpty else { return }
+        // Validate that at least one non-empty token exists
+        let tokens = original
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard !tokens.isEmpty && !replacement.isEmpty else { return }
         
         manager.addReplacement(original: original, replacement: replacement)
         dismiss()

@@ -71,13 +71,60 @@ class ParakeetTranscriptionService: TranscriptionService {
         
         let audioSamples = try readAudioSamples(from: audioURL)
         
-        // Validate audio data before transcription
-        guard audioSamples.count >= 16000 else {
-            logger.notice("🦜 Audio too short for transcription: \(audioSamples.count) samples")
+        // Validate audio data before VAD
+        guard !audioSamples.isEmpty else {
+            logger.notice("🦜 Audio is empty, skipping transcription.")
+            throw ASRError.invalidAudioData
+        }
+
+        // Use VAD to get speech segments
+        var speechAudio: [Float] = []
+        let isVADEnabled = UserDefaults.standard.object(forKey: "IsVADEnabled") as? Bool ?? true
+
+        if isVADEnabled {
+            if let modelPath = await VADModelManager.shared.getModelPath() {
+                if let vad = VoiceActivityDetector(modelPath: modelPath) {
+                    let speechSegments = vad.process(audioSamples: audioSamples)
+                    logger.notice("🦜 VAD detected \(speechSegments.count) speech segments.")
+
+                    let sampleRate = 16000 // Assuming 16kHz sample rate
+                    for segment in speechSegments {
+                        let startSample = Int(segment.start * Double(sampleRate))
+                        var endSample = Int(segment.end * Double(sampleRate))
+
+                        // Cap endSample to the audio buffer size
+                        if endSample > audioSamples.count {
+                            endSample = audioSamples.count
+                        }
+
+                        if startSample < endSample {
+                            speechAudio.append(contentsOf: audioSamples[startSample..<endSample])
+                        } else {
+                            logger.warning("🦜 Invalid sample range for segment: start=\(startSample), end=\(endSample). Skipping.")
+                        }
+                    }
+                    logger.notice("🦜 Extracted \(speechAudio.count) samples from VAD segments.")
+                } else {
+                    logger.warning("🦜 VAD could not be initialized. Transcribing original audio.")
+                    speechAudio = audioSamples
+                }
+            } else {
+                logger.warning("🦜 VAD model path not found. Transcribing original audio.")
+                speechAudio = audioSamples
+            }
+        } else {
+            logger.notice("🦜 VAD is disabled by user setting. Transcribing original audio.")
+            speechAudio = audioSamples
+        }
+        
+        // Validate audio data after VAD
+        guard speechAudio.count >= 16000 else {
+            logger.notice("🦜 Audio too short for transcription after VAD: \(speechAudio.count) samples")
             throw ASRError.invalidAudioData
         }
         
-        let result = try await asrManager.transcribe(audioSamples)
+        let result = try await asrManager.transcribe(speechAudio)
+        print(result.text)
         
         // Reset decoder state and cleanup after transcription to avoid blocking the transcription start
         Task {
@@ -91,10 +138,16 @@ class ParakeetTranscriptionService: TranscriptionService {
             logger.notice("🦜 Warning: Empty transcription result for \(audioSamples.count) samples - possible vocabulary issue")
         }
         
+        var text = result.text
+        
         if UserDefaults.standard.object(forKey: "IsTextFormattingEnabled") as? Bool ?? true {
-            return WhisperTextFormatter.format(result.text)
+            text = WhisperTextFormatter.format(text)
         }
-        return result.text
+        
+        // Apply hallucination and filler word filtering
+        text = WhisperHallucinationFilter.filter(text)
+        
+        return text
     }
 
     private func readAudioSamples(from url: URL) throws -> [Float] {
