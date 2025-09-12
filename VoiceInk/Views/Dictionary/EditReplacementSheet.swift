@@ -1,8 +1,5 @@
 import SwiftUI
-
-/// A reusable sheet for editing an existing word replacement entry.
-/// Mirrors the UI of `AddReplacementSheet` for consistency while pre-populating
-/// the fields with the existing values.
+// Edit existing word replacement entry
 struct EditReplacementSheet: View {
     @ObservedObject var manager: WordReplacementManager
     let originalKey: String
@@ -84,8 +81,9 @@ struct EditReplacementSheet: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                TextField("Enter word or phrase to replace", text: $originalWord)
+                TextField("Enter word or phrase to replace (use commas for multiple)", text: $originalWord)
                     .textFieldStyle(.roundedBorder)
+                
             }
             .padding(.horizontal)
 
@@ -117,7 +115,12 @@ struct EditReplacementSheet: View {
     private func saveChanges() {
         let newOriginal = originalWord.trimmingCharacters(in: .whitespacesAndNewlines)
         let newReplacement = replacementWord.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !newOriginal.isEmpty, !newReplacement.isEmpty else { return }
+        // Ensure at least one non-empty token
+        let tokens = newOriginal
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard !tokens.isEmpty, !newReplacement.isEmpty else { return }
 
         manager.updateReplacement(oldOriginal: originalKey, newOriginal: newOriginal, newReplacement: newReplacement)
         dismiss()

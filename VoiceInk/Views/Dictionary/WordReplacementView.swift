@@ -23,7 +23,15 @@ class WordReplacementManager: ObservableObject {
     }
     
     func addReplacement(original: String, replacement: String) {
-        replacements[original] = replacement
+        // Support comma-separated originals mapping to the same replacement
+        let tokens = original
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard !tokens.isEmpty else { return }
+        for token in tokens {
+            replacements[token] = replacement
+        }
     }
     
     func removeReplacement(original: String) {
@@ -31,12 +39,18 @@ class WordReplacementManager: ObservableObject {
     }
     
     func updateReplacement(oldOriginal: String, newOriginal: String, newReplacement: String) {
-        // Remove the old key if the original text has changed
-        if oldOriginal != newOriginal {
-            replacements.removeValue(forKey: oldOriginal)
+        // Always remove the old key being edited
+        replacements.removeValue(forKey: oldOriginal)
+        
+        // Add one or more new keys (comma-separated) pointing to the same replacement
+        let tokens = newOriginal
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard !tokens.isEmpty else { return }
+        for token in tokens {
+            replacements[token] = newReplacement
         }
-        // Update (or insert) the new key/value pair
-        replacements[newOriginal] = newReplacement
     }
 }
 
@@ -142,7 +156,7 @@ struct EmptyStateView: View {
             Text("No Replacements")
                 .font(.headline)
             
-            Text("Add word replacements to automatically replace text during AI enhancement.")
+            Text("Add word replacements to automatically replace text.")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -221,9 +235,12 @@ struct AddReplacementSheet: View {
                                     .foregroundColor(.secondary)
                             }
                             
-                            TextField("Enter word or phrase to replace", text: $originalWord)
+                            TextField("Enter word or phrase to replace (use commas for multiple)", text: $originalWord)
                                 .textFieldStyle(.roundedBorder)
                                 .font(.body)
+                            Text("Separate multiple originals with commas, e.g. Voicing, Voice ink, Voiceing")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                         .padding(.horizontal)
                         
@@ -297,7 +314,12 @@ struct AddReplacementSheet: View {
         let original = originalWord
         let replacement = replacementWord
         
-        guard !original.isEmpty && !replacement.isEmpty else { return }
+        // Validate that at least one non-empty token exists
+        let tokens = original
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard !tokens.isEmpty && !replacement.isEmpty else { return }
         
         manager.addReplacement(original: original, replacement: replacement)
         dismiss()

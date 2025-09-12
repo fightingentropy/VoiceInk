@@ -15,12 +15,10 @@ class WordReplacementService {
         
         // Apply replacements (case-insensitive)
         for (original, replacement) in replacements {
-            let isPhrase = original.contains(" ") || original.trimmingCharacters(in: .whitespacesAndNewlines) != original
+            let usesBoundaries = usesWordBoundaries(for: original)
 
-            if isPhrase || !usesWordBoundaries(for: original) {
-                modifiedText = modifiedText.replacingOccurrences(of: original, with: replacement, options: .caseInsensitive)
-            } else {
-                // Use word boundaries for spaced languages
+            if usesBoundaries {
+                // Word-boundary regex for full original string
                 let pattern = "\\b\(NSRegularExpression.escapedPattern(for: original))\\b"
                 if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
                     let range = NSRange(modifiedText.startIndex..., in: modifiedText)
@@ -31,6 +29,9 @@ class WordReplacementService {
                         withTemplate: replacement
                     )
                 }
+            } else {
+                // Fallback substring replace for non-spaced scripts
+                modifiedText = modifiedText.replacingOccurrences(of: original, with: replacement, options: .caseInsensitive)
             }
         }
         
