@@ -202,7 +202,7 @@ struct AddReplacementSheet: View {
             ScrollView {
                 VStack(spacing: 20) {
                     // Description
-                    Text("Define a word or phrase to be automatically replaced during AI enhancement.")
+                    Text("Define a word or phrase to be automatically replaced.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
