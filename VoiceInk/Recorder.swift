@@ -76,15 +76,7 @@ class Recorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
         UserDefaults.standard.set(String(currentDeviceID), forKey: "lastUsedMicrophoneDeviceID")
         
         hasDetectedAudioInCurrentSession = false
-        
-        // Coordinate media control and system audio sequentially for better reliability
-        await playbackController.pauseMedia()
-        
-        // Small delay to allow media command to process before muting system audio
-        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
-        
-        _ = await mediaController.muteSystemAudio()
-        
+
         let deviceID = deviceManager.getCurrentDevice()
         if deviceID != 0 {
             do {
@@ -112,6 +104,12 @@ class Recorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
             if recorder?.record() == false {
                 logger.error("❌ Could not start recording")
                 throw RecorderError.couldNotStartRecording
+            }
+            
+            Task { [weak self] in
+                guard let self = self else { return }
+                await self.playbackController.pauseMedia()
+                _ = await self.mediaController.muteSystemAudio()
             }
             
             audioLevelCheckTask?.cancel()
