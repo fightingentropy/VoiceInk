@@ -128,6 +128,23 @@ struct SettingsView: View {
                             Spacer()
                         }
 
+                        // Paste Last Enhancement
+                        HStack(spacing: 12) {
+                            Text("Paste Last Enhancement")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.secondary)
+                            
+                            KeyboardShortcuts.Recorder(for: .pasteLastEnhancement)
+                                .controlSize(.small)
+                            
+                            InfoTip(
+                                title: "Paste Last Enhancement",
+                                message: "Shortcut for pasting the most recent AI-enhanced text. If no enhancement exists, nothing is pasted. If the enhancement failed, the error message is pasted."
+                            )
+                            
+                            Spacer()
+                        }
+
                         Divider()
 
                         // Middle-Click Toggle

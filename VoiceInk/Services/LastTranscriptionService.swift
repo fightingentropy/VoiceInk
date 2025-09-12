@@ -29,7 +29,7 @@ class LastTranscriptionService: ObservableObject {
             return
         }
         
-        let success = ClipboardManager.copyToClipboard(lastTranscription.enhancedText?.isEmpty == false ? lastTranscription.enhancedText! : lastTranscription.text)
+        let success = ClipboardManager.copyToClipboard(lastTranscription.text)
         
         Task { @MainActor in
             if success {
@@ -57,17 +57,34 @@ class LastTranscriptionService: ObservableObject {
             return
         }
         
-        // Use enhanced text if available and not empty, otherwise use original text
-        let textToPaste: String
-        if let enhancedText = lastTranscription.enhancedText, !enhancedText.isEmpty {
-            textToPaste = enhancedText
-        } else {
-            textToPaste = lastTranscription.text
-        }
+        let textToPaste = lastTranscription.text
         
         // Delay to give the user time to release modifier keys (especially Control)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             CursorPaster.pasteAtCursor(textToPaste + " ")
+        }
+    }
+    
+    static func pasteLastEnhancement(from modelContext: ModelContext) {
+        guard let lastTranscription = getLastTranscription(from: modelContext) else {
+            Task { @MainActor in
+                NotificationManager.shared.showNotification(
+                    title: "No transcription available",
+                    type: .error
+                )
+            }
+            return
+        }
+        
+        // Only paste if enhancement exists; this includes actual enhancement text or an error message saved in enhancedText.
+        guard let enhancedText = lastTranscription.enhancedText, !enhancedText.isEmpty else {
+            // Per requirements, do nothing when there is no enhancement.
+            return
+        }
+        
+        // Delay to allow modifier keys to be released
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            CursorPaster.pasteAtCursor(enhancedText + " ")
         }
     }
     
@@ -111,4 +128,4 @@ class LastTranscriptionService: ObservableObject {
             }
         }
     }
-} 
+}
