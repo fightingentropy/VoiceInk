@@ -12,8 +12,8 @@
 
                 <h3>What's New in Version 1.55 🚀</h3>
                 <ul>
-                    <li>Added support for reordering Enhancement prompts</li>
-                    <li>Added Open With VoiceInk support for file-based transcription</li>
+                    <li>Added support for reordering Enhancement prompts – @gdmka</li>
+                    <li>Added Open With VoiceInk support for file-based transcription – @gdmka</li>
                     <li>Fixed the truncation issues with Parakeet V3</li>
                     <li>Keyboard shortcut for pasting last transcript – @gdmka</li>
                     <li>Fixed delay issues with recording</li>
