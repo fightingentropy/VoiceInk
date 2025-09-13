@@ -3,27 +3,25 @@
     <channel>
         <title>VoiceInk Releases</title>
         <item>
-            <title>1.53</title>
-            <pubDate>Sat, 1 Sep 2025 12:20:00 +0545</pubDate>
-            <sparkle:version>154</sparkle:version>
-            <sparkle:shortVersionString>1.53</sparkle:shortVersionString>
+            <title>1.55</title>
+            <pubDate>Sat, 13 Sep 2025 12:20:00 +0545</pubDate>
+            <sparkle:version>155</sparkle:version>
+            <sparkle:shortVersionString>1.55</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 
-                <h3>What's New in Version 1.53 🚀</h3>
+                <h3>What's New in Version 1.55 🚀</h3>
                 <ul>
-                    <li>Added AI model switcher to the menu bar</li>
-                    <li>Added an option to reorder power mode</li>
-                    <li>Added trailing space settings for CJK languages</li>
-                    <li>Add prompt details used during enhancement in history</li>
-                    <li>Fix memory issues with Perl</li>
-                    <li>Add a setting to disable auto update checks – @vaygr</li>
-                    <li>Implement Hover-to-Show Popovers for Recorder Controls – @gdmka</li>
-                    <li>Add mouse middle-Click to Toggle Recording – @gdmka</li>
+                    <li>Added support for reordering Enhancement prompts</li>
+                    <li>Added Open With VoiceInk support for file-based transcription</li>
+                    <li>Fixed the truncation issues with Parakeet V3</li>
+                    <li>Keyboard shortcut for pasting last transcript – @gdmka</li>
+                    <li>Fixed delay issues with recording</li>
+                    <li>Support for comma separated values for Word replacement</li>
               </ul> 
                 
             ]]></description>
-           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.53/VoiceInk.dmg" length="9415783" type="application/octet-stream" sparkle:edSignature="0VhMPxvoSO53H8/8PhYuJRE4uSl3Wj5Fr8bAniXlyQEud68rxCc7qG4UsRWZYX96X3WJLQuNuFITkf+wk5RJBg=="/>
+           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.55/VoiceInk.dmg" length="9468176" type="application/octet-stream" sparkle:edSignature="CmUEdYc6H8L7CjK/XD8z4cXrf4wQouOgzUJuMA6GmR31U+ylbw4kxDEEOrF1DDdsSI0bXE2hAFnO7NhjWk4PCg=="/>
         </item>
     </channel>
 </rss>
