@@ -124,6 +124,7 @@ class AudioTranscriptionManager: ObservableObject {
                    enhancementService.isConfigured {
                     processingPhase = .enhancing
                     do {
+                        // inside the enhancement success path where transcription is created
                         let (enhancedText, enhancementDuration, promptName) = try await enhancementService.enhance(text)
                         let transcription = Transcription(
                             text: text,
@@ -134,7 +135,9 @@ class AudioTranscriptionManager: ObservableObject {
                             aiEnhancementModelName: enhancementService.getAIService()?.currentModel,
                             promptName: promptName,
                             transcriptionDuration: transcriptionDuration,
-                            enhancementDuration: enhancementDuration
+                            enhancementDuration: enhancementDuration,
+                            aiRequestSystemMessage: enhancementService.lastSystemMessageSent,
+                            aiRequestUserMessage: enhancementService.lastUserMessageSent
                         )
                         modelContext.insert(transcription)
                         try modelContext.save()
@@ -211,4 +214,4 @@ enum TranscriptionError: Error, LocalizedError {
             return "Transcription was cancelled"
         }
     }
-} 
+}
