@@ -7,6 +7,7 @@ extension KeyboardShortcuts.Name {
     static let toggleMiniRecorder = Self("toggleMiniRecorder")
     static let toggleMiniRecorder2 = Self("toggleMiniRecorder2")
     static let pasteLastTranscription = Self("pasteLastTranscription")
+    static let pasteLastEnhancement = Self("pasteLastEnhancement")
     static let retryLastTranscription = Self("retryLastTranscription")
 }
 
@@ -434,5 +435,3 @@ class HotkeyManager: ObservableObject {
         }
     }
 }
-
-
