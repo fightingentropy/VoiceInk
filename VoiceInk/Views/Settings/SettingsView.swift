@@ -76,7 +76,7 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 18) {
                         // Paste Last Transcript (Original)
                         HStack(spacing: 12) {
-                            Text("Paste Last Transcript (Original)")
+                            Text("Paste Last Transcript(Original)")
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.secondary)
                             
@@ -101,7 +101,7 @@ struct SettingsView: View {
                                 .controlSize(.small)
                             
                             InfoTip(
-                                title: "Paste Last Transcript (Enhanced)",
+                                title: "Paste Last Transcript(Enhanced)",
                                 message: "Shortcut for pasting the most recent transcript(enhanced). If no enhancement exists, nothing is pasted. If the enhancement failed, the error message is pasted."
                             )
                             
