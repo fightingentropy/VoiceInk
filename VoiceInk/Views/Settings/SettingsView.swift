@@ -74,9 +74,9 @@ struct SettingsView: View {
                     subtitle: "Additional shortcuts for VoiceInk"
                 ) {
                     VStack(alignment: .leading, spacing: 18) {
-                        // Paste Last Transcription
+                        // Paste Last Transcript (Original)
                         HStack(spacing: 12) {
-                            Text("Paste Last Transcription")
+                            Text("Paste Last Transcript (Original)")
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.secondary)
                             
@@ -84,16 +84,16 @@ struct SettingsView: View {
                                 .controlSize(.small)
                             
                             InfoTip(
-                                title: "Paste Last Transcription",
-                                message: "Shortcut for pasting the most recent transcription at current cursor position."
+                                title: "Paste Last Transcript(Original)",
+                                message: "Shortcut for pasting the most recent transcription."
                             )
                             
                             Spacer()
                         }
 
-                        // Paste Last Enhancement
+                        // Paste Last Transcript (Enhanced)
                         HStack(spacing: 12) {
-                            Text("Paste Last Enhancement")
+                            Text("Paste Last Transcript(Enhanced)")
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.secondary)
                             
@@ -101,15 +101,14 @@ struct SettingsView: View {
                                 .controlSize(.small)
                             
                             InfoTip(
-                                title: "Paste Last Enhancement",
-                                message: "Shortcut for pasting the most recent AI-enhanced text. If no enhancement exists, nothing is pasted. If the enhancement failed, the error message is pasted."
+                                title: "Paste Last Transcript (Enhanced)",
+                                message: "Shortcut for pasting the most recent transcript(enhanced). If no enhancement exists, nothing is pasted. If the enhancement failed, the error message is pasted."
                             )
                             
                             Spacer()
                         }
 
-                        // Add separator after Paste Last Enhancement
-                        Divider()
+                        
 
                         // Retry Last Transcription
                         HStack(spacing: 12) {
