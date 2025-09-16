@@ -60,6 +60,7 @@ class AudioTranscriptionService: ObservableObject {
             }
             
             let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
+            text = WhisperHallucinationFilter.filter(text)
             text = text.trimmingCharacters(in: .whitespacesAndNewlines)
             
             // Apply word replacements if enabled

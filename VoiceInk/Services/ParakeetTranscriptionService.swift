@@ -144,9 +144,6 @@ class ParakeetTranscriptionService: TranscriptionService {
             text = WhisperTextFormatter.format(text)
         }
         
-        // Apply hallucination and filler word filtering
-        text = WhisperHallucinationFilter.filter(text)
-        
         return text
     }
 
