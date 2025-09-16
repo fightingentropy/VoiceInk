@@ -29,7 +29,16 @@ class LastTranscriptionService: ObservableObject {
             return
         }
         
-        let success = ClipboardManager.copyToClipboard(lastTranscription.text)
+        // Prefer enhanced text; fallback to original text
+        let textToCopy: String = {
+            if let enhancedText = lastTranscription.enhancedText, !enhancedText.isEmpty {
+                return enhancedText
+            } else {
+                return lastTranscription.text
+            }
+        }()
+        
+        let success = ClipboardManager.copyToClipboard(textToCopy)
         
         Task { @MainActor in
             if success {
@@ -76,15 +85,18 @@ class LastTranscriptionService: ObservableObject {
             return
         }
         
-        // Only paste if enhancement exists; this includes actual enhancement text or an error message saved in enhancedText.
-        guard let enhancedText = lastTranscription.enhancedText, !enhancedText.isEmpty else {
-            // Per requirements, do nothing when there is no enhancement.
-            return
-        }
-        
+        // Prefer enhanced text; if unavailable, fallback to original text (which may contain an error message)
+        let textToPaste: String = {
+            if let enhancedText = lastTranscription.enhancedText, !enhancedText.isEmpty {
+                return enhancedText
+            } else {
+                return lastTranscription.text
+            }
+        }()
+
         // Delay to allow modifier keys to be released
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            CursorPaster.pasteAtCursor(enhancedText + " ")
+            CursorPaster.pasteAtCursor(textToPaste + " ")
         }
     }
     

@@ -102,7 +102,7 @@ struct SettingsView: View {
                             
                             InfoTip(
                                 title: "Paste Last Transcript(Enhanced)",
-                                message: "Shortcut for pasting the most recent transcript(enhanced). If no enhancement exists, nothing is pasted. If the enhancement failed, the error message is pasted."
+                                message: "Pastes the enhanced transcript if available, otherwise falls back to the original."
                             )
                             
                             Spacer()
