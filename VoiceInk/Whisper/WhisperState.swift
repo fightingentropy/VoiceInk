@@ -298,17 +298,19 @@ class WhisperState: NSObject, ObservableObject {
                     await MainActor.run { self.recordingState = .enhancing }
                     let textForAI = promptDetectionResult?.processedText ?? text
                     let (enhancedText, enhancementDuration, promptName) = try await enhancementService.enhance(textForAI)
-                    let newTranscription = Transcription(
-                        text: originalText,
-                        duration: actualDuration,
-                        enhancedText: enhancedText,
-                        audioFileURL: url.absoluteString,
-                        transcriptionModelName: model.displayName,
-                        aiEnhancementModelName: enhancementService.getAIService()?.currentModel,
-                        promptName: promptName,
-                        transcriptionDuration: transcriptionDuration,
-                        enhancementDuration: enhancementDuration
-                    )
+        let newTranscription = Transcription(
+            text: originalText,
+            duration: actualDuration,
+            enhancedText: enhancedText,
+            audioFileURL: url.absoluteString,
+            transcriptionModelName: model.displayName,
+            aiEnhancementModelName: enhancementService.getAIService()?.currentModel,
+            promptName: promptName,
+            transcriptionDuration: transcriptionDuration,
+            enhancementDuration: enhancementDuration,
+            aiRequestSystemMessage: enhancementService.lastSystemMessageSent,
+            aiRequestUserMessage: enhancementService.lastUserMessageSent
+        )
                     modelContext.insert(newTranscription)
                     try? modelContext.save()
                     NotificationCenter.default.post(name: .transcriptionCreated, object: newTranscription)

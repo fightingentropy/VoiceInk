@@ -95,8 +95,8 @@ class AudioTranscriptionService: ObservableObject {
                enhancementService.isEnhancementEnabled,
                enhancementService.isConfigured {
                 do {
+                    // inside the enhancement success path where newTranscription is created
                     let (enhancedText, enhancementDuration, promptName) = try await enhancementService.enhance(text)
-                    
                     let newTranscription = Transcription(
                         text: text,
                         duration: duration,
@@ -106,7 +106,9 @@ class AudioTranscriptionService: ObservableObject {
                         aiEnhancementModelName: enhancementService.getAIService()?.currentModel,
                         promptName: promptName,
                         transcriptionDuration: transcriptionDuration,
-                        enhancementDuration: enhancementDuration
+                        enhancementDuration: enhancementDuration,
+                        aiRequestSystemMessage: enhancementService.lastSystemMessageSent,
+                        aiRequestUserMessage: enhancementService.lastUserMessageSent
                     )
                     modelContext.insert(newTranscription)
                     do {
