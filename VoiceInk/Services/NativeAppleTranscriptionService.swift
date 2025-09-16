@@ -112,9 +112,7 @@ class NativeAppleTranscriptionService: TranscriptionService {
             throw ServiceError.localeNotSupported
         }
         
-        // Properly manage asset allocation/deallocation
-        try await deallocateExistingAssets()
-        try await allocateAssetsForLocale(locale)
+        // Asset reservations are managed automatically by the system.
         
         let transcriber = SpeechTranscriber(
             locale: locale,
@@ -149,29 +147,7 @@ class NativeAppleTranscriptionService: TranscriptionService {
         #endif
     }
     
-    @available(macOS 26, *)
-    private func deallocateExistingAssets() async throws {
-        #if canImport(Speech) && ENABLE_NATIVE_SPEECH_ANALYZER
-        // Deallocate any existing allocated locales to avoid conflicts
-        for locale in await AssetInventory.allocatedLocales {
-            await AssetInventory.deallocate(locale: locale)
-        }
-        logger.notice("Deallocated existing asset locales.")
-        #endif
-    }
     
-    @available(macOS 26, *)
-    private func allocateAssetsForLocale(_ locale: Locale) async throws {
-        #if canImport(Speech) && ENABLE_NATIVE_SPEECH_ANALYZER
-        do {
-            try await AssetInventory.allocate(locale: locale)
-            logger.notice("Successfully allocated assets for locale: '\(locale.identifier(.bcp47))'")
-        } catch {
-            logger.error("Failed to allocate assets for locale '\(locale.identifier(.bcp47))': \(error.localizedDescription)")
-            throw ServiceError.assetAllocationFailed
-        }
-        #endif
-    }
     
     // Forward-compatibility: Use Any here because SpeechTranscriber is only available in future macOS SDKs.
     // This avoids referencing an unavailable SDK symbol while keeping the method shape for later adoption.
