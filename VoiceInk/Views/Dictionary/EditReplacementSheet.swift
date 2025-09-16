@@ -114,7 +114,7 @@ struct EditReplacementSheet: View {
     // MARK: – Actions
     private func saveChanges() {
         let newOriginal = originalWord.trimmingCharacters(in: .whitespacesAndNewlines)
-        let newReplacement = replacementWord.trimmingCharacters(in: .whitespacesAndNewlines)
+        let newReplacement = replacementWord
         // Ensure at least one non-empty token
         let tokens = newOriginal
             .split(separator: ",")
