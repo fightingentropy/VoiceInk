@@ -12,29 +12,33 @@ class SoundManager {
     @AppStorage("isSoundFeedbackEnabled") private var isSoundFeedbackEnabled = true
     
     private init() {
-        setupSounds()
+        Task(priority: .background) {
+            await setupSounds()
+        }
     }
     
-    private func setupSounds() {
+    private func setupSounds() async {
         // Try loading directly from the main bundle
         if let startSoundURL = Bundle.main.url(forResource: "recstart", withExtension: "mp3"),
            let stopSoundURL = Bundle.main.url(forResource: "recstop", withExtension: "mp3"),
            let escSoundURL = Bundle.main.url(forResource: "esc", withExtension: "wav") {
-            try? loadSounds(start: startSoundURL, stop: stopSoundURL, esc: escSoundURL)
+            try? await loadSounds(start: startSoundURL, stop: stopSoundURL, esc: escSoundURL)
             return
         }
     }
     
-    private func loadSounds(start startURL: URL, stop stopURL: URL, esc escURL: URL) throws {
+    private func loadSounds(start startURL: URL, stop stopURL: URL, esc escURL: URL) async throws {
         do {
             startSound = try AVAudioPlayer(contentsOf: startURL)
             stopSound = try AVAudioPlayer(contentsOf: stopURL)
             escSound = try AVAudioPlayer(contentsOf: escURL)
             
             // Prepare sounds for instant playback first
-            startSound?.prepareToPlay()
-            stopSound?.prepareToPlay()
-            escSound?.prepareToPlay()
+            await MainActor.run {
+                startSound?.prepareToPlay()
+                stopSound?.prepareToPlay()
+                escSound?.prepareToPlay()
+            }
             
             // Set lower volume for all sounds after preparation
             startSound?.volume = 0.4

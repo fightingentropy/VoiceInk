@@ -59,7 +59,7 @@ class HotkeyManager: ObservableObject {
     // Key state tracking
     private var currentKeyState = false
     private var keyPressStartTime: Date?
-    private let briefPressThreshold = 0.8
+    private let briefPressThreshold = 1.7
     private var isHandsFreeMode = false
     
     // Debounce for Fn key
