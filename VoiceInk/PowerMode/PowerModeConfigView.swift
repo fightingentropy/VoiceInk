@@ -613,12 +613,22 @@ struct ConfigurationView: View {
                     .background(CardBackground(isSelected: false))
                     .padding(.horizontal)
                     
-                    VoiceInkButton(
-                        title: mode.isAdding ? "Add New Power Mode" : "Save Changes",
-                        action: saveConfiguration,
-                        isDisabled: !canSave
-                    )
-                    .frame(maxWidth: .infinity)
+                    HStack {
+                        Spacer()
+                        Button(action: saveConfiguration) {
+                            Text(mode.isAdding ? "Add New Power Mode" : "Save Changes")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(canSave ? .green : .green.opacity(0.5))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(!canSave)
+                    }
                     .padding(.horizontal)
                 }
                 .padding(.vertical)
