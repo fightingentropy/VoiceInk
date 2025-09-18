@@ -12,7 +12,7 @@ struct WhisperHallucinationFilter {
 
     private static let fillerWords = [
         "uh", "um", "uhm", "umm", "uhh", "uhhh", "er", "ah", "eh",
-        "hmm", "hm", "h", "m", "mmm", "mm", "mh", "ha", "ehh"
+        "hmm", "hm", "mmm", "mm", "mh", "ha", "ehh"
     ]
     static func filter(_ text: String) -> String {
         logger.notice("🧹 Filtering hallucinations and filler words")
