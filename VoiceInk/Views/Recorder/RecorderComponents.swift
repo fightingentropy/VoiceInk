@@ -3,18 +3,14 @@ import SwiftUI
 // MARK: - Hover Interaction Manager
 class HoverInteraction: ObservableObject {
     @Published var isHovered: Bool = false
-    private var timer: Timer?
 
-    func setHover(on: Bool, delay: TimeInterval = 0.1) {
+    func setHover(on: Bool) {
         if on {
-            timer?.invalidate()
             if !isHovered {
                 isHovered = true
             }
         } else {
-            timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
-                self?.isHovered = false
-            }
+            isHovered = false
         }
     }
 }
