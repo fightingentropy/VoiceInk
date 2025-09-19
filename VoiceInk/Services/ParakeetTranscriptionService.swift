@@ -1,4 +1,5 @@
 import Foundation
+import CoreML
 import AVFoundation
 import FluidAudio
 import os.log
@@ -7,10 +8,9 @@ import os.log
 
 class ParakeetTranscriptionService: TranscriptionService {
     private var asrManager: AsrManager?
+    private var vadManager: VadManager?
     private let customModelsDirectory: URL?
     @Published var isModelLoaded = false
-    
-    // Logger for Parakeet transcription service
     private let logger = Logger(subsystem: "com.voiceink.app", category: "ParakeetTranscriptionService")
     
     init(customModelsDirectory: URL? = nil) {
@@ -21,8 +21,6 @@ class ParakeetTranscriptionService: TranscriptionService {
         if isModelLoaded {
             return
         }
-
-		
         
         do {
          
@@ -30,10 +28,11 @@ class ParakeetTranscriptionService: TranscriptionService {
             let models: AsrModels
 			if let customDirectory = customModelsDirectory {
 				logger.notice("🦜 Loading Parakeet models from: \(customDirectory.path)")
-				models = try await AsrModels.downloadAndLoad(to: customDirectory)
+				models = try await AsrModels.load(from: customDirectory)
 			} else {
 				logger.notice("🦜 Loading Parakeet models from default directory")
-				models = try await AsrModels.downloadAndLoad()
+				let defaultDir = AsrModels.defaultCacheDirectory()
+				models = try await AsrModels.load(from: defaultDir)
 			}
             
             try await asrManager?.initialize(models: models)
@@ -60,13 +59,43 @@ class ParakeetTranscriptionService: TranscriptionService {
         
         let audioSamples = try readAudioSamples(from: audioURL)
 
-        // Use full audio for transcription
-        let speechAudio: [Float] = audioSamples
+        let sampleRate = 16000.0
+        let durationSeconds = Double(audioSamples.count) / sampleRate
+
+        let speechAudio: [Float]
+        if durationSeconds < 20.0 {
+            speechAudio = audioSamples
+        } else {
+            let vadConfig = VadConfig(threshold: 0.7)
+            if vadManager == nil {
+                if let bundledVadURL = Bundle.main.url(forResource: ModelNames.VAD.sileroVad, withExtension: "mlmodelc") {
+                    do {
+                        let bundledModel = try MLModel(contentsOf: bundledVadURL)
+                        vadManager = VadManager(config: vadConfig, vadModel: bundledModel)
+                    } catch {
+                    }
+                } else {
+                }
+            }
+
+            do {
+                if let vadManager {
+                    let segments = try await vadManager.segmentSpeechAudio(audioSamples)
+                    if segments.isEmpty {
+                        speechAudio = audioSamples
+                    } else {
+                        speechAudio = segments.flatMap { $0 }
+                    }
+                } else {
+                    speechAudio = audioSamples
+                }
+            } catch {
+                speechAudio = audioSamples
+            }
+        }
 
         let result = try await asrManager.transcribe(speechAudio)
 		
-        
-        // Reset decoder state and cleanup after transcription to avoid blocking the transcription start
 		Task {
 			asrManager.cleanup()
 			isModelLoaded = false
@@ -81,8 +110,6 @@ class ParakeetTranscriptionService: TranscriptionService {
     private func readAudioSamples(from url: URL) throws -> [Float] {
         do {
             let data = try Data(contentsOf: url)
-            
-			// Check minimum file size for valid WAV header
 			guard data.count > 44 else {
 				throw ASRError.invalidAudioData
 			}
