@@ -139,11 +139,7 @@ class ParakeetTranscriptionService: TranscriptionService {
         }
         
         var text = result.text
-        
-        if UserDefaults.standard.object(forKey: "IsTextFormattingEnabled") as? Bool ?? true {
-            text = WhisperTextFormatter.format(text)
-        }
-        
+
         return text
     }
 

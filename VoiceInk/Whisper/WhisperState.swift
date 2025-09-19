@@ -274,7 +274,11 @@ class WhisperState: NSObject, ObservableObject {
             if await checkCancellationAndCleanup() { return }
             
             text = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            
+
+            if UserDefaults.standard.object(forKey: "IsTextFormattingEnabled") as? Bool ?? true {
+                text = WhisperTextFormatter.format(text)
+            }
+
             if UserDefaults.standard.bool(forKey: "IsWordReplacementEnabled") {
                 text = WordReplacementService.shared.applyReplacements(to: text)
             }

@@ -70,11 +70,7 @@ class LocalTranscriptionService: TranscriptionService {
         }
         
         var text = await whisperContext.getTranscription()
-        
-        if UserDefaults.standard.object(forKey: "IsTextFormattingEnabled") as? Bool ?? true {
-            text = WhisperTextFormatter.format(text)
-        }
-        
+
         logger.notice("✅ Local transcription completed successfully.")
         
         // Only release resources if we created a new context (not using the shared one)
