@@ -21,30 +21,17 @@ class ParakeetTranscriptionService: TranscriptionService {
         if isModelLoaded {
             return
         }
-        
-        do {
-         
-            asrManager = AsrManager(config: .default) 
-            let models: AsrModels
-			if let customDirectory = customModelsDirectory {
-				logger.notice("🦜 Loading Parakeet models from: \(customDirectory.path)")
-				models = try await AsrModels.load(from: customDirectory)
-			} else {
-				logger.notice("🦜 Loading Parakeet models from default directory")
-				let defaultDir = AsrModels.defaultCacheDirectory()
-				models = try await AsrModels.load(from: defaultDir)
-			}
-            
-            try await asrManager?.initialize(models: models)
-			isModelLoaded = true
-			logger.notice("🦜 Parakeet model loaded successfully")
-            
-		} catch {
-            let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            logger.error("🦜 Failed to load Parakeet model: \(description)")
-            isModelLoaded = false
-            asrManager = nil
-            throw error
+
+        if let customModelsDirectory {
+            do {
+                asrManager = AsrManager(config: .default)
+                let models = try await AsrModels.load(from: customModelsDirectory)
+                try await asrManager?.initialize(models: models)
+                isModelLoaded = true
+            } catch {
+                isModelLoaded = false
+                asrManager = nil
+            }
         }
     }
 
@@ -59,22 +46,23 @@ class ParakeetTranscriptionService: TranscriptionService {
         
         let audioSamples = try readAudioSamples(from: audioURL)
 
-        let sampleRate = 16000.0
-        let durationSeconds = Double(audioSamples.count) / sampleRate
+        let durationSeconds = Double(audioSamples.count) / 16000.0
+
+        let isVADEnabled = UserDefaults.standard.object(forKey: "IsVADEnabled") as? Bool ?? true
 
         let speechAudio: [Float]
-        if durationSeconds < 20.0 {
+        if durationSeconds < 20.0 || !isVADEnabled {
             speechAudio = audioSamples
         } else {
             let vadConfig = VadConfig(threshold: 0.7)
-            if vadManager == nil {
-                if let bundledVadURL = Bundle.main.url(forResource: ModelNames.VAD.sileroVad, withExtension: "mlmodelc") {
-                    do {
-                        let bundledModel = try MLModel(contentsOf: bundledVadURL)
-                        vadManager = VadManager(config: vadConfig, vadModel: bundledModel)
-                    } catch {
-                    }
-                } else {
+            if vadManager == nil, let customModelsDirectory {
+                do {
+                    vadManager = try await VadManager(
+                        config: vadConfig,
+                        modelDirectory: customModelsDirectory.deletingLastPathComponent()
+                    )
+                } catch {
+                    // Silent failure
                 }
             }
 

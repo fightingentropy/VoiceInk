@@ -33,6 +33,14 @@ extension WhisperState {
 
         do {
             _ = try await AsrModels.downloadAndLoad(to: parakeetModelsDirectory)
+
+            // Also download VAD model into the same parent directory as ASR models
+            let parentDir = parakeetModelsDirectory.deletingLastPathComponent()
+            _ = try await DownloadUtils.loadModels(
+                .vad,
+                modelNames: Array(ModelNames.VAD.requiredModels),
+                directory: parentDir
+            )
             self.isParakeetModelDownloaded = true
             downloadProgress["parakeet-tdt-0.6b"] = 1.0
         } catch {
