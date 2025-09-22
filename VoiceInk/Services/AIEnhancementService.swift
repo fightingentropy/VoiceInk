@@ -134,7 +134,7 @@ class AIEnhancementService: ObservableObject {
     private func getSystemMessage(for mode: EnhancementPrompt) -> String {
         let clipboardSnapshot = NSPasteboard.general.string(forType: .string)
         let selectedText = SelectedTextService.fetchSelectedText()
-        
+
         if let activePrompt = activePrompt,
            activePrompt.id == PredefinedPrompts.assistantPromptId,
            let selectedText = selectedText, !selectedText.isEmpty {
