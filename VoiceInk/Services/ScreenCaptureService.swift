@@ -14,23 +14,20 @@ class ScreenCaptureService: ObservableObject {
     
     private func getActiveWindowInfo() -> (title: String, ownerName: String, windowID: CGWindowID)? {
         let windowListInfo = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
-        
-        // Find the frontmost window that isn't our own app
+
         if let frontWindow = windowListInfo.first(where: { info in
             let layer = info[kCGWindowLayer as String] as? Int32 ?? 0
-            let ownerName = info[kCGWindowOwnerName as String] as? String ?? ""
-            // Exclude our own app and system UI elements
-            return layer == 0 && ownerName != "VoiceInk" && !ownerName.contains("Dock") && !ownerName.contains("Menu Bar")
+            return layer == 0
         }) {
             guard let windowID = frontWindow[kCGWindowNumber as String] as? CGWindowID,
                   let ownerName = frontWindow[kCGWindowOwnerName as String] as? String,
                   let title = frontWindow[kCGWindowName as String] as? String else {
                 return nil
             }
-            
+
             return (title: title, ownerName: ownerName, windowID: windowID)
         }
-        
+
         return nil
     }
     
@@ -40,7 +37,6 @@ class ScreenCaptureService: ObservableObject {
             return captureFullScreen()
         }
         
-        // Capture the specific window
         let cgImage = CGWindowListCreateImage(
             .null,
             .optionIncludingWindow,
@@ -112,8 +108,7 @@ class ScreenCaptureService: ObservableObject {
                 completion(text)
             }
         }
-        
-        // Configure the recognition level
+
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = true
         
@@ -139,23 +134,20 @@ class ScreenCaptureService: ObservableObject {
         }
         
         logger.notice("🎬 Starting screen capture")
-        
-        // Get window info
+
         guard let windowInfo = getActiveWindowInfo() else {
             logger.notice("❌ Failed to get window info")
             return nil
         }
         
         logger.notice("🎯 Found window: \(windowInfo.title, privacy: .public) (\(windowInfo.ownerName, privacy: .public))")
-        
-        // Start with window metadata
+
         var contextText = """
         Active Window: \(windowInfo.title)
         Application: \(windowInfo.ownerName)
         
         """
-        
-        // Capture and process window content
+
         if let capturedImage = captureActiveWindow() {
             let extractedText = await withCheckedContinuation({ continuation in
                 extractText(from: capturedImage) { text in
