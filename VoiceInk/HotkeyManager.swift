@@ -117,22 +117,6 @@ class HotkeyManager: ObservableObject {
     }
     
     init(whisperState: WhisperState) {
-        // One-time migration from legacy single-hotkey settings
-        if UserDefaults.standard.object(forKey: "didMigrateHotkeys_v2") == nil {
-            // If legacy push-to-talk modifier key was enabled, carry it over
-            if UserDefaults.standard.bool(forKey: "isPushToTalkEnabled"),
-               let legacyRaw = UserDefaults.standard.string(forKey: "pushToTalkKey"),
-               let legacyKey = HotkeyOption(rawValue: legacyRaw) {
-                UserDefaults.standard.set(legacyKey.rawValue, forKey: "selectedHotkey1")
-            }
-            // If a custom shortcut existed, mark hotkey-1 as custom (shortcut itself already persisted)
-            if KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder) != nil {
-                UserDefaults.standard.set(HotkeyOption.custom.rawValue, forKey: "selectedHotkey1")
-            }
-            // Leave second hotkey as .none
-            UserDefaults.standard.set(true, forKey: "didMigrateHotkeys_v2")
-        }
-        // ---- normal initialisation ----
         self.selectedHotkey1 = HotkeyOption(rawValue: UserDefaults.standard.string(forKey: "selectedHotkey1") ?? "") ?? .rightCommand
         self.selectedHotkey2 = HotkeyOption(rawValue: UserDefaults.standard.string(forKey: "selectedHotkey2") ?? "") ?? .none
         

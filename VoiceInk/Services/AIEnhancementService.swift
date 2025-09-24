@@ -80,7 +80,12 @@ class AIEnhancementService: ObservableObject {
         self.useClipboardContext = UserDefaults.standard.bool(forKey: "useClipboardContext")
         self.useScreenCaptureContext = UserDefaults.standard.bool(forKey: "useScreenCaptureContext")
 
-        self.customPrompts = PromptMigrationService.migratePromptsIfNeeded()
+        if let savedPromptsData = UserDefaults.standard.data(forKey: "customPrompts"),
+           let decodedPrompts = try? JSONDecoder().decode([CustomPrompt].self, from: savedPromptsData) {
+            self.customPrompts = decodedPrompts
+        } else {
+            self.customPrompts = []
+        }
 
         if let savedPromptId = UserDefaults.standard.string(forKey: "selectedPromptId") {
             self.selectedPromptId = UUID(uuidString: savedPromptId)

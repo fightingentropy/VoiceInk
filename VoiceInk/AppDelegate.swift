@@ -5,7 +5,6 @@ import UniformTypeIdentifiers
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         updateActivationPolicy()
-        cleanupLegacyUserDefaults()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -45,12 +44,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func cleanupLegacyUserDefaults() {
-        let defaults = UserDefaults.standard
-        defaults.removeObject(forKey: "defaultPowerModeConfigV2")
-        defaults.removeObject(forKey: "isPowerModeEnabled")
-    }
-    
     // Stash URL when app cold-starts to avoid spawning a new window/tab
     var pendingOpenFileURL: URL?
     
