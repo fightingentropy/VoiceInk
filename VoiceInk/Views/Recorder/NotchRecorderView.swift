@@ -5,8 +5,7 @@ struct NotchRecorderView: View {
     @ObservedObject var recorder: Recorder
     @EnvironmentObject var windowManager: NotchWindowManager
     @State private var isHovering = false
-    @State private var showPowerModePopover = false
-    @State private var showEnhancementPromptPopover = false
+    @State private var activePopover: ActivePopoverState = .none
     @ObservedObject private var powerModeManager = PowerModeManager.shared
     
     @EnvironmentObject private var enhancementService: AIEnhancementService
@@ -32,19 +31,19 @@ struct NotchRecorderView: View {
     }
     
     private var leftSection: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             RecorderPromptButton(
-                showPopover: $showEnhancementPromptPopover,
+                activePopover: $activePopover,
                 buttonSize: 22,
                 padding: EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
             )
-            
+
             RecorderPowerModeButton(
-                showPopover: $showPowerModePopover,
+                activePopover: $activePopover,
                 buttonSize: 22,
                 padding: EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
             )
-            
+
             Spacer()
         }
         .frame(width: 84)

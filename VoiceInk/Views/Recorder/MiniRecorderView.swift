@@ -6,8 +6,7 @@ struct MiniRecorderView: View {
     @EnvironmentObject var windowManager: MiniWindowManager
     @EnvironmentObject private var enhancementService: AIEnhancementService
     
-    @State private var showPowerModePopover = false
-    @State private var showEnhancementPromptPopover = false
+    @State private var activePopover: ActivePopoverState = .none
     
     private var backgroundView: some View {
         ZStack {
@@ -36,19 +35,19 @@ struct MiniRecorderView: View {
     private var contentLayout: some View {
         HStack(spacing: 0) {
             // Left button zone - always visible
-            RecorderPromptButton(showPopover: $showEnhancementPromptPopover)
+            RecorderPromptButton(activePopover: $activePopover)
                 .padding(.leading, 7)
-            
+
             Spacer()
-            
+
             // Fixed visualizer zone
             statusView
                 .frame(maxWidth: .infinity)
-            
+
             Spacer()
-            
+
             // Right button zone - always visible
-            RecorderPowerModeButton(showPopover: $showPowerModePopover)
+            RecorderPowerModeButton(activePopover: $activePopover)
                 .padding(.trailing, 7)
         }
         .padding(.vertical, 9)

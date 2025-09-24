@@ -77,12 +77,12 @@ struct PowerModeRow: View {
             HStack(spacing: 8) {
                 Text(config.emoji)
                     .font(.system(size: 14))
-                
+
                 Text(config.name)
                     .foregroundColor(.white.opacity(0.9))
                     .font(.system(size: 13))
                     .lineLimit(1)
-                
+
                 if isSelected {
                     Spacer()
                     Image(systemName: "checkmark")
@@ -90,9 +90,10 @@ struct PowerModeRow: View {
                         .font(.system(size: 10))
                 }
             }
-            .contentShape(Rectangle())
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 4)
             .padding(.horizontal, 8)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .background(isSelected ? Color.white.opacity(0.1) : Color.clear)

@@ -1,5 +1,12 @@
 import SwiftUI
 
+// MARK: - Shared Popover State
+enum ActivePopoverState {
+    case none
+    case enhancement
+    case power
+}
+
 // MARK: - Hover Interaction Manager
 class HoverInteraction: ObservableObject {
     @Published var isHovered: Bool = false
@@ -144,13 +151,15 @@ struct ProgressAnimation: View {
 // MARK: - Prompt Button Component
 struct RecorderPromptButton: View {
     @EnvironmentObject private var enhancementService: AIEnhancementService
-    @Binding var showPopover: Bool
+    @Binding var activePopover: ActivePopoverState
     let buttonSize: CGFloat
     let padding: EdgeInsets
-    @StateObject private var hoverInteraction = HoverInteraction()
+    @State private var isHoveringEnhancement: Bool = false
+    @State private var isHoveringEnhancementPopover: Bool = false
+    @State private var enhancementDismissWorkItem: DispatchWorkItem?
 
-    init(showPopover: Binding<Bool>, buttonSize: CGFloat = 28, padding: EdgeInsets = EdgeInsets(top: 0, leading: 7, bottom: 0, trailing: 0)) {
-        self._showPopover = showPopover
+    init(activePopover: Binding<ActivePopoverState>, buttonSize: CGFloat = 28, padding: EdgeInsets = EdgeInsets(top: 0, leading: 7, bottom: 0, trailing: 0)) {
+        self._activePopover = activePopover
         self.buttonSize = buttonSize
         self.padding = padding
     }
@@ -163,23 +172,42 @@ struct RecorderPromptButton: View {
             disabled: false
         ) {
             if enhancementService.isEnhancementEnabled {
-                showPopover.toggle()
+                activePopover = activePopover == .enhancement ? .none : .enhancement
             } else {
                 enhancementService.isEnhancementEnabled = true
             }
         }
         .frame(width: buttonSize)
         .padding(padding)
-        .onHover { hoverInteraction.setHover(on: $0) }
-        .popover(isPresented: $showPopover, arrowEdge: .bottom) {
+        .onHover {
+            isHoveringEnhancement = $0
+            syncEnhancementPopoverVisibility()
+        }
+        .popover(isPresented: .constant(activePopover == .enhancement), arrowEdge: .bottom) {
             EnhancementPromptPopover()
                 .environmentObject(enhancementService)
-                .onHover { hoverInteraction.setHover(on: $0) }
+                .onHover {
+                    isHoveringEnhancementPopover = $0
+                    syncEnhancementPopoverVisibility()
+                }
         }
-        .onChange(of: hoverInteraction.isHovered) { isHovered in
-            if isHovered != showPopover {
-                showPopover = isHovered
+    }
+
+    private func syncEnhancementPopoverVisibility() {
+        let shouldShow = isHoveringEnhancement || isHoveringEnhancementPopover
+        if shouldShow {
+            enhancementDismissWorkItem?.cancel()
+            enhancementDismissWorkItem = nil
+            activePopover = .enhancement
+        } else {
+            enhancementDismissWorkItem?.cancel()
+            let work = DispatchWorkItem { [activePopoverBinding = $activePopover] in
+                if activePopoverBinding.wrappedValue == .enhancement {
+                    activePopoverBinding.wrappedValue = .none
+                }
             }
+            enhancementDismissWorkItem = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: work)
         }
     }
 }
@@ -187,13 +215,15 @@ struct RecorderPromptButton: View {
 // MARK: - Power Mode Button Component
 struct RecorderPowerModeButton: View {
     @ObservedObject private var powerModeManager = PowerModeManager.shared
-    @Binding var showPopover: Bool
+    @Binding var activePopover: ActivePopoverState
     let buttonSize: CGFloat
     let padding: EdgeInsets
-    @StateObject private var hoverInteraction = HoverInteraction()
+    @State private var isHoveringPower: Bool = false
+    @State private var isHoveringPowerPopover: Bool = false
+    @State private var powerDismissWorkItem: DispatchWorkItem?
     
-    init(showPopover: Binding<Bool>, buttonSize: CGFloat = 28, padding: EdgeInsets = EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 7)) {
-        self._showPopover = showPopover
+    init(activePopover: Binding<ActivePopoverState>, buttonSize: CGFloat = 28, padding: EdgeInsets = EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 7)) {
+        self._activePopover = activePopover
         self.buttonSize = buttonSize
         self.padding = padding
     }
@@ -205,19 +235,38 @@ struct RecorderPowerModeButton: View {
             color: .orange,
             disabled: powerModeManager.enabledConfigurations.isEmpty
         ) {
-            showPopover.toggle()
+            activePopover = activePopover == .power ? .none : .power
         }
         .frame(width: buttonSize)
         .padding(padding)
-        .onHover { hoverInteraction.setHover(on: $0) }
-        .popover(isPresented: $showPopover, arrowEdge: .bottom) {
-            PowerModePopover()
-                .onHover { hoverInteraction.setHover(on: $0) }
+        .onHover {
+            isHoveringPower = $0
+            syncPowerPopoverVisibility()
         }
-        .onChange(of: hoverInteraction.isHovered) { isHovered in
-            if isHovered != showPopover {
-                showPopover = isHovered
+        .popover(isPresented: .constant(activePopover == .power), arrowEdge: .bottom) {
+            PowerModePopover()
+                .onHover {
+                    isHoveringPowerPopover = $0
+                    syncPowerPopoverVisibility()
+                }
+        }
+    }
+
+    private func syncPowerPopoverVisibility() {
+        let shouldShow = isHoveringPower || isHoveringPowerPopover
+        if shouldShow {
+            powerDismissWorkItem?.cancel()
+            powerDismissWorkItem = nil
+            activePopover = .power
+        } else {
+            powerDismissWorkItem?.cancel()
+            let work = DispatchWorkItem { [activePopoverBinding = $activePopover] in
+                if activePopoverBinding.wrappedValue == .power {
+                    activePopoverBinding.wrappedValue = .none
+                }
             }
+            powerDismissWorkItem = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: work)
         }
     }
 }

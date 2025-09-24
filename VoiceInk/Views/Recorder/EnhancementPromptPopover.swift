@@ -73,12 +73,12 @@ struct EnhancementPromptRow: View {
                 Image(systemName: prompt.icon.rawValue)
                     .font(.system(size: 14))
                     .foregroundColor(isDisabled ? .white.opacity(0.4) : .white.opacity(0.7))
-                
+
                 Text(prompt.title)
                     .foregroundColor(isDisabled ? .white.opacity(0.4) : .white.opacity(0.9))
                     .font(.system(size: 13))
                     .lineLimit(1)
-                
+
                 if isSelected {
                     Spacer()
                     Image(systemName: "checkmark")
@@ -86,9 +86,10 @@ struct EnhancementPromptRow: View {
                         .font(.system(size: 10))
                 }
             }
-            .contentShape(Rectangle())
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 4)
             .padding(.horizontal, 8)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .background(isSelected ? Color.white.opacity(0.1) : Color.clear)
