@@ -1,8 +1,6 @@
 import Foundation
 import AppKit
-
 class SelectedTextService {
-    
     // Private pasteboard type to avoid clipboard history pollution
     private static let privatePasteboardType = NSPasteboard.PasteboardType("com.prakashjoshipax.VoiceInk.transient")
 
@@ -14,10 +12,15 @@ class SelectedTextService {
         }
 
         let pasteboard = NSPasteboard.general
-        
-        // Save original clipboard content
+        let originalClipboardText = pasteboard.string(forType: .string)
+
+        // Save original clipboard content (all UTIs with their data)
         let originalPasteboardItems = pasteboard.pasteboardItems?.map { item in
-            (item.types, item.data(forType: item.types.first ?? .string))
+            item.types.reduce(into: [NSPasteboard.PasteboardType: Data]()) { acc, type in
+                if let data = item.data(forType: type) {
+                    acc[type] = data
+                }
+            }
         }
 
         // Clear clipboard to prepare for selection detection
@@ -43,23 +46,26 @@ class SelectedTextService {
 
         // Read the copied text
         let selectedText = pasteboard.string(forType: .string)
-        
+
         // Restore original clipboard content
         pasteboard.clearContents()
-        if let originalItems = originalPasteboardItems {
-            for (types, data) in originalItems {
-                if let data = data {
-                    let pasteboardItem = NSPasteboardItem()
-                    pasteboardItem.setData(data, forType: types.first ?? .string)
-                    pasteboard.writeObjects([pasteboardItem])
+        if let originalItems = originalPasteboardItems, !originalItems.isEmpty {
+            let restoredItems: [NSPasteboardItem] = originalItems.compactMap { dataMap in
+                guard !dataMap.isEmpty else { return nil }
+                let item = NSPasteboardItem()
+                for (type, data) in dataMap {
+                    item.setData(data, forType: type)
                 }
+                return item
             }
+            if !restoredItems.isEmpty {
+                pasteboard.writeObjects(restoredItems)
+            } else if let originalClipboardText {
+                _ = pasteboard.setString(originalClipboardText, forType: .string)
+            }
+        } else if let originalClipboardText {
+            _ = pasteboard.setString(originalClipboardText, forType: .string)
         }
-        
-        // Clear clipboard history by writing transient data
-        let transientItem = NSPasteboardItem()
-        transientItem.setString("", forType: privatePasteboardType)
-        pasteboard.writeObjects([transientItem])
 
         return selectedText
     }

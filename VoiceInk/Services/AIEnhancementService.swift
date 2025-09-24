@@ -132,6 +132,7 @@ class AIEnhancementService: ObservableObject {
     }
 
     private func getSystemMessage(for mode: EnhancementPrompt) -> String {
+        let clipboardSnapshot = NSPasteboard.general.string(forType: .string)
         let selectedText = SelectedTextService.fetchSelectedText()
 
         if let activePrompt = activePrompt,
@@ -149,7 +150,7 @@ class AIEnhancementService: ObservableObject {
         }
 
         let clipboardContext = if useClipboardContext,
-                              let clipboardText = NSPasteboard.general.string(forType: .string),
+                              let clipboardText = clipboardSnapshot ?? NSPasteboard.general.string(forType: .string),
                               !clipboardText.isEmpty {
             "\n\n<CLIPBOARD_CONTEXT>\n\(clipboardText)\n</CLIPBOARD_CONTEXT>"
         } else {
