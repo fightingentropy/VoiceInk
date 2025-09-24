@@ -8,10 +8,11 @@ import os
 class AudioTranscriptionService: ObservableObject {
     @Published var isTranscribing = false
     @Published var currentError: TranscriptionError?
-    
+
     private let modelContext: ModelContext
     private let enhancementService: AIEnhancementService?
     private let whisperState: WhisperState
+    private let promptDetectionService = PromptDetectionService()
     private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "AudioTranscriptionService")
     
     // Transcription services
@@ -94,16 +95,26 @@ class AudioTranscriptionService: ObservableObject {
             }
             
             let permanentURLString = permanentURL.absoluteString
-            
+
+            // Apply prompt detection for trigger words
+            let originalText = text
+            var promptDetectionResult: PromptDetectionService.PromptDetectionResult? = nil
+
+            if let enhancementService = enhancementService, enhancementService.isConfigured {
+                let detectionResult = promptDetectionService.analyzeText(text, with: enhancementService)
+                promptDetectionResult = detectionResult
+                await promptDetectionService.applyDetectionResult(detectionResult, to: enhancementService)
+            }
+
             // Apply AI enhancement if enabled
             if let enhancementService = enhancementService,
                enhancementService.isEnhancementEnabled,
                enhancementService.isConfigured {
                 do {
-                    // inside the enhancement success path where newTranscription is created
-                    let (enhancedText, enhancementDuration, promptName) = try await enhancementService.enhance(text)
+                    let textForAI = promptDetectionResult?.processedText ?? text
+                    let (enhancedText, enhancementDuration, promptName) = try await enhancementService.enhance(textForAI)
                     let newTranscription = Transcription(
-                        text: text,
+                        text: originalText,
                         duration: duration,
                         enhancedText: enhancedText,
                         audioFileURL: permanentURLString,
@@ -122,15 +133,21 @@ class AudioTranscriptionService: ObservableObject {
                     } catch {
                         logger.error("❌ Failed to save transcription: \(error.localizedDescription)")
                     }
-                    
+
+                    // Restore original prompt settings if AI was temporarily enabled
+                    if let result = promptDetectionResult,
+                       result.shouldEnableAI {
+                        await promptDetectionService.restoreOriginalSettings(result, to: enhancementService)
+                    }
+
                     await MainActor.run {
                         isTranscribing = false
                     }
-                    
+
                     return newTranscription
                 } catch {
                     let newTranscription = Transcription(
-                        text: text,
+                        text: originalText,
                         duration: duration,
                         audioFileURL: permanentURLString,
                         transcriptionModelName: model.displayName,
@@ -153,7 +170,7 @@ class AudioTranscriptionService: ObservableObject {
                 }
             } else {
                 let newTranscription = Transcription(
-                    text: text,
+                    text: originalText,
                     duration: duration,
                     audioFileURL: permanentURLString,
                     transcriptionModelName: model.displayName,
