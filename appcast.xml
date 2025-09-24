@@ -3,21 +3,23 @@
     <channel>
         <title>VoiceInk Releases</title>
         <item>
-            <title>1.56</title>
+            <title>1.57</title>
             <pubDate>Thu, 18 Sep 2025 12:00:00 +0545</pubDate>
-            <sparkle:version>156</sparkle:version>
-            <sparkle:shortVersionString>1.56</sparkle:shortVersionString>
+            <sparkle:version>157</sparkle:version>
+            <sparkle:shortVersionString>1.57</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 
-                <h3>What's New in Version 1.56 🚀</h3>
+                <h3>What's New in Version 1.57</h3>
                 <ul>
-                    <li>See AI request in history view by @gdmka</li>
-                    <li>Minor Fixes & Improvements</li>
+                    <li>Parakeet v3 now runs 50% faster (requires redownloading approximately 630 MB)</li>
+                    <li>Hover interactions in Enhancement and Power Mode popovers now behave as expected</li>
+                    <li>Clipboard context now integrates correctly thanks to @nulinspiratie</li>
+                    <li>General improvements and bug fixes</li>
               </ul>
 
             ]]></description>
-           <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.56/VoiceInk.dmg" length="9468176" type="application/octet-stream" sparkle:edSignature="z5pMi2njbgyIaTcAJIYQCXj+UZNlsD2tlkDEwqBruHMVSPHdvcBZygVs9MSMBl2sP8aN0wnVVWsjgNlXbw27Aw=="/>
+            <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.57/VoiceInk.dmg" length="9541356" type="application/octet-stream" sparkle:edSignature="sE2LNPXAXjV2MPMNfDVGe9/DHOZAnJY90fwYba+aqm/ibrfxhgJP9K1GBL1IHCSFa5bqZkZggAStAbvsQszhDg=="/>
         </item>
     </channel>
 </rss>
