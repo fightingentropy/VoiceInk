@@ -210,8 +210,10 @@ class AIEnhancementService: ObservableObject {
         let systemMessage = getSystemMessage(for: mode)
         
         // Persist the exact payload being sent (also used for UI)
-        self.lastSystemMessageSent = systemMessage
-        self.lastUserMessageSent = formattedText
+        await MainActor.run {
+            self.lastSystemMessageSent = systemMessage
+            self.lastUserMessageSent = formattedText
+        }
 
         // Log the message being sent to AI enhancement
         logger.notice("AI Enhancement - System Message: \(systemMessage, privacy: .public)")
