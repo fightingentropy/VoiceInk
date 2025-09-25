@@ -16,8 +16,22 @@ final class Transcription {
     var enhancementDuration: TimeInterval?
     var aiRequestSystemMessage: String?
     var aiRequestUserMessage: String?
-    
-    init(text: String, duration: TimeInterval, enhancedText: String? = nil, audioFileURL: String? = nil, transcriptionModelName: String? = nil, aiEnhancementModelName: String? = nil, promptName: String? = nil, transcriptionDuration: TimeInterval? = nil, enhancementDuration: TimeInterval? = nil, aiRequestSystemMessage: String? = nil, aiRequestUserMessage: String? = nil) {
+    var powerModeName: String?
+    var powerModeEmoji: String?
+
+    init(text: String,
+         duration: TimeInterval,
+         enhancedText: String? = nil,
+         audioFileURL: String? = nil,
+         transcriptionModelName: String? = nil,
+         aiEnhancementModelName: String? = nil,
+         promptName: String? = nil,
+         transcriptionDuration: TimeInterval? = nil,
+         enhancementDuration: TimeInterval? = nil,
+         aiRequestSystemMessage: String? = nil,
+         aiRequestUserMessage: String? = nil,
+         powerModeName: String? = nil,
+         powerModeEmoji: String? = nil) {
         self.id = UUID()
         self.text = text
         self.enhancedText = enhancedText
@@ -31,5 +45,7 @@ final class Transcription {
         self.enhancementDuration = enhancementDuration
         self.aiRequestSystemMessage = aiRequestSystemMessage
         self.aiRequestUserMessage = aiRequestUserMessage
+        self.powerModeName = powerModeName
+        self.powerModeEmoji = powerModeEmoji
     }
 }
