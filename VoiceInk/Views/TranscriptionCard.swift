@@ -148,8 +148,18 @@ struct TranscriptionCard: View {
                 if isExpanded && hasMetadata {
                     Divider()
                         .padding(.vertical, 8)
-                    
+
                     VStack(alignment: .leading, spacing: 10) {
+                        if let powerModeValue = powerModeDisplay(
+                            name: transcription.powerModeName,
+                            emoji: transcription.powerModeEmoji
+                        ) {
+                            metadataRow(
+                                icon: "bolt.fill",
+                                label: "Power Mode",
+                                value: powerModeValue
+                            )
+                        }
                         metadataRow(icon: "hourglass", label: "Audio Duration", value: formatTiming(transcription.duration))
                         if let modelName = transcription.transcriptionModelName {
                             metadataRow(icon: "cpu.fill", label: "Transcription Model", value: modelName)
@@ -196,8 +206,10 @@ struct TranscriptionCard: View {
             }
         }
     }
-    
+
     private var hasMetadata: Bool {
+        transcription.powerModeName != nil ||
+        transcription.powerModeEmoji != nil ||
         transcription.transcriptionModelName != nil ||
         transcription.aiEnhancementModelName != nil ||
         transcription.promptName != nil ||
@@ -231,6 +243,21 @@ struct TranscriptionCard: View {
             Text(value)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.secondary)
+        }
+    }
+
+    private func powerModeDisplay(name: String?, emoji: String?) -> String? {
+        guard name != nil || emoji != nil else { return nil }
+
+        switch (emoji?.trimmingCharacters(in: .whitespacesAndNewlines), name?.trimmingCharacters(in: .whitespacesAndNewlines)) {
+        case let (.some(emojiValue), .some(nameValue)) where !emojiValue.isEmpty && !nameValue.isEmpty:
+            return "\(emojiValue) \(nameValue)"
+        case let (.some(emojiValue), _) where !emojiValue.isEmpty:
+            return emojiValue
+        case let (_, .some(nameValue)) where !nameValue.isEmpty:
+            return nameValue
+        default:
+            return nil
         }
     }
 }

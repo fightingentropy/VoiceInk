@@ -64,6 +64,11 @@ class AudioTranscriptionService: ObservableObject {
             text = WhisperHallucinationFilter.filter(text)
             text = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
+            let powerModeManager = PowerModeManager.shared
+            let activePowerModeConfig = powerModeManager.currentActiveConfiguration
+            let powerModeName = (activePowerModeConfig?.isEnabled == true) ? activePowerModeConfig?.name : nil
+            let powerModeEmoji = (activePowerModeConfig?.isEnabled == true) ? activePowerModeConfig?.emoji : nil
+
             if UserDefaults.standard.object(forKey: "IsTextFormattingEnabled") as? Bool ?? true {
                 text = WhisperTextFormatter.format(text)
             }
@@ -124,7 +129,9 @@ class AudioTranscriptionService: ObservableObject {
                         transcriptionDuration: transcriptionDuration,
                         enhancementDuration: enhancementDuration,
                         aiRequestSystemMessage: enhancementService.lastSystemMessageSent,
-                        aiRequestUserMessage: enhancementService.lastUserMessageSent
+                        aiRequestUserMessage: enhancementService.lastUserMessageSent,
+                        powerModeName: powerModeName,
+                        powerModeEmoji: powerModeEmoji
                     )
                     modelContext.insert(newTranscription)
                     do {
@@ -152,7 +159,9 @@ class AudioTranscriptionService: ObservableObject {
                         audioFileURL: permanentURLString,
                         transcriptionModelName: model.displayName,
                         promptName: nil,
-                        transcriptionDuration: transcriptionDuration
+                        transcriptionDuration: transcriptionDuration,
+                        powerModeName: powerModeName,
+                        powerModeEmoji: powerModeEmoji
                     )
                     modelContext.insert(newTranscription)
                     do {
@@ -175,7 +184,9 @@ class AudioTranscriptionService: ObservableObject {
                     audioFileURL: permanentURLString,
                     transcriptionModelName: model.displayName,
                     promptName: nil,
-                    transcriptionDuration: transcriptionDuration
+                    transcriptionDuration: transcriptionDuration,
+                    powerModeName: powerModeName,
+                    powerModeEmoji: powerModeEmoji
                 )
                 modelContext.insert(newTranscription)
                 do {
