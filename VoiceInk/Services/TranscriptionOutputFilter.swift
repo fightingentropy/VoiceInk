@@ -1,8 +1,8 @@
 import Foundation
 import os
 
-struct WhisperHallucinationFilter {
-    private static let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "WhisperHallucinationFilter")
+struct TranscriptionOutputFilter {
+    private static let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "TranscriptionOutputFilter")
     
     private static let hallucinationPatterns = [
         #"\[.*?\]"#,     // []
@@ -11,7 +11,7 @@ struct WhisperHallucinationFilter {
     ]
 
     private static let fillerWords = [
-        "uh", "um", "uhm", "umm", "uhh", "uhhh", "er", "ah", "eh",
+        "uh", "um", "uhm", "umm", "uhh", "uhhh", "ah", "eh",
         "hmm", "hm", "mmm", "mm", "mh", "ha", "ehh"
     ]
     static func filter(_ text: String) -> String {

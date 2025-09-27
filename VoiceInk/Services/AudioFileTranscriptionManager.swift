@@ -111,7 +111,7 @@ class AudioTranscriptionManager: ObservableObject {
                 }
                 
                 let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
-                text = WhisperHallucinationFilter.filter(text)
+                text = TranscriptionOutputFilter.filter(text)
                 text = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
                 let powerModeManager = PowerModeManager.shared
