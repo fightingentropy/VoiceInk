@@ -30,69 +30,7 @@ struct AudioTranscribeView: View {
                 
                 // Show current transcription result
                 if let transcription = transcriptionManager.currentTranscription {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Transcription Result")
-                                .font(.headline)
-                            
-                            if let enhancedText = transcription.enhancedText {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Text("Enhanced")
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                        Spacer()
-                                        HStack(spacing: 8) {
-                                            AnimatedCopyButton(textToCopy: enhancedText)
-                                            AnimatedSaveButton(textToSave: enhancedText)
-                                        }
-                                    }
-                                    Text(enhancedText)
-                                        .textSelection(.enabled)
-                                }
-                                
-                                Divider()
-                                
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Text("Original")
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                        Spacer()
-                                        HStack(spacing: 8) {
-                                            AnimatedCopyButton(textToCopy: transcription.text)
-                                            AnimatedSaveButton(textToSave: transcription.text)
-                                        }
-                                    }
-                                    Text(transcription.text)
-                                        .textSelection(.enabled)
-                                }
-                            } else {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Text("Transcription")
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                        Spacer()
-                                        HStack(spacing: 8) {
-                                            AnimatedCopyButton(textToCopy: transcription.text)
-                                            AnimatedSaveButton(textToSave: transcription.text)
-                                        }
-                                    }
-                                    Text(transcription.text)
-                                        .textSelection(.enabled)
-                                }
-                            }
-                            
-                            HStack {
-                                Text("Duration: \(formatDuration(transcription.duration))")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                            }
-                        }
-                        .padding()
-                    }
+                    TranscriptionResultView(transcription: transcription)
                 }
             }
         }
@@ -146,40 +84,6 @@ struct AudioTranscribeView: View {
                                     HStack(spacing: 8) {
                                         Text("Prompt:")
                                             .font(.subheadline)
-                                        
-                                        Menu {
-                                            ForEach(enhancementService.allPrompts) { prompt in
-                                                Button {
-                                                    enhancementService.setActivePrompt(prompt)
-                                                    selectedPromptId = prompt.id
-                                                } label: {
-                                                    HStack {
-                                                        Image(systemName: prompt.icon.rawValue)
-                                                            .foregroundColor(.accentColor)
-                                                        Text(prompt.title)
-                                                        if selectedPromptId == prompt.id {
-                                                            Spacer()
-                                                            Image(systemName: "checkmark")
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        } label: {
-                                            HStack {
-                                                Text(enhancementService.allPrompts.first(where: { $0.id == selectedPromptId })?.title ?? "Select Prompt")
-                                                    .foregroundColor(.primary)
-                                                Image(systemName: "chevron.down")
-                                                    .font(.caption)
-                                            }
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 6)
-                                                    .fill(Color(.controlBackgroundColor))
-                                            )
-                                        }
-                                        .fixedSize()
-                                        .disabled(!isEnhancementEnabled)
                                     }
                                 }
                             }
