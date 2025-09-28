@@ -83,13 +83,11 @@ class ParakeetTranscriptionService: TranscriptionService {
         }
 
         let result = try await asrManager.transcribe(speechAudio)
-		
-		Task {
-			asrManager.cleanup()
-			isModelLoaded = false
-			logger.notice("🦜 Parakeet ASR models cleaned up from memory")
-		}
-        
+
+        asrManager.cleanup()
+        isModelLoaded = false
+        logger.notice("🦜 Parakeet ASR models cleaned up from memory")
+
         let text = result.text
 
         return text
