@@ -1,6 +1,12 @@
 import Foundation
 import SwiftData
 
+enum TranscriptionStatus: String, Codable {
+    case pending
+    case completed
+    case failed
+}
+
 @Model
 final class Transcription {
     var id: UUID
@@ -18,6 +24,7 @@ final class Transcription {
     var aiRequestUserMessage: String?
     var powerModeName: String?
     var powerModeEmoji: String?
+    var transcriptionStatus: String?
 
     init(text: String,
          duration: TimeInterval,
@@ -31,7 +38,8 @@ final class Transcription {
          aiRequestSystemMessage: String? = nil,
          aiRequestUserMessage: String? = nil,
          powerModeName: String? = nil,
-         powerModeEmoji: String? = nil) {
+         powerModeEmoji: String? = nil,
+         transcriptionStatus: TranscriptionStatus = .pending) {
         self.id = UUID()
         self.text = text
         self.enhancedText = enhancedText
@@ -47,5 +55,6 @@ final class Transcription {
         self.aiRequestUserMessage = aiRequestUserMessage
         self.powerModeName = powerModeName
         self.powerModeEmoji = powerModeEmoji
+        self.transcriptionStatus = transcriptionStatus.rawValue
     }
 }
