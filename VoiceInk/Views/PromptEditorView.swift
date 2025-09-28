@@ -26,6 +26,7 @@ struct PromptEditorView: View {
     @State private var description: String
     @State private var triggerWords: [String]
     @State private var showingPredefinedPrompts = false
+    @State private var useSystemInstructions: Bool
     
     private var isEditingPredefinedPrompt: Bool {
         if case .edit(let prompt) = mode {
@@ -43,12 +44,14 @@ struct PromptEditorView: View {
             _selectedIcon = State(initialValue: .documentFill)
             _description = State(initialValue: "")
             _triggerWords = State(initialValue: [])
+            _useSystemInstructions = State(initialValue: true)
         case .edit(let prompt):
             _title = State(initialValue: prompt.title)
             _promptText = State(initialValue: prompt.promptText)
             _selectedIcon = State(initialValue: prompt.icon)
             _description = State(initialValue: prompt.description ?? "")
             _triggerWords = State(initialValue: prompt.triggerWords)
+            _useSystemInstructions = State(initialValue: prompt.useSystemInstructions)
         }
     }
     
@@ -183,6 +186,18 @@ struct PromptEditorView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
+                            if !isEditingPredefinedPrompt {
+                                HStack(spacing: 8) {
+                                    Toggle("Use System Instructions", isOn: $useSystemInstructions)
+                                    
+                                    InfoTip(
+                                        title: "System Instructions",
+                                        message: "If enabled, your instructions are combined with a general-purpose template to improve transcription quality.\n\nDisable for full control over the AI's system prompt (for advanced users)."
+                                    )
+                                }
+                                .padding(.bottom, 4)
+                            }
+
                             TextEditor(text: $promptText)
                                 .font(.system(.body, design: .monospaced))
                                 .frame(minHeight: 200)
@@ -250,7 +265,8 @@ struct PromptEditorView: View {
                 promptText: promptText,
                 icon: selectedIcon,
                 description: description.isEmpty ? nil : description,
-                triggerWords: triggerWords
+                triggerWords: triggerWords,
+                useSystemInstructions: useSystemInstructions
             )
         case .edit(let prompt):
             let updatedPrompt = CustomPrompt(
@@ -261,7 +277,8 @@ struct PromptEditorView: View {
                 icon: prompt.isPredefined ? prompt.icon : selectedIcon,
                 description: prompt.isPredefined ? prompt.description : (description.isEmpty ? nil : description),
                 isPredefined: prompt.isPredefined,
-                triggerWords: triggerWords
+                triggerWords: triggerWords,
+                useSystemInstructions: useSystemInstructions
             )
             enhancementService.updatePrompt(updatedPrompt)
         }

@@ -21,7 +21,8 @@ enum PredefinedPrompts {
                 promptText: PromptTemplates.all.first { $0.title == "System Default" }?.promptText ?? "",
                 icon: .sealedFill,
                 description: "Default mode to improved clarity and accuracy of the transcription",
-                isPredefined: true
+                isPredefined: true,
+                useSystemInstructions: true
             ),
             
             CustomPrompt(
@@ -30,7 +31,8 @@ enum PredefinedPrompts {
                 promptText: AIPrompts.assistantMode,
                 icon: .chatFill,
                 description: "AI assistant that provides direct answers to queries",
-                isPredefined: true
+                isPredefined: true,
+                useSystemInstructions: false
             )
         ]
     }

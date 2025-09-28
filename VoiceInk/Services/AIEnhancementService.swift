@@ -186,7 +186,7 @@ class AIEnhancementService: ObservableObject {
 
         guard let activePrompt = activePrompt else {
             if let defaultPrompt = allPrompts.first(where: { $0.id == PredefinedPrompts.defaultPromptId }) {
-                var systemMessage = String(format: AIPrompts.customPromptTemplate, defaultPrompt.promptText)
+                var systemMessage = defaultPrompt.finalPromptText
                 systemMessage += generalContextSection + dictionaryContextSection
                 return systemMessage
             }
@@ -196,8 +196,8 @@ class AIEnhancementService: ObservableObject {
         if activePrompt.id == PredefinedPrompts.assistantPromptId {
             return activePrompt.promptText + generalContextSection + dictionaryContextSection
         }
-
-        var systemMessage = String(format: AIPrompts.customPromptTemplate, activePrompt.promptText)
+        
+        var systemMessage = activePrompt.finalPromptText
         systemMessage += generalContextSection + dictionaryContextSection
         return systemMessage
     }
@@ -422,8 +422,8 @@ class AIEnhancementService: ObservableObject {
         }
     }
 
-    func addPrompt(title: String, promptText: String, icon: PromptIcon = .documentFill, description: String? = nil, triggerWords: [String] = []) {
-        let newPrompt = CustomPrompt(title: title, promptText: promptText, icon: icon, description: description, isPredefined: false, triggerWords: triggerWords)
+    func addPrompt(title: String, promptText: String, icon: PromptIcon = .documentFill, description: String? = nil, triggerWords: [String] = [], useSystemInstructions: Bool = true) {
+        let newPrompt = CustomPrompt(title: title, promptText: promptText, icon: icon, description: description, isPredefined: false, triggerWords: triggerWords, useSystemInstructions: useSystemInstructions)
         customPrompts.append(newPrompt)
         if customPrompts.count == 1 {
             selectedPromptId = newPrompt.id
@@ -461,7 +461,8 @@ class AIEnhancementService: ObservableObject {
                     icon: template.icon,
                     description: template.description,
                     isPredefined: true,
-                    triggerWords: updatedPrompt.triggerWords
+                    triggerWords: updatedPrompt.triggerWords,
+                    useSystemInstructions: template.useSystemInstructions
                 )
                 customPrompts[existingIndex] = updatedPrompt
             } else {
