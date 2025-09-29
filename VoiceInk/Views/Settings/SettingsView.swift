@@ -15,6 +15,7 @@ struct SettingsView: View {
     @ObservedObject private var playbackController = PlaybackController.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
     @AppStorage("autoUpdateCheck") private var autoUpdateCheck = true
+    @AppStorage("enableAnnouncements") private var enableAnnouncements = true
     @State private var showResetOnboardingAlert = false
     @State private var currentShortcut = KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder)
     @State private var isCustomCancelEnabled = false
@@ -295,6 +296,16 @@ struct SettingsView: View {
                             .toggleStyle(.switch)
                             .onChange(of: autoUpdateCheck) { _, newValue in
                                 updaterViewModel.toggleAutoUpdates(newValue)
+                            }
+                        
+                        Toggle("Show app announcements", isOn: $enableAnnouncements)
+                            .toggleStyle(.switch)
+                            .onChange(of: enableAnnouncements) { _, newValue in
+                                if newValue {
+                                    AnnouncementsService.shared.start()
+                                } else {
+                                    AnnouncementsService.shared.stop()
+                                }
                             }
                         
                         Button("Check for Updates Now") {
