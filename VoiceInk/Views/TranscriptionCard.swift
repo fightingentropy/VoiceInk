@@ -58,42 +58,21 @@ struct TranscriptionCard: View {
     }
 
     private var originalContentView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Original")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.secondary)
-            Text(transcription.text)
-                .font(.system(size: 15, weight: .regular, design: .default))
-                .lineSpacing(2)
-                .textSelection(.enabled)
-        }
+        Text(transcription.text)
+            .font(.system(size: 15, weight: .regular, design: .default))
+            .lineSpacing(2)
+            .textSelection(.enabled)
     }
 
     private func enhancedContentView(_ enhancedText: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 4) {
-                Image(systemName: "sparkles")
-                    .foregroundColor(.blue)
-                Text("Enhanced")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.blue)
-            }
-            Text(enhancedText)
-                .font(.system(size: 15, weight: .regular, design: .default))
-                .lineSpacing(2)
-                .textSelection(.enabled)
-        }
+        Text(enhancedText)
+            .font(.system(size: 15, weight: .regular, design: .default))
+            .lineSpacing(2)
+            .textSelection(.enabled)
     }
 
     private var aiRequestContentView: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 6) {
-                Image(systemName: "paperplane.fill")
-                    .foregroundColor(.purple)
-                Text("AI Request")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.purple)
-            }
 
             if let systemMsg = transcription.aiRequestSystemMessage, !systemMsg.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
@@ -135,7 +114,7 @@ struct TranscriptionCard: View {
                     .padding(.vertical, 6)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(isSelected ? Color.accentColor : Color.clear)
+                            .fill(isSelected ? Color.accentColor.opacity(0.75) : Color.clear)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 16)
                                     .stroke(isSelected ? Color.clear : Color.secondary.opacity(0.3), lineWidth: 1)
@@ -174,23 +153,21 @@ struct TranscriptionCard: View {
                 }
 
                 if isExpanded {
-                    if availableTabs.count > 1 {
-                        HStack(spacing: 2) {
-                            ForEach(availableTabs, id: \.self) { tab in
-                                TabButton(
-                                    title: tab.rawValue,
-                                    isSelected: selectedTab == tab,
-                                    action: { selectedTab = tab }
-                                )
-                            }
-
-                            Spacer()
-
-                            AnimatedCopyButton(textToCopy: copyTextForCurrentTab)
+                    HStack(spacing: 2) {
+                        ForEach(availableTabs, id: \.self) { tab in
+                            TabButton(
+                                title: tab.rawValue,
+                                isSelected: selectedTab == tab,
+                                action: { selectedTab = tab }
+                            )
                         }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 4)
+
+                        Spacer()
+
+                        AnimatedCopyButton(textToCopy: copyTextForCurrentTab)
                     }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 4)
 
                     ScrollView {
                         VStack(alignment: .leading, spacing: 12) {
