@@ -184,10 +184,12 @@ struct MenuBarView: View {
             Button("History") {
                 menuBarManager.openMainWindowAndNavigate(to: "History")
             }
+            .keyboardShortcut("h", modifiers: [.command, .shift])
             
             Button("Settings") {
                 menuBarManager.openMainWindowAndNavigate(to: "Settings")
             }
+            .keyboardShortcut(",", modifiers: .command)
             
             Button(menuBarManager.isMenuBarOnly ? "Show Dock Icon" : "Hide Dock Icon") {
                 menuBarManager.toggleMenuBarOnly()
