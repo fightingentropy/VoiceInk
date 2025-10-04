@@ -156,6 +156,8 @@ struct VoiceInkApp: App {
             }
         }
         .commands {
+            CommandGroup(replacing: .newItem) { }
+            
             CommandGroup(after: .appInfo) {
                 CheckForUpdatesView(updaterViewModel: updaterViewModel)
             }
