@@ -341,6 +341,8 @@ extension WhisperState {
         await whisperContext?.releaseResources()
         whisperContext = nil
         isModelLoaded = false
+
+        parakeetTranscriptionService.cleanup()
     }
     
     // MARK: - Helper Methods

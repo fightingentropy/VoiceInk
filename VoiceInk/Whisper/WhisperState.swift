@@ -59,7 +59,7 @@ class WhisperState: NSObject, ObservableObject {
     private var localTranscriptionService: LocalTranscriptionService!
     private lazy var cloudTranscriptionService = CloudTranscriptionService()
     private lazy var nativeAppleTranscriptionService = NativeAppleTranscriptionService()
-    private lazy var parakeetTranscriptionService = ParakeetTranscriptionService(customModelsDirectory: parakeetModelsDirectory)
+    internal lazy var parakeetTranscriptionService = ParakeetTranscriptionService(customModelsDirectory: parakeetModelsDirectory)
     
     private var modelUrl: URL? {
         let possibleURLs = [
@@ -200,8 +200,8 @@ class WhisperState: NSObject, ObservableObject {
                                         self.logger.error("❌ Model loading failed: \(error.localizedDescription)")
                                     }
                                 }
-                                    } else if let model = self.currentTranscriptionModel, model.provider == .parakeet {
-            try? await parakeetTranscriptionService.loadModel()
+                            } else if let model = self.currentTranscriptionModel, model.provider == .parakeet {
+                                try? await self.parakeetTranscriptionService.loadModel()
                             }
         
                             if let enhancementService = self.enhancementService,
