@@ -4,6 +4,18 @@ extension String: Identifiable {
     public var id: String { self }
 }
 
+enum SortMode: String {
+    case originalAsc = "originalAsc"
+    case originalDesc = "originalDesc"
+    case replacementAsc = "replacementAsc"
+    case replacementDesc = "replacementDesc"
+}
+
+enum SortColumn {
+    case original
+    case replacement
+}
+
 class WordReplacementManager: ObservableObject {
     @Published var replacements: [String: String] {
         didSet {
@@ -49,6 +61,39 @@ struct WordReplacementView: View {
     @State private var editingOriginal: String? = nil
     
     @State private var alertMessage = ""
+    @State private var sortMode: SortMode = .originalAsc
+    
+    init() {
+        if let savedSort = UserDefaults.standard.string(forKey: "wordReplacementSortMode"),
+           let mode = SortMode(rawValue: savedSort) {
+            _sortMode = State(initialValue: mode)
+        }
+    }
+    
+    private var sortedReplacements: [(key: String, value: String)] {
+        let pairs = Array(manager.replacements)
+        
+        switch sortMode {
+        case .originalAsc:
+            return pairs.sorted { $0.key.localizedCaseInsensitiveCompare($1.key) == .orderedAscending }
+        case .originalDesc:
+            return pairs.sorted { $0.key.localizedCaseInsensitiveCompare($1.key) == .orderedDescending }
+        case .replacementAsc:
+            return pairs.sorted { $0.value.localizedCaseInsensitiveCompare($1.value) == .orderedAscending }
+        case .replacementDesc:
+            return pairs.sorted { $0.value.localizedCaseInsensitiveCompare($1.value) == .orderedDescending }
+        }
+    }
+    
+    private func toggleSort(for column: SortColumn) {
+        switch column {
+        case .original:
+            sortMode = (sortMode == .originalAsc) ? .originalDesc : .originalAsc
+        case .replacement:
+            sortMode = (sortMode == .replacementAsc) ? .replacementDesc : .replacementAsc
+        }
+        UserDefaults.standard.set(sortMode.rawValue, forKey: "wordReplacementSortMode")
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -76,18 +121,51 @@ struct WordReplacementView: View {
             }
             
             VStack(spacing: 0) {
-                // Header with action button
-                HStack {
-                    Text("Word Replacements")
-                        .font(.headline)
-                    
-                    Spacer()
-                    
-                    Button(action: { showAddReplacementModal = true }) {
-                        Image(systemName: "plus")
+                HStack(spacing: 16) {
+                    Button(action: { toggleSort(for: .original) }) {
+                        HStack(spacing: 4) {
+                            Text("Original")
+                                .font(.headline)
+                            
+                            if sortMode == .originalAsc || sortMode == .originalDesc {
+                                Image(systemName: sortMode == .originalAsc ? "chevron.up" : "chevron.down")
+                                    .font(.caption)
+                                    .foregroundColor(.accentColor)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                     }
-                    .buttonStyle(.borderless)
-                    .help("Add new replacement")
+                    .buttonStyle(.plain)
+                    
+                    Image(systemName: "arrow.right")
+                        .foregroundColor(.secondary)
+                        .font(.system(size: 12))
+                        .frame(width: 20)
+                    
+                    Button(action: { toggleSort(for: .replacement) }) {
+                        HStack(spacing: 4) {
+                            Text("Replacement")
+                                .font(.headline)
+                            
+                            if sortMode == .replacementAsc || sortMode == .replacementDesc {
+                                Image(systemName: sortMode == .replacementAsc ? "chevron.up" : "chevron.down")
+                                    .font(.caption)
+                                    .foregroundColor(.accentColor)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    
+                    HStack(spacing: 8) {
+                        Button(action: { showAddReplacementModal = true }) {
+                            Image(systemName: "plus")
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                    .frame(width: 60)
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
@@ -101,15 +179,15 @@ struct WordReplacementView: View {
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            ForEach(Array(manager.replacements.keys.sorted()), id: \.self) { original in
+                            ForEach(Array(sortedReplacements.enumerated()), id: \.offset) { index, pair in
                                 ReplacementRow(
-                                    original: original,
-                                    replacement: manager.replacements[original] ?? "",
-                                    onDelete: { manager.removeReplacement(original: original) },
-                                    onEdit: { editingOriginal = original }
+                                    original: pair.key,
+                                    replacement: pair.value,
+                                    onDelete: { manager.removeReplacement(original: pair.key) },
+                                    onEdit: { editingOriginal = pair.key }
                                 )
                                 
-                                if original != manager.replacements.keys.sorted().last {
+                                if index != sortedReplacements.count - 1 {
                                     Divider()
                                         .padding(.leading, 32)
                                 }

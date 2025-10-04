@@ -74,6 +74,8 @@ class ParakeetTranscriptionService: TranscriptionService {
         }  
   
         let result = try await asrManager.transcribe(speechAudio, source: .system)  
+        
+        logger.notice("🦜 Parakeet transcription result: \(result.text)")
           
         return result.text  
     }  
