@@ -48,13 +48,13 @@ struct LicenseManagementView: View {
                     }
                 }
                 
-                Text(licenseViewModel.licenseState == .licensed ? 
+                Text(licenseViewModel.licenseState == .licensed ?
                      "Thank you for supporting VoiceInk" :
                      "Transcribe what you say to text instantly with AI")
                     .font(.title3)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                
+
                 if case .licensed = licenseViewModel.licenseState {
                     HStack(spacing: 40) {
                         Button {
@@ -190,13 +190,13 @@ struct LicenseManagementView: View {
             VStack(spacing: 20) {
                 Text("Already purchased?")
                     .font(.headline)
-                
+
                 HStack(spacing: 12) {
                     Text("Manage your license and device activations")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    
+
                     Button(action: {
                         if let url = URL(string: "https://polar.sh/beingpax/portal/request") {
                             NSWorkspace.shared.open(url)
@@ -253,7 +253,7 @@ struct LicenseManagementView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text("License Management")
                     .font(.headline)
-                
+
                 Button(role: .destructive, action: {
                     licenseViewModel.removeLicense()
                 }) {

@@ -113,37 +113,40 @@ struct TimeEfficiencyView: View {
     }
     
     private var reportIssueButton: some View {
-        Button(action: {
-            EmailSupport.openSupportEmail()
-        }) {
-            HStack(alignment: .center, spacing: 12) {
-                // Left icon
-                Image(systemName: "exclamationmark.bubble.fill")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(.white)
-                
-                // Center text
-                Text("Feedback or Issues?")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white)
-                
-                Spacer(minLength: 8)
-                
-                // Right button
-                Text("Report")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(Color.accentColor)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 4)
-                    .background(Capsule().fill(.white))
+        ZStack {
+            Button(action: {
+                EmailSupport.openSupportEmail()
+            }) {
+                HStack(alignment: .center, spacing: 12) {
+                    // Left icon
+                    Image(systemName: "exclamationmark.bubble.fill")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(.white)
+
+                    // Center text
+                    Text("Feedback or Issues?")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white)
+
+                    Spacer(minLength: 8)
+                }
+                .padding(.vertical, 10)
+                .padding(.horizontal, 12)
+                .background(accentGradient)
+                .cornerRadius(10)
             }
-            .padding(.vertical, 10)
-            .padding(.horizontal, 12)
-            .background(accentGradient)
-            .cornerRadius(10)
+            .buttonStyle(.plain)
+            .shadow(color: Color.accentColor.opacity(0.2), radius: 3, y: 1)
+            .frame(maxWidth: 280)
+
+            // Copy system info button overlaid and centered vertically
+            HStack {
+                Spacer()
+                CopySystemInfoButton()
+                    .padding(.trailing, 8)
+            }
+            .frame(maxWidth: 280)
         }
-        .buttonStyle(.plain)
-        .shadow(color: Color.accentColor.opacity(0.2), radius: 3, y: 1)
         .frame(maxWidth: 280)
     }
     
@@ -218,5 +221,47 @@ struct TimeBlockView: View {
             RoundedRectangle(cornerRadius: 16)
                 .fill(color.opacity(0.1))
         )
+    }
+}
+
+// MARK: - Copy System Info Button
+private struct CopySystemInfoButton: View {
+    @State private var isCopied: Bool = false
+
+    var body: some View {
+        Button(action: {
+            copySystemInfo()
+        }) {
+            Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.white.opacity(0.9))
+                .padding(8)
+                .background(
+                    Circle()
+                        .fill(Color.white.opacity(0.2))
+                        .overlay(
+                            Circle()
+                                .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                        )
+                )
+                .rotationEffect(.degrees(isCopied ? 360 : 0))
+        }
+        .buttonStyle(.plain)
+        .scaleEffect(isCopied ? 1.1 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isCopied)
+    }
+
+    private func copySystemInfo() {
+        SystemInfoService.shared.copySystemInfoToClipboard()
+
+        withAnimation {
+            isCopied = true
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation {
+                isCopied = false
+            }
+        }
     }
 }
