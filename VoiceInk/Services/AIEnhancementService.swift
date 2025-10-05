@@ -165,18 +165,14 @@ class AIEnhancementService: ObservableObject {
         let screenCaptureContext = if useScreenCaptureContext,
                                    let capturedText = screenCaptureService.lastCapturedText,
                                    !capturedText.isEmpty {
-            "\n\nActive Window Context: \(capturedText)"
+            "\n\n<CURRENT_WINDOW_CONTEXT>\n\(capturedText)\n</CURRENT_WINDOW_CONTEXT>"
         } else {
             ""
         }
 
         let dictionaryContext = dictionaryContextService.getDictionaryContext()
 
-        let generalContextSection = if !clipboardContext.isEmpty || !screenCaptureContext.isEmpty {
-            "\n\n<CONTEXT_INFORMATION>\(clipboardContext)\(screenCaptureContext)\n</CONTEXT_INFORMATION>"
-        } else {
-            ""
-        }
+        let generalContextSection = clipboardContext + screenCaptureContext
 
         let dictionaryContextSection = if !dictionaryContext.isEmpty {
             "\n\n<DICTIONARY_CONTEXT>\(dictionaryContext)\n</DICTIONARY_CONTEXT>"
