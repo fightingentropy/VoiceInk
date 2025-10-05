@@ -46,7 +46,7 @@ struct NotchRecorderView: View {
 
             Spacer()
         }
-        .frame(width: 84)
+        .frame(width: 64)
         .padding(.leading, 16)
     }
     
@@ -62,7 +62,7 @@ struct NotchRecorderView: View {
             Spacer()
             statusDisplay
         }
-        .frame(width: 84)
+        .frame(width: 64)
         .padding(.trailing, 16)
     }
     
@@ -85,7 +85,6 @@ struct NotchRecorderView: View {
                     rightSection
                 }
                 .frame(height: menuBarHeight)
-                .frame(maxWidth: windowManager.isVisible ? .infinity : 0)
                 .background(Color.black)
                 .mask {
                     NotchShape(cornerRadius: 10)
@@ -99,7 +98,3 @@ struct NotchRecorderView: View {
         }
     }
 }
-
-
-
- 

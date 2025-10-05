@@ -56,7 +56,7 @@ extension WhisperState {
         if recordingState == .busy { return }
 
         let wasRecording = recordingState == .recording
-
+ 
         await MainActor.run {
             self.recordingState = .busy
         }
