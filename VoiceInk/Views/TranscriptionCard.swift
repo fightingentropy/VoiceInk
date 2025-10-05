@@ -153,7 +153,7 @@ struct TranscriptionCard: View {
                 }
 
                 if isExpanded {
-                    HStack(spacing: 2) {
+                    HStack(spacing: 4) {
                         ForEach(availableTabs, id: \.self) { tab in
                             TabButton(
                                 title: tab.rawValue,
@@ -185,7 +185,6 @@ struct TranscriptionCard: View {
                         .padding(.vertical, 8)
                     }
                     .frame(maxHeight: 300)
-                    .background(Color(.controlBackgroundColor).opacity(0.5))
                     .cornerRadius(8)
 
                     if hasAudioFile, let urlString = transcription.audioFileURL,
@@ -248,17 +247,22 @@ struct TranscriptionCard: View {
                     Label("Copy Enhanced", systemImage: "doc.on.doc")
                 }
             }
-            
+
             Button {
                 let _ = ClipboardManager.copyToClipboard(transcription.text)
             } label: {
                 Label("Copy Original", systemImage: "doc.on.doc")
             }
-            
+
             Button(role: .destructive) {
                 onDelete()
             } label: {
                 Label("Delete", systemImage: "trash")
+            }
+        }
+        .onChange(of: isExpanded) { oldValue, newValue in
+            if newValue {
+                selectedTab = .original
             }
         }
     }
