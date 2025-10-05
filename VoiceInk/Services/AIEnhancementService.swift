@@ -140,18 +140,21 @@ class AIEnhancementService: ObservableObject {
         let clipboardSnapshot = NSPasteboard.general.string(forType: .string)
         let selectedText = SelectedTextService.fetchSelectedText()
 
-        if let activePrompt = activePrompt,
-           activePrompt.id == PredefinedPrompts.assistantPromptId,
-           let selectedText = selectedText, !selectedText.isEmpty {
+        if let selectedText = selectedText, !selectedText.isEmpty {
+            let generalContextSection = "\n\n<CONTEXT_INFORMATION>\n\(selectedText)\n</CONTEXT_INFORMATION>"
 
-            let selectedTextContext = "\n\nSelected Text: \(selectedText)"
-            let generalContextSection = "\n\n<CONTEXT_INFORMATION>\(selectedTextContext)\n</CONTEXT_INFORMATION>"
-            let dictionaryContextSection = if !dictionaryContextService.getDictionaryContext().isEmpty {
-                "\n\n<DICTIONARY_CONTEXT>\(dictionaryContextService.getDictionaryContext())\n</DICTIONARY_CONTEXT>"
+            if let activePrompt = activePrompt {
+                if activePrompt.id == PredefinedPrompts.assistantPromptId {
+                    return activePrompt.promptText + generalContextSection
+                } else {
+                    return activePrompt.finalPromptText + generalContextSection
+                }
             } else {
-                ""
+                if let defaultPrompt = allPrompts.first(where: { $0.id == PredefinedPrompts.defaultPromptId }) {
+                    return defaultPrompt.finalPromptText + generalContextSection
+                }
+                return AIPrompts.assistantMode + generalContextSection
             }
-            return activePrompt.promptText + generalContextSection + dictionaryContextSection
         }
 
         let clipboardContext = if useClipboardContext,
@@ -192,7 +195,7 @@ class AIEnhancementService: ObservableObject {
         if activePrompt.id == PredefinedPrompts.assistantPromptId {
             return activePrompt.promptText + generalContextSection + dictionaryContextSection
         }
-        
+
         var systemMessage = activePrompt.finalPromptText
         systemMessage += generalContextSection + dictionaryContextSection
         return systemMessage

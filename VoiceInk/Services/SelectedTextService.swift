@@ -5,11 +5,6 @@ class SelectedTextService {
     private static let privatePasteboardType = NSPasteboard.PasteboardType("com.prakashjoshipax.VoiceInk.transient")
 
     static func fetchSelectedText() -> String? {
-        // Don't check for selected text within VoiceInk itself
-        guard let frontmostApp = NSWorkspace.shared.frontmostApplication,
-              frontmostApp.bundleIdentifier != "com.prakashjoshipax.VoiceInk" else {
-            return nil
-        }
 
         let pasteboard = NSPasteboard.general
         let originalClipboardText = pasteboard.string(forType: .string)
