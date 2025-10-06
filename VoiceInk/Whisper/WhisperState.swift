@@ -204,8 +204,7 @@ class WhisperState: NSObject, ObservableObject {
                                 try? await self.parakeetTranscriptionService.loadModel()
                             }
         
-                            if let enhancementService = self.enhancementService,
-                               enhancementService.useScreenCaptureContext {
+                            if let enhancementService = self.enhancementService {
                                 await enhancementService.captureScreenContext()
                             }
         

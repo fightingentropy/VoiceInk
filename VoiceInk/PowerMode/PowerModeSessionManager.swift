@@ -101,7 +101,6 @@ class PowerModeSessionManager {
 
         await MainActor.run {
             enhancementService.isEnhancementEnabled = config.isAIEnhancementEnabled
-            enhancementService.useScreenCaptureContext = config.useScreenCapture
 
             if config.isAIEnhancementEnabled {
                 if let promptId = config.selectedPrompt, let uuid = UUID(uuidString: promptId) {
@@ -141,7 +140,6 @@ class PowerModeSessionManager {
 
         await MainActor.run {
             enhancementService.isEnhancementEnabled = state.isEnhancementEnabled
-            enhancementService.useScreenCaptureContext = state.useScreenCaptureContext
             enhancementService.selectedPromptId = state.selectedPromptId.flatMap(UUID.init)
 
             if let aiService = enhancementService.getAIService() {
