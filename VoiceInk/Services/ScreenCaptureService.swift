@@ -134,10 +134,6 @@ class ScreenCaptureService: ObservableObject {
         }
         
         logger.notice("🎬 Starting screen capture")
-        
-        await MainActor.run {
-            self.lastCapturedText = nil
-        }
 
         guard let windowInfo = getActiveWindowInfo() else {
             logger.notice("❌ Failed to get window info")

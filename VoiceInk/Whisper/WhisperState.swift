@@ -205,6 +205,7 @@ class WhisperState: NSObject, ObservableObject {
                             }
         
                             if let enhancementService = self.enhancementService {
+                                enhancementService.captureClipboardContext()
                                 await enhancementService.captureScreenContext()
                             }
         

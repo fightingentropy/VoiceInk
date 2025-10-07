@@ -67,6 +67,13 @@ extension WhisperState {
         
         hideRecorderPanel()
         
+        // Clear captured context when the recorder is dismissed
+        if let enhancementService = enhancementService {
+            await MainActor.run {
+                enhancementService.clearCapturedContexts()
+            }
+        }
+        
         await MainActor.run {
             isMiniRecorderVisible = false
         }

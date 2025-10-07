@@ -69,6 +69,8 @@ class AIEnhancementService: ObservableObject {
     private let rateLimitInterval: TimeInterval = 1.0
     private var lastRequestTime: Date?
     private let modelContext: ModelContext
+    
+    @Published var lastCapturedClipboard: String?
 
     init(aiService: AIService = AIService(), modelContext: ModelContext) {
         self.aiService = aiService
@@ -137,7 +139,6 @@ class AIEnhancementService: ObservableObject {
     }
 
     private func getSystemMessage(for mode: EnhancementPrompt) -> String {
-        let clipboardSnapshot = NSPasteboard.general.string(forType: .string)
         let selectedText = SelectedTextService.fetchSelectedText()
 
         if let selectedText = selectedText, !selectedText.isEmpty {
@@ -158,7 +159,7 @@ class AIEnhancementService: ObservableObject {
         }
 
         let clipboardContext = if useClipboardContext,
-                              let clipboardText = clipboardSnapshot ?? NSPasteboard.general.string(forType: .string),
+                              let clipboardText = lastCapturedClipboard,
                               !clipboardText.isEmpty {
             "\n\n<CLIPBOARD_CONTEXT>\n\(clipboardText)\n</CLIPBOARD_CONTEXT>"
         } else {
@@ -417,6 +418,15 @@ class AIEnhancementService: ObservableObject {
                 self.objectWillChange.send()
             }
         }
+    }
+    
+    func captureClipboardContext() {
+        lastCapturedClipboard = NSPasteboard.general.string(forType: .string)
+    }
+    
+    func clearCapturedContexts() {
+        lastCapturedClipboard = nil
+        screenCaptureService.lastCapturedText = nil
     }
 
     func addPrompt(title: String, promptText: String, icon: PromptIcon = .documentFill, description: String? = nil, triggerWords: [String] = [], useSystemInstructions: Bool = true) {
