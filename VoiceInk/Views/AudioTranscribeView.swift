@@ -84,6 +84,31 @@ struct AudioTranscribeView: View {
                                     HStack(spacing: 8) {
                                         Text("Prompt:")
                                             .font(.subheadline)
+                                        
+                                        if enhancementService.allPrompts.isEmpty {
+                                            Text("No prompts available")
+                                                .foregroundColor(.secondary)
+                                                .italic()
+                                                .font(.caption)
+                                        } else {
+                                            let promptBinding = Binding<UUID>(
+                                                get: {
+                                                    selectedPromptId ?? enhancementService.allPrompts.first?.id ?? UUID()
+                                                },
+                                                set: { newValue in
+                                                    selectedPromptId = newValue
+                                                    enhancementService.selectedPromptId = newValue
+                                                }
+                                            )
+                                            
+                                            Picker("", selection: promptBinding) {
+                                                ForEach(enhancementService.allPrompts) { prompt in
+                                                    Text(prompt.title).tag(prompt.id)
+                                                }
+                                            }
+                                            .labelsHidden()
+                                            .fixedSize()
+                                        }
                                     }
                                 }
                             }
