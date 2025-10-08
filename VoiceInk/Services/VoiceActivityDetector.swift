@@ -18,7 +18,7 @@ fileprivate typealias WhisperVADSegments = OpaquePointer
 
 class VoiceActivityDetector {
     private var vadContext: WhisperVADContext
-    private let logger = Logger(subsystem: "com.voiceink.app", category: "VoiceActivityDetector")
+    private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "VoiceActivityDetector")
 
     init?(modelPath: String) {
         var contextParams = whisper_vad_default_context_params()

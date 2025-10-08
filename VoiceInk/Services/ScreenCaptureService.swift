@@ -8,7 +8,7 @@ class ScreenCaptureService: ObservableObject {
     @Published var lastCapturedText: String?
     
     private let logger = Logger(
-        subsystem: "com.prakashjoshipax.VoiceInk",
+        subsystem: "com.prakashjoshipax.voiceink",
         category: "aienhancement"
     )
     

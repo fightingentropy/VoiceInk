@@ -2,7 +2,7 @@ import Foundation
 import os
 
 class GeminiTranscriptionService {
-    private let logger = Logger(subsystem: "com.voiceink.transcription", category: "GeminiService")
+    private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "GeminiService")
     
     func transcribe(audioURL: URL, model: any TranscriptionModel) async throws -> String {
         let config = try getAPIConfig(for: model)

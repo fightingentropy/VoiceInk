@@ -8,7 +8,7 @@ class ParakeetTranscriptionService: TranscriptionService {
     private var asrManager: AsrManager?  
     private var vadManager: VadManager?  
     private let customModelsDirectory: URL?  
-    private let logger = Logger(subsystem: "com.voiceink.app", category: "ParakeetTranscriptionService")  
+    private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink.parakeet", category: "ParakeetTranscriptionService")
       
     init(customModelsDirectory: URL? = nil) {  
         self.customModelsDirectory = customModelsDirectory  
@@ -16,20 +16,25 @@ class ParakeetTranscriptionService: TranscriptionService {
   
     func loadModel() async throws {  
         guard asrManager == nil else {  
+            logger.notice("🦜 Parakeet models already loaded, skipping")
             return  
         }  
-  
-        guard let customModelsDirectory else {  
-            throw ASRError.modelLoadFailed  
-        }  
-  
+
         let manager = AsrManager(config: .default)  
-        let models = try await AsrModels.load(from: customModelsDirectory)  
-        try await manager.initialize(models: models)  
-          
-        self.asrManager = manager
-        logger.notice("🦜 Parakeet ASR models loaded successfully")  
-    }  
+        let models: AsrModels
+        
+        if let customModelsDirectory = customModelsDirectory {
+            models = try await AsrModels.load(from: customModelsDirectory)
+        } else {
+            // Fallback to FluidAudio's default directory
+            logger.notice("🦜 Loading Parakeet models from FluidAudio default directory")
+            models = try await AsrModels.downloadAndLoad()
+        }
+        
+        try await manager.initialize(models: models)
+
+        self.asrManager = manager  
+    }
   
     func transcribe(audioURL: URL, model: any TranscriptionModel) async throws -> String {  
         try await loadModel()  
@@ -73,7 +78,7 @@ class ParakeetTranscriptionService: TranscriptionService {
             }  
         }  
   
-        let result = try await asrManager.transcribe(speechAudio, source: .system)  
+        let result = try await asrManager.transcribe(speechAudio)
         
         logger.notice("🦜 Parakeet transcription result: \(result.text)")
           
@@ -100,10 +105,9 @@ class ParakeetTranscriptionService: TranscriptionService {
         }  
     }  
       
-    func cleanup() {  
-        asrManager?.cleanup()  
-        asrManager = nil  
-        vadManager = nil  
-        logger.notice("🦜 Parakeet ASR models cleaned up from memory")  
+    func cleanup() {
+        asrManager?.cleanup()
+        asrManager = nil
+        vadManager = nil
     }  
 }
