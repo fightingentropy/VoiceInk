@@ -141,21 +141,10 @@ class AIEnhancementService: ObservableObject {
     private func getSystemMessage(for mode: EnhancementPrompt) -> String {
         let selectedText = SelectedTextService.fetchSelectedText()
 
-        if let selectedText = selectedText, !selectedText.isEmpty {
-            let generalContextSection = "\n\n<CONTEXT_INFORMATION>\n\(selectedText)\n</CONTEXT_INFORMATION>"
-
-            if let activePrompt = activePrompt {
-                if activePrompt.id == PredefinedPrompts.assistantPromptId {
-                    return activePrompt.promptText + generalContextSection
-                } else {
-                    return activePrompt.finalPromptText + generalContextSection
-                }
-            } else {
-                if let defaultPrompt = allPrompts.first(where: { $0.id == PredefinedPrompts.defaultPromptId }) {
-                    return defaultPrompt.finalPromptText + generalContextSection
-                }
-                return AIPrompts.assistantMode + generalContextSection
-            }
+        let selectedTextContext = if let selectedText = selectedText, !selectedText.isEmpty {
+            "\n\n<CURRENTLY_SELECTED_TEXT>\n\(selectedText)\n</CURRENTLY_SELECTED_TEXT>"
+        } else {
+            ""
         }
 
         let clipboardContext = if useClipboardContext,
@@ -176,7 +165,7 @@ class AIEnhancementService: ObservableObject {
 
         let dictionaryContext = dictionaryContextService.getDictionaryContext()
 
-        let generalContextSection = clipboardContext + screenCaptureContext
+        let allContextSections = selectedTextContext + clipboardContext + screenCaptureContext
 
         let dictionaryContextSection = if !dictionaryContext.isEmpty {
             "\n\n<DICTIONARY_CONTEXT>\(dictionaryContext)\n</DICTIONARY_CONTEXT>"
@@ -184,22 +173,18 @@ class AIEnhancementService: ObservableObject {
             ""
         }
 
-        guard let activePrompt = activePrompt else {
-            if let defaultPrompt = allPrompts.first(where: { $0.id == PredefinedPrompts.defaultPromptId }) {
-                var systemMessage = defaultPrompt.finalPromptText
-                systemMessage += generalContextSection + dictionaryContextSection
-                return systemMessage
+        let finalContextSection = allContextSections + dictionaryContextSection
+
+        if let activePrompt = activePrompt {
+            if activePrompt.id == PredefinedPrompts.assistantPromptId {
+                return activePrompt.promptText + finalContextSection
+            } else {
+                return activePrompt.finalPromptText + finalContextSection
             }
-            return AIPrompts.assistantMode + generalContextSection + dictionaryContextSection
+        } else {
+            let defaultPrompt = allPrompts.first(where: { $0.id == PredefinedPrompts.defaultPromptId }) ?? allPrompts.first!
+            return defaultPrompt.finalPromptText + finalContextSection
         }
-
-        if activePrompt.id == PredefinedPrompts.assistantPromptId {
-            return activePrompt.promptText + generalContextSection + dictionaryContextSection
-        }
-
-        var systemMessage = activePrompt.finalPromptText
-        systemMessage += generalContextSection + dictionaryContextSection
-        return systemMessage
     }
 
     private func makeRequest(text: String, mode: EnhancementPrompt) async throws -> String {
