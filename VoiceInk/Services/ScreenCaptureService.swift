@@ -2,6 +2,7 @@ import Foundation
 import AppKit
 import Vision
 import os
+import ScreenCaptureKit
 
 class ScreenCaptureService: ObservableObject {
     @Published var isCapturing = false
@@ -31,53 +32,36 @@ class ScreenCaptureService: ObservableObject {
         return nil
     }
     
-    func captureActiveWindow() -> NSImage? {
+    func captureActiveWindow() async -> NSImage? {
         guard let windowInfo = getActiveWindowInfo() else {
-            logger.notice("❌ Failed to get window info for capture")
-            return captureFullScreen()
+            return nil
         }
         
-        let cgImage = CGWindowListCreateImage(
-            .null,
-            .optionIncludingWindow,
-            windowInfo.windowID,
-            [.boundsIgnoreFraming, .bestResolution]
-        )
-        
-        if let cgImage = cgImage {
-            logger.notice("✅ Successfully captured window")
-            return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
-        } else {
-            logger.notice("⚠️ Window-specific capture failed, trying full screen")
-            return captureFullScreen()
-        }
-    }
-    
-    private func captureFullScreen() -> NSImage? {
-        logger.notice("📺 Attempting full screen capture")
-        
-        if let screen = NSScreen.main {
-            let rect = screen.frame
-            let cgImage = CGWindowListCreateImage(
-                rect,
-                .optionOnScreenOnly,
-                kCGNullWindowID,
-                [.bestResolution]
-            )
+        do {
+            let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
             
-            if let cgImage = cgImage {
-                logger.notice("✅ Full screen capture successful")
-                return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+            guard let targetWindow = content.windows.first(where: { $0.windowID == windowInfo.windowID }) else {
+                return nil
             }
+            
+            let filter = SCContentFilter(desktopIndependentWindow: targetWindow)
+            
+            let configuration = SCStreamConfiguration()
+            configuration.width = Int(targetWindow.frame.width) * 2
+            configuration.height = Int(targetWindow.frame.height) * 2
+            
+            let cgImage = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration)
+            
+            return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+            
+        } catch {
+            logger.notice("📸 Screen capture failed: \(error.localizedDescription, privacy: .public)")
+            return nil
         }
-        
-        logger.notice("❌ All capture methods failed")
-        return nil
     }
     
     func extractText(from image: NSImage, completion: @escaping (String?) -> Void) {
         guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-            logger.notice("❌ Failed to convert NSImage to CGImage for text extraction")
             completion(nil)
             return
         }
@@ -85,13 +69,12 @@ class ScreenCaptureService: ObservableObject {
         let requestHandler = VNImageRequestHandler(cgImage: cgImage, options: [:])
         let request = VNRecognizeTextRequest { request, error in
             if let error = error {
-                self.logger.notice("❌ Text recognition error: \(error.localizedDescription, privacy: .public)")
+                self.logger.notice("📸 Text recognition failed: \(error.localizedDescription, privacy: .public)")
                 completion(nil)
                 return
             }
             
             guard let observations = request.results as? [VNRecognizedTextObservation] else {
-                self.logger.notice("❌ No text observations found")
                 completion(nil)
                 return
             }
@@ -100,13 +83,7 @@ class ScreenCaptureService: ObservableObject {
                 observation.topCandidates(1).first?.string
             }.joined(separator: "\n")
             
-            if text.isEmpty {
-                self.logger.notice("⚠️ Text extraction returned empty result")
-                completion(nil)
-            } else {
-                self.logger.notice("✅ Text extraction successful, found \(text.count, privacy: .public) characters")
-                completion(text)
-            }
+            completion(text.isEmpty ? nil : text)
         }
 
         request.recognitionLevel = VNRequestTextRecognitionLevel.accurate
@@ -116,14 +93,13 @@ class ScreenCaptureService: ObservableObject {
         do {
             try requestHandler.perform([request])
         } catch {
-            logger.notice("❌ Failed to perform text recognition: \(error.localizedDescription, privacy: .public)")
+            logger.notice("📸 Text recognition failed: \(error.localizedDescription, privacy: .public)")
             completion(nil)
         }
     }
     
     func captureAndExtractText() async -> String? {
         guard !isCapturing else { 
-            logger.notice("⚠️ Screen capture already in progress, skipping")
             return nil 
         }
         
@@ -133,15 +109,13 @@ class ScreenCaptureService: ObservableObject {
                 self.isCapturing = false
             }
         }
-        
-        logger.notice("🎬 Starting screen capture")
 
         guard let windowInfo = getActiveWindowInfo() else {
-            logger.notice("❌ Failed to get window info")
+            logger.notice("📸 No active window found")
             return nil
         }
         
-        logger.notice("🎯 Found window: \(windowInfo.title, privacy: .public) (\(windowInfo.ownerName, privacy: .public))")
+        logger.notice("📸 Capturing: \(windowInfo.title, privacy: .public) (\(windowInfo.ownerName, privacy: .public))")
 
         var contextText = """
         Active Window: \(windowInfo.title)
@@ -149,26 +123,30 @@ class ScreenCaptureService: ObservableObject {
         
         """
 
-        if let capturedImage = captureActiveWindow() {
+        if let capturedImage = await captureActiveWindow() {
             let extractedText = await withCheckedContinuation({ continuation in
                 extractText(from: capturedImage) { text in
                     continuation.resume(returning: text)
                 }
             })
             
-            if let extractedText = extractedText {
+            if let extractedText = extractedText, !extractedText.isEmpty {
                 contextText += "Window Content:\n\(extractedText)"
-                logger.notice("✅ Captured text successfully")
-                
-                await MainActor.run {
-                    self.lastCapturedText = contextText
-                }
-                
-                return contextText
+                let preview = String(extractedText.prefix(100))
+                logger.notice("📸 Text extracted: \(preview, privacy: .public)\(extractedText.count > 100 ? "..." : "")")
+            } else {
+                contextText += "Window Content:\nNo text detected via OCR"
+                logger.notice("📸 No text extracted from window")
             }
+            
+            await MainActor.run {
+                self.lastCapturedText = contextText
+            }
+            
+            return contextText
         }
         
-        logger.notice("❌ Capture attempt failed")
+        logger.notice("📸 Window capture failed")
         return nil
     }
 } 
