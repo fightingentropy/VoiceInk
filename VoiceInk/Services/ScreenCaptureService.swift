@@ -109,8 +109,9 @@ class ScreenCaptureService: ObservableObject {
             }
         }
 
-        request.recognitionLevel = .accurate
+        request.recognitionLevel = VNRequestTextRecognitionLevel.accurate
         request.usesLanguageCorrection = true
+        request.automaticallyDetectsLanguage = true
         
         do {
             try requestHandler.perform([request])
