@@ -20,7 +20,7 @@
                 </ul>
 
             ]]></description>
-            <enclosure url="https://beingpax.github.io/VoiceInk/1.59/VoiceInk.dmg" length="9611533" type="application/octet-stream" sparkle:edSignature="Sw5RdQkpfIRVHFIBF/x8+M+A4azzAZvmWy/oJwSSd0tN0riZ+gNh7O/mBQm1PK0LOVnlGNmhAunK3o30Od3mDQ=="/>
+            <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.59/VoiceInk.dmg" length="9611533" type="application/octet-stream" sparkle:edSignature="Sw5RdQkpfIRVHFIBF/x8+M+A4azzAZvmWy/oJwSSd0tN0riZ+gNh7O/mBQm1PK0LOVnlGNmhAunK3o30Od3mDQ=="/>
         </item>
     </channel>
 </rss>
