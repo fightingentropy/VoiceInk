@@ -3,24 +3,24 @@
     <channel>
         <title>VoiceInk Releases</title>
         <item>
-            <title>1.58</title>
-            <pubDate>Sun, 05 Oct 2025 12:00:00 +0545</pubDate>
-            <sparkle:version>158</sparkle:version>
-            <sparkle:shortVersionString>1.58</sparkle:shortVersionString>
+            <title>1.59</title>
+            <pubDate>Fri, 10 Oct 2025 12:00:00 +0545</pubDate>
+            <sparkle:version>159</sparkle:version>
+            <sparkle:shortVersionString>1.59</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 
-                <h3>What's New in Version 1.58</h3>
+                <h3>What's New in Version 1.59</h3>
                 <ul>
-                    <li>Full control over the Enhancement Prompt</li>
-                    <li>Immediately save the recording in history</li>
-                    <li>Fixed issues with large text in transcript history</li>
-                    <li>Display Power Mode in Transcript History by @wobondar</li>
-                    <li>Minor Improvements & Fixes</li>
+                    <li>Added Multi-language support for Context Awareness</li>
+                    <li>Improved Context handling</li>
+                    <li>Added context awareness toggle in Power Mode</li>
+                    <li>Better logging for parakeet model</li>
+                    <li>Minor improvements and bug fixes</li>
                 </ul>
 
             ]]></description>
-            <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.58/VoiceInk.dmg" length="9597815" type="application/octet-stream" sparkle:edSignature="wmFixc2Cot4Lk6iCbU0Cv5mdBVXHeAqLPVJ1tyjKENZSkeoxJzZjOGtYq32Vri3l0pGt35tKlWqXNDTKW35SBQ=="/>
+            <enclosure url="https://beingpax.github.io/VoiceInk/1.59/VoiceInk.dmg" length="9611533" type="application/octet-stream" sparkle:edSignature="Sw5RdQkpfIRVHFIBF/x8+M+A4azzAZvmWy/oJwSSd0tN0riZ+gNh7O/mBQm1PK0LOVnlGNmhAunK3o30Od3mDQ=="/>
         </item>
     </channel>
 </rss>
