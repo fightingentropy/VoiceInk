@@ -20,8 +20,8 @@ class TranscriptionAutoCleanupService {
 
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(handleTranscriptionCreated(_:)),
-            name: .transcriptionCreated,
+            selector: #selector(handleTranscriptionCompleted(_:)),
+            name: .transcriptionCompleted,
             object: nil
         )
 
@@ -35,21 +35,20 @@ class TranscriptionAutoCleanupService {
     }
 
     func stopMonitoring() {
-        NotificationCenter.default.removeObserver(self, name: .transcriptionCreated, object: nil)
-        
+        NotificationCenter.default.removeObserver(self, name: .transcriptionCompleted, object: nil)
     }
 
     func runManualCleanup(modelContext: ModelContext) async {
         await sweepOldTranscriptions(modelContext: modelContext)
     }
 
-    @objc private func handleTranscriptionCreated(_ notification: Notification) {
+    @objc private func handleTranscriptionCompleted(_ notification: Notification) {
         let isEnabled = UserDefaults.standard.bool(forKey: keyIsEnabled)
         guard isEnabled else { return }
 
         let minutes = UserDefaults.standard.integer(forKey: keyRetentionMinutes)
         if minutes > 0 {
-            // Trigger a sweep based on the retention window whenever a new item is added
+            // Trigger a sweep based on the retention window
             if let modelContext = self.modelContext {
                 Task { [weak self] in
                     guard let self = self else { return }
@@ -65,25 +64,19 @@ class TranscriptionAutoCleanupService {
             return
         }
 
-        
-
-        // Delete the audio file if it exists
         if let urlString = transcription.audioFileURL,
            let url = URL(string: urlString) {
             do {
                 try FileManager.default.removeItem(at: url)
-                
             } catch {
                 logger.error("Failed to delete audio file: \(error.localizedDescription)")
             }
         }
 
-        // Delete the transcription from the database
         modelContext.delete(transcription)
 
         do {
             try modelContext.save()
-            
         } catch {
             logger.error("Failed to save after transcription deletion: \(error.localizedDescription)")
         }

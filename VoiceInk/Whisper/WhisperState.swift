@@ -369,7 +369,10 @@ class WhisperState: NSObject, ObservableObject {
 
         // --- Finalize and save ---
         try? modelContext.save()
-        NotificationCenter.default.post(name: .transcriptionCreated, object: transcription)
+        
+        if transcription.transcriptionStatus == TranscriptionStatus.completed.rawValue {
+            NotificationCenter.default.post(name: .transcriptionCompleted, object: transcription)
+        }
 
         if await checkCancellationAndCleanup() { return }
 
