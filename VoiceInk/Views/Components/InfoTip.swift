@@ -25,22 +25,39 @@ struct InfoTip: View {
             .padding(5)
             .contentShape(Rectangle())
             .popover(isPresented: $isShowingTip) {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 12) {
                     Text(title)
                         .font(.headline)
+                        .foregroundColor(.primary)
                     
                     Text(message)
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                         .frame(width: width, alignment: .leading)
-                        .padding(.bottom, learnMoreLink != nil ? 5 : 0)
                     
                     if let url = learnMoreLink {
-                        Button(learnMoreText) {
-                            NSWorkspace.shared.open(url)
+                        Link(destination: url) {
+                            HStack(spacing: 4) {
+                                Text(learnMoreText)
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                Image(systemName: "arrow.up.forward")
+                                    .font(.caption2)
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(Color.accentColor)
+                            )
                         }
-                        .foregroundColor(.blue)  
+                        .buttonStyle(.plain)
+                        .padding(.top, 8)
                     }
                 }
-                .padding()
+                .padding(16)
             }
             .onTapGesture {
                 isShowingTip.toggle()

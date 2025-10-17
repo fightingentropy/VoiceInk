@@ -90,6 +90,9 @@ struct PermissionCard: View {
     let buttonTitle: String
     let buttonAction: () -> Void
     let checkPermission: () -> Void
+    var infoTipTitle: String?
+    var infoTipMessage: String?
+    var infoTipLink: String?
     @State private var isRefreshing = false
     
     var body: some View {
@@ -108,8 +111,17 @@ struct PermissionCard: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.headline)
+                    HStack {
+                        Text(title)
+                            .font(.headline)
+                        if let infoTipTitle = infoTipTitle, let infoTipMessage = infoTipMessage {
+                            InfoTip(
+                                title: infoTipTitle,
+                                message: infoTipMessage,
+                                learnMoreURL: infoTipLink ?? ""
+                            )
+                        }
+                    }
                     Text(description)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
@@ -260,7 +272,9 @@ struct PermissionsView: View {
                                 NSWorkspace.shared.open(url)
                             }
                         },
-                        checkPermission: { permissionManager.checkAccessibilityPermissions() }
+                        checkPermission: { permissionManager.checkAccessibilityPermissions() },
+                        infoTipTitle: "Accessibility Access",
+                        infoTipMessage: "VoiceInk uses Accessibility permissions to paste the transcribed text directly into other applications at your cursor's position. This allows for a seamless dictation experience across your Mac."
                     )
                     
                     // Screen Recording Permission
@@ -277,7 +291,10 @@ struct PermissionsView: View {
                                 NSWorkspace.shared.open(url)
                             }
                         },
-                        checkPermission: { permissionManager.checkScreenRecordingPermission() }
+                        checkPermission: { permissionManager.checkScreenRecordingPermission() },
+                        infoTipTitle: "Screen Recording Access",
+                        infoTipMessage: "VoiceInk captures on-screen text to understand the context of your voice input, which significantly improves transcription accuracy. Your privacy is important: this data is processed locally and is not stored.",
+                        infoTipLink: "https://tryvoiceink.com/docs/contextual-awareness"
                     )
                 }
             }
