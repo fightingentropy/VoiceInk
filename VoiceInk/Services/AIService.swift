@@ -49,9 +49,9 @@ enum AIProvider: String, CaseIterable {
         case .groq:
             return "qwen/qwen3-32b"
         case .gemini:
-            return "gemini-2.0-flash-lite"
+            return "gemini-2.5-flash-lite"
         case .anthropic:
-            return "claude-sonnet-4-0"
+            return "claude-haiku-4-5"
         case .openAI:
             return "gpt-5-mini"
         case .mistral:
@@ -81,29 +81,28 @@ enum AIProvider: String, CaseIterable {
             ]
         case .groq:
             return [
+                "llama-3.1-8b-instant",
                 "llama-3.3-70b-versatile",
                 "moonshotai/kimi-k2-instruct-0905",
                 "qwen/qwen3-32b",
                 "meta-llama/llama-4-maverick-17b-128e-instruct",
-                "openai/gpt-oss-120b"
+                "openai/gpt-oss-120b",
+                "openai/gpt-oss-20b"
             ]
         case .gemini:
             return [
                 "gemini-2.5-pro",
                 "gemini-2.5-flash",
                 "gemini-2.5-flash-lite",
-                "gemini-2.5-flash-preview-09-2025",
-                "gemini-2.5-flash-lite-preview-09-2025",
-                "gemini-2.0-flash",
-                "gemini-2.0-flash-lite"
+                "gemini-flash-latest",
+                "gemini-flash-lite-latest"
             ]
         case .anthropic:
             return [
                 "claude-opus-4-0",
                 "claude-sonnet-4-0",
-                "claude-3-7-sonnet-latest",
-                "claude-3-5-haiku-latest",
-                "claude-3-5-sonnet-latest"
+                "claude-sonnet-4-5",
+                "claude-haiku-4-5"
             ]
         case .openAI:
             return [
