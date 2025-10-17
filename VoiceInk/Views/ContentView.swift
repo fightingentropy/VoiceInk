@@ -55,8 +55,18 @@ struct DynamicSidebar: View {
     @Binding var selectedView: ViewType
     @Binding var hoveredView: ViewType?
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("powerModeUIFlag") private var powerModeUIFlag = false
     @StateObject private var licenseViewModel = LicenseViewModel()
     @Namespace private var buttonAnimation
+    
+    private var visibleViewTypes: [ViewType] {
+        ViewType.allCases.filter { viewType in
+            if viewType == .powerMode {
+                return powerModeUIFlag
+            }
+            return true
+        }
+    }
 
     var body: some View {
         VStack(spacing: 15) {
@@ -89,7 +99,7 @@ struct DynamicSidebar: View {
             .padding(.vertical, 12)
             
             // Navigation Items
-            ForEach(ViewType.allCases, id: \.self) { viewType in
+            ForEach(visibleViewTypes, id: \.self) { viewType in
                 DynamicSidebarButton(
                     title: viewType.rawValue,
                     systemImage: viewType.icon,
@@ -159,6 +169,7 @@ struct ContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var whisperState: WhisperState
     @EnvironmentObject private var hotkeyManager: HotkeyManager
+    @AppStorage("powerModeUIFlag") private var powerModeUIFlag = false
     @State private var selectedView: ViewType = .metrics
     @State private var hoveredView: ViewType?
     @State private var hasLoadedData = false
@@ -195,38 +206,27 @@ struct ContentView: View {
         }
         // inside ContentView body:
         .onReceive(NotificationCenter.default.publisher(for: .navigateToDestination)) { notification in
-            print("ContentView: Received navigation notification")
             if let destination = notification.userInfo?["destination"] as? String {
-                print("ContentView: Destination received: \(destination)")
                 switch destination {
                 case "Settings":
-                    print("ContentView: Navigating to Settings")
                     selectedView = .settings
                 case "AI Models":
-                    print("ContentView: Navigating to AI Models")
                     selectedView = .models
                 case "VoiceInk Pro":
-                    print("ContentView: Navigating to VoiceInk Pro")
                     selectedView = .license
                 case "History":
-                    print("ContentView: Navigating to History")
                     selectedView = .history
                 case "Permissions":
-                    print("ContentView: Navigating to Permissions")
                     selectedView = .permissions
                 case "Enhancement":
-                    print("ContentView: Navigating to Enhancement")
                     selectedView = .enhancement
                 case "Transcribe Audio":
-                    // Ensure we switch to the Transcribe Audio view in-place
-                    print("ContentView: Navigating to Transcribe Audio")
                     selectedView = .transcribeAudio
+                case "Power Mode":
+                    selectedView = .powerMode
                 default:
-                    print("ContentView: No matching destination found for: \(destination)")
                     break
                 }
-            } else {
-                print("ContentView: No destination in notification")
             }
         }
     }

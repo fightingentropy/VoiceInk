@@ -74,5 +74,3 @@ struct MiniRecorderView: View {
         }
     }
 }
-
-
