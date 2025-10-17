@@ -159,6 +159,7 @@ struct VoiceInkApp: App {
                     })
             }
         }
+        .windowStyle(.hiddenTitleBar)
         .commands {
             CommandGroup(replacing: .newItem) { }
             
