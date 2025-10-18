@@ -8,6 +8,7 @@ enum EnhancementPrompt {
     case aiAssistant
 }
 
+@MainActor
 class AIEnhancementService: ObservableObject {
     private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "AIEnhancementService")
 

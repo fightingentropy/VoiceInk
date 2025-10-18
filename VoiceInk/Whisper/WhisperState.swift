@@ -327,7 +327,7 @@ class WhisperState: NSObject, ObservableObject {
             finalPastedText = text
             
             if let enhancementService = enhancementService, enhancementService.isConfigured {
-                let detectionResult = promptDetectionService.analyzeText(text, with: enhancementService)
+                let detectionResult = await promptDetectionService.analyzeText(text, with: enhancementService)
                 promptDetectionResult = detectionResult
                 await promptDetectionService.applyDetectionResult(detectionResult, to: enhancementService)
             }
@@ -429,4 +429,3 @@ class WhisperState: NSObject, ObservableObject {
         await dismissMiniRecorder()
     }
 }
-

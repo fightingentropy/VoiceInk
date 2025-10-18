@@ -4,6 +4,7 @@ import Vision
 import os
 import ScreenCaptureKit
 
+@MainActor
 class ScreenCaptureService: ObservableObject {
     @Published var isCapturing = false
     @Published var lastCapturedText: String?
@@ -60,41 +61,41 @@ class ScreenCaptureService: ObservableObject {
         }
     }
     
-    func extractText(from image: NSImage, completion: @escaping (String?) -> Void) {
+    private func extractText(from image: NSImage) async -> String? {
         guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-            completion(nil)
-            return
+            return nil
         }
         
-        let requestHandler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        let request = VNRecognizeTextRequest { request, error in
-            if let error = error {
-                self.logger.notice("📸 Text recognition failed: \(error.localizedDescription, privacy: .public)")
-                completion(nil)
-                return
+        let result: Result<String?, Error> = await Task.detached(priority: .userInitiated) {
+            let request = VNRecognizeTextRequest()
+            request.recognitionLevel = .accurate
+            request.usesLanguageCorrection = true
+            request.automaticallyDetectsLanguage = true
+            
+            let requestHandler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+            
+            do {
+                try requestHandler.perform([request])
+                guard let observations = request.results as? [VNRecognizedTextObservation] else {
+                    return .success(nil)
+                }
+                
+                let text = observations
+                    .compactMap { $0.topCandidates(1).first?.string }
+                    .joined(separator: "\n")
+                
+                return .success(text.isEmpty ? nil : text)
+            } catch {
+                return .failure(error)
             }
-            
-            guard let observations = request.results as? [VNRecognizedTextObservation] else {
-                completion(nil)
-                return
-            }
-            
-            let text = observations.compactMap { observation in
-                observation.topCandidates(1).first?.string
-            }.joined(separator: "\n")
-            
-            completion(text.isEmpty ? nil : text)
-        }
-
-        request.recognitionLevel = VNRequestTextRecognitionLevel.accurate
-        request.usesLanguageCorrection = true
-        request.automaticallyDetectsLanguage = true
+        }.value
         
-        do {
-            try requestHandler.perform([request])
-        } catch {
+        switch result {
+        case .success(let text):
+            return text
+        case .failure(let error):
             logger.notice("📸 Text recognition failed: \(error.localizedDescription, privacy: .public)")
-            completion(nil)
+            return nil
         }
     }
     
@@ -124,11 +125,7 @@ class ScreenCaptureService: ObservableObject {
         """
 
         if let capturedImage = await captureActiveWindow() {
-            let extractedText = await withCheckedContinuation({ continuation in
-                extractText(from: capturedImage) { text in
-                    continuation.resume(returning: text)
-                }
-            })
+            let extractedText = await extractText(from: capturedImage)
             
             if let extractedText = extractedText, !extractedText.isEmpty {
                 contextText += "Window Content:\n\(extractedText)"

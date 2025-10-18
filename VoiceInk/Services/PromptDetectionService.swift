@@ -16,6 +16,7 @@ class PromptDetectionService {
         let originalPromptId: UUID?
     }
     
+    @MainActor
     func analyzeText(_ text: String, with enhancementService: AIEnhancementService) -> PromptDetectionResult {
         let originalEnhancementState = enhancementService.isEnhancementEnabled
         let originalPromptId = enhancementService.selectedPromptId
