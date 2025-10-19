@@ -19,7 +19,7 @@ class AudioTranscriptionService: ObservableObject {
     private let localTranscriptionService: LocalTranscriptionService
     private lazy var cloudTranscriptionService = CloudTranscriptionService()
     private lazy var nativeAppleTranscriptionService = NativeAppleTranscriptionService()
-    private lazy var parakeetTranscriptionService = ParakeetTranscriptionService(customModelsDirectory: whisperState.parakeetModelsDirectory)
+    private lazy var parakeetTranscriptionService = ParakeetTranscriptionService()
     
     enum TranscriptionError: Error {
         case noAudioFile

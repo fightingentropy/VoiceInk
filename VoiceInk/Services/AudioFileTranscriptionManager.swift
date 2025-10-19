@@ -72,7 +72,7 @@ class AudioTranscriptionManager: ObservableObject {
                 
                 // Initialize parakeet transcription service if needed
                 if parakeetTranscriptionService == nil {
-                    parakeetTranscriptionService = ParakeetTranscriptionService(customModelsDirectory: whisperState.parakeetModelsDirectory)
+                    parakeetTranscriptionService = ParakeetTranscriptionService()
                 }
                 
                 // Process audio file

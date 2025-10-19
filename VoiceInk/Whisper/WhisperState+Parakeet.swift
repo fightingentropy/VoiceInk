@@ -3,99 +3,98 @@ import FluidAudio
 import AppKit
 
 extension WhisperState {
-    var isParakeetModelDownloaded: Bool {
-        get { UserDefaults.standard.bool(forKey: "ParakeetModelDownloaded") }
-        set { UserDefaults.standard.set(newValue, forKey: "ParakeetModelDownloaded") }
+    private func parakeetDefaultsKey(for modelName: String) -> String {
+        "ParakeetModelDownloaded_\(modelName)"
     }
 
-    var isParakeetModelDownloading: Bool {
-        get { isDownloadingParakeet }
-        set { isDownloadingParakeet = newValue }
+    private func parakeetVersion(for modelName: String) -> AsrModelVersion {
+        modelName.lowercased().contains("v2") ? .v2 : .v3
+    }
+
+    private func parakeetCacheDirectory(for version: AsrModelVersion) -> URL {
+        AsrModels.defaultCacheDirectory(for: version)
+    }
+
+    func isParakeetModelDownloaded(named modelName: String) -> Bool {
+        UserDefaults.standard.bool(forKey: parakeetDefaultsKey(for: modelName))
+    }
+
+    func isParakeetModelDownloaded(_ model: ParakeetModel) -> Bool {
+        isParakeetModelDownloaded(named: model.name)
+    }
+
+    func isParakeetModelDownloading(_ model: ParakeetModel) -> Bool {
+        parakeetDownloadStates[model.name] ?? false
     }
 
     @MainActor
-    func downloadParakeetModel() async {
-        if isParakeetModelDownloaded {
+    func downloadParakeetModel(_ model: ParakeetModel) async {
+        if isParakeetModelDownloaded(model) {
             return
         }
 
-        isDownloadingParakeet = true
-        downloadProgress["parakeet-tdt-0.6b"] = 0.0
+        let modelName = model.name
+        parakeetDownloadStates[modelName] = true
+        downloadProgress[modelName] = 0.0
 
-        // Start progress simulation
         let timer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { timer in
             Task { @MainActor in
-                if let currentProgress = self.downloadProgress["parakeet-tdt-0.6b"], currentProgress < 0.9 {
-                    self.downloadProgress["parakeet-tdt-0.6b"] = currentProgress + 0.0125
+                if let currentProgress = self.downloadProgress[modelName], currentProgress < 0.9 {
+                    self.downloadProgress[modelName] = currentProgress + 0.005
                 }
             }
         }
 
-        do {
-            _ = try await AsrModels.downloadAndLoad(to: parakeetModelsDirectory)
+        let version = parakeetVersion(for: modelName)
 
-            // Also download VAD model into the same parent directory as ASR models
-            let parentDir = parakeetModelsDirectory.deletingLastPathComponent()
-            _ = try await DownloadUtils.loadModels(
-                .vad,
-                modelNames: Array(ModelNames.VAD.requiredModels),
-                directory: parentDir
-            )
-            self.isParakeetModelDownloaded = true
-            downloadProgress["parakeet-tdt-0.6b"] = 1.0
+        do {
+            _ = try await AsrModels.downloadAndLoad(version: version)
+
+            _ = try await VadManager()
+
+            UserDefaults.standard.set(true, forKey: parakeetDefaultsKey(for: modelName))
+            downloadProgress[modelName] = 1.0
         } catch {
-            self.isParakeetModelDownloaded = false
+            UserDefaults.standard.set(false, forKey: parakeetDefaultsKey(for: modelName))
         }
-        
+
         timer.invalidate()
-        isDownloadingParakeet = false
-        downloadProgress["parakeet-tdt-0.6b"] = nil
-        
+        parakeetDownloadStates[modelName] = false
+        downloadProgress[modelName] = nil
+
         refreshAllAvailableModels()
     }
-    
+
     @MainActor
-    func deleteParakeetModel() {
-        if let currentModel = currentTranscriptionModel, currentModel.provider == .parakeet {
+    func deleteParakeetModel(_ model: ParakeetModel) {
+        if let currentModel = currentTranscriptionModel,
+           currentModel.provider == .parakeet,
+           currentModel.name == model.name {
             currentTranscriptionModel = nil
             UserDefaults.standard.removeObject(forKey: "CurrentTranscriptionModel")
         }
-        
+
+        let version = parakeetVersion(for: model.name)
+        let cacheDirectory = parakeetCacheDirectory(for: version)
+
         do {
-            // First try: app support directory + bundle path
-            let appSupportDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("com.prakashjoshipax.VoiceInk")
-            let parakeetModelDirectory = appSupportDirectory.appendingPathComponent("parakeet-tdt-0.6b-v3-coreml")
-            
-            if FileManager.default.fileExists(atPath: parakeetModelDirectory.path) {
-                try FileManager.default.removeItem(at: parakeetModelDirectory)
-            } else {
-                // Second try: root of application support directory
-                let rootAppSupportDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                let rootParakeetModelDirectory = rootAppSupportDirectory.appendingPathComponent("parakeet-tdt-0.6b-v3-coreml")
-                
-                if FileManager.default.fileExists(atPath: rootParakeetModelDirectory.path) {
-                    try FileManager.default.removeItem(at: rootParakeetModelDirectory)
-                }
+            if FileManager.default.fileExists(atPath: cacheDirectory.path) {
+                try FileManager.default.removeItem(at: cacheDirectory)
             }
-            
-            self.isParakeetModelDownloaded = false
-            
+            UserDefaults.standard.set(false, forKey: parakeetDefaultsKey(for: model.name))
         } catch {
-            // Silently fail
+            // Silently ignore removal errors
         }
-        
+
         refreshAllAvailableModels()
     }
-    
+
     @MainActor
-    func showParakeetModelInFinder() {
-        let appSupportDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("com.prakashjoshipax.VoiceInk")
-        let parakeetModelDirectory = appSupportDirectory.appendingPathComponent("parakeet-tdt-0.6b-v3-coreml")
-        
-        if FileManager.default.fileExists(atPath: parakeetModelDirectory.path) {
-            NSWorkspace.shared.selectFile(parakeetModelDirectory.path, inFileViewerRootedAtPath: "")
+    func showParakeetModelInFinder(_ model: ParakeetModel) {
+        let cacheDirectory = parakeetCacheDirectory(for: parakeetVersion(for: model.name))
+
+        if FileManager.default.fileExists(atPath: cacheDirectory.path) {
+            NSWorkspace.shared.selectFile(cacheDirectory.path, inFileViewerRootedAtPath: "")
         }
     }
-} 
+}

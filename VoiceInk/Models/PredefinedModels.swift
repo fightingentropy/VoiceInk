@@ -87,12 +87,22 @@ import Foundation
             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .nativeApple)
         ),
         
-        // Parakeet Model
+        // Parakeet Models
         ParakeetModel(
-            name: "parakeet-tdt-0.6b",
+            name: "parakeet-tdt-0.6b-v2",
+            displayName: "Parakeet V2",
+            description: "NVIDIA's Parakeet V2 model optimized for lightning-fast English-only transcription.",
+            size: "474 MB",
+            speed: 0.99,
+            accuracy: 0.94,
+            ramUsage: 0.8,
+            supportedLanguages: getLanguageDictionary(isMultilingual: false, provider: .parakeet)
+        ),
+        ParakeetModel(
+            name: "parakeet-tdt-0.6b-v3",
             displayName: "Parakeet V3",
-            description: "NVIDIA's ASR model V3 for lightning-fast transcription with multi-lingual(English + European) support.",
-            size: "630 MB",
+            description: "NVIDIA's Parakeet V3 model with multilingual support across English and 25 European languages.",
+            size: "494 MB",
             speed: 0.99,
             accuracy: 0.94,
             ramUsage: 0.8,

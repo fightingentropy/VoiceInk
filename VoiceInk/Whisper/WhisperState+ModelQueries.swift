@@ -7,7 +7,7 @@ extension WhisperState {
             case .local:
                 return availableModels.contains { $0.name == model.name }
             case .parakeet:
-                return isParakeetModelDownloaded
+                return isParakeetModelDownloaded(named: model.name)
             case .nativeApple:
                 if #available(macOS 26, *) {
                     return true
