@@ -19,6 +19,7 @@ struct ModelManagementView: View {
     @EnvironmentObject private var enhancementService: AIEnhancementService
     @Environment(\.modelContext) private var modelContext
     @StateObject private var whisperPrompt = WhisperPrompt()
+    @ObservedObject private var warmupCoordinator = WhisperModelWarmupCoordinator.shared
 
     @State private var selectedFilter: ModelFilter = .recommended
     @State private var isShowingSettings = false
@@ -118,6 +119,10 @@ struct ModelManagementView: View {
             } else {
                 VStack(spacing: 12) {
                     ForEach(filteredModels, id: \.id) { model in
+                        let isWarming = (model as? LocalModel).map { localModel in
+                            warmupCoordinator.isWarming(modelNamed: localModel.name)
+                        } ?? false
+
                         ModelCardRowView(
                             model: model,
                             whisperState: whisperState, 
@@ -125,6 +130,7 @@ struct ModelManagementView: View {
                             isCurrent: whisperState.currentTranscriptionModel?.name == model.name,
                             downloadProgress: whisperState.downloadProgress,
                             modelURL: whisperState.availableModels.first { $0.name == model.name }?.url,
+                            isWarming: isWarming,
                             deleteAction: {
                                 if let customModel = model as? CustomCloudModel {
                                     alertTitle = "Delete Custom Model"

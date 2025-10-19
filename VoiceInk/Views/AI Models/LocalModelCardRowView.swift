@@ -7,12 +7,12 @@ struct LocalModelCardView: View {
     let isCurrent: Bool
     let downloadProgress: [String: Double]
     let modelURL: URL?
+    let isWarming: Bool
     
     // Actions
     var deleteAction: () -> Void
     var setDefaultAction: () -> Void
     var downloadAction: () -> Void
-    
     private var isDownloading: Bool {
         downloadProgress.keys.contains(model.name + "_main") || 
         downloadProgress.keys.contains(model.name + "_coreml")
@@ -134,12 +134,22 @@ struct LocalModelCardView: View {
                     .font(.system(size: 12))
                     .foregroundColor(Color(.secondaryLabelColor))
             } else if isDownloaded {
-                Button(action: setDefaultAction) {
-                    Text("Set as Default")
-                        .font(.system(size: 12))
+                if isWarming {
+                    HStack(spacing: 6) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("Optimizing model for your device...")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color(.secondaryLabelColor))
+                    }
+                } else {
+                    Button(action: setDefaultAction) {
+                        Text("Set as Default")
+                            .font(.system(size: 12))
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
             } else {
                 Button(action: downloadAction) {
                     HStack(spacing: 4) {

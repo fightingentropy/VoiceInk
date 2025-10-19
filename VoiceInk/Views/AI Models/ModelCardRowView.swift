@@ -8,13 +8,13 @@ struct ModelCardRowView: View {
     let isCurrent: Bool
     let downloadProgress: [String: Double]
     let modelURL: URL?
+    let isWarming: Bool
     
     // Actions
     var deleteAction: () -> Void
     var setDefaultAction: () -> Void
     var downloadAction: () -> Void
     var editAction: ((CustomCloudModel) -> Void)?
-    
     var body: some View {
         Group {
             switch model.provider {
@@ -26,6 +26,7 @@ struct ModelCardRowView: View {
                         isCurrent: isCurrent,
                         downloadProgress: downloadProgress,
                         modelURL: modelURL,
+                        isWarming: isWarming,
                         deleteAction: deleteAction,
                         setDefaultAction: setDefaultAction,
                         downloadAction: downloadAction
