@@ -95,7 +95,9 @@ struct TranscriptionHistoryView: View {
                                 
                                 if hasMoreContent {
                                     Button(action: {
-                                        loadMoreContent()
+                                        Task {
+                                            await loadMoreContent()
+                                        }
                                     }) {
                                         HStack(spacing: 8) {
                                             if isLoading {
@@ -279,6 +281,7 @@ struct TranscriptionHistoryView: View {
         )
     }
     
+    @MainActor
     private func loadInitialContent() async {
         isLoading = true
         defer { isLoading = false }
@@ -290,50 +293,44 @@ struct TranscriptionHistoryView: View {
             // Fetch initial page without a cursor
             let items = try modelContext.fetch(cursorQueryDescriptor())
             
-            await MainActor.run {
-                displayedTranscriptions = items
-                // Update cursor to the timestamp of the last item
-                lastTimestamp = items.last?.timestamp
-                // If we got fewer items than the page size, there are no more items
-                hasMoreContent = items.count == pageSize
-            }
+            displayedTranscriptions = items
+            // Update cursor to the timestamp of the last item
+            lastTimestamp = items.last?.timestamp
+            // If we got fewer items than the page size, there are no more items
+            hasMoreContent = items.count == pageSize
         } catch {
             print("Error loading transcriptions: \(error)")
         }
     }
     
-    private func loadMoreContent() {
+    @MainActor
+    private func loadMoreContent() async {
         guard !isLoading, hasMoreContent, let lastTimestamp = lastTimestamp else { return }
         
-        Task {
-            isLoading = true
-            defer { isLoading = false }
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            // Fetch next page using the cursor
+            let newItems = try modelContext.fetch(cursorQueryDescriptor(after: lastTimestamp))
             
-            do {
-                // Fetch next page using the cursor
-                let newItems = try modelContext.fetch(cursorQueryDescriptor(after: lastTimestamp))
-                
-                await MainActor.run {
-                    // Append new items to the displayed list
-                    displayedTranscriptions.append(contentsOf: newItems)
-                    // Update cursor to the timestamp of the last new item
-                    self.lastTimestamp = newItems.last?.timestamp
-                    // If we got fewer items than the page size, there are no more items
-                    hasMoreContent = newItems.count == pageSize
-                }
-            } catch {
-                print("Error loading more transcriptions: \(error)")
-            }
+            // Append new items to the displayed list
+            displayedTranscriptions.append(contentsOf: newItems)
+            // Update cursor to the timestamp of the last new item
+            self.lastTimestamp = newItems.last?.timestamp
+            // If we got fewer items than the page size, there are no more items
+            hasMoreContent = newItems.count == pageSize
+        } catch {
+            print("Error loading more transcriptions: \(error)")
         }
     }
     
-    private func resetPagination() async {
-        await MainActor.run {
-            displayedTranscriptions = []
-            lastTimestamp = nil
-            hasMoreContent = true
-            isLoading = false
-        }
+    @MainActor
+    private func resetPagination() {
+        displayedTranscriptions = []
+        lastTimestamp = nil
+        hasMoreContent = true
+        isLoading = false
     }
     
     private func deleteTranscription(_ transcription: Transcription) {
