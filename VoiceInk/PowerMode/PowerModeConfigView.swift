@@ -130,8 +130,21 @@ struct ConfigurationView: View {
                 
                 if case .edit(let config) = mode {
                     Button("Delete") {
-                        powerModeManager.removeConfiguration(with: config.id)
-                        presentationMode.wrappedValue.dismiss()
+                        let alert = NSAlert()
+                        alert.messageText = "Delete Power Mode?"
+                        alert.informativeText = "Are you sure you want to delete the '\(config.name)' power mode? This action cannot be undone."
+                        alert.alertStyle = .warning
+                        alert.addButton(withTitle: "Delete")
+                        alert.addButton(withTitle: "Cancel")
+                        
+                        // Style the Delete button as destructive
+                        alert.buttons[0].hasDestructiveAction = true
+                        
+                        let response = alert.runModal()
+                        if response == .alertFirstButtonReturn {
+                            powerModeManager.removeConfiguration(with: config.id)
+                            presentationMode.wrappedValue.dismiss()
+                        }
                     }
                     .foregroundColor(.red)
                     .padding(.trailing, 8)
@@ -623,7 +636,7 @@ struct ConfigurationView: View {
                                 .padding(.vertical, 8)
                                 .background(
                                     RoundedRectangle(cornerRadius: 10)
-                                        .fill(canSave ? .green : .green.opacity(0.5))
+                                        .fill(canSave ? Color(red: 0.3, green: 0.7, blue: 0.4) : Color(red: 0.3, green: 0.7, blue: 0.4).opacity(0.5))
                                 )
                         }
                         .buttonStyle(.plain)

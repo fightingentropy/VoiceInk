@@ -63,18 +63,6 @@ struct PowerModeConfigurationsGrid: View {
                     powerModeManager: powerModeManager,
                     onEditConfig: onEditConfig
                 )
-                .contextMenu {
-                    Button(action: { 
-                        onEditConfig(config)
-                    }) {
-                        Label("Edit", systemImage: "pencil")
-                    }
-                    Button(role: .destructive, action: {
-                        powerModeManager.removeConfiguration(with: config.id)
-                    }) {
-                        Label("Remove", systemImage: "trash")
-                    }
-                }
             }
         }
         .padding(.horizontal)
@@ -330,9 +318,19 @@ struct ConfigurationRow: View {
             Label("Edit", systemImage: "pencil")
         }
         Button(role: .destructive, action: {
-            powerModeManager.removeConfiguration(with: config.id)
+            let alert = NSAlert()
+            alert.messageText = "Delete Power Mode?"
+            alert.informativeText = "Are you sure you want to delete the '\(config.name)' power mode? This action cannot be undone."
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "Delete")
+            alert.addButton(withTitle: "Cancel")
+            alert.buttons[0].hasDestructiveAction = true
+            
+            if alert.runModal() == .alertFirstButtonReturn {
+                powerModeManager.removeConfiguration(with: config.id)
+            }
         }) {
-            Label("Remove", systemImage: "trash")
+            Label("Delete", systemImage: "trash")
         }
     }
     }

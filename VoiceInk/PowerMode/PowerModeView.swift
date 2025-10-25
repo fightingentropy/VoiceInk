@@ -118,11 +118,15 @@ struct PowerModeView: View {
                                     Text(isReorderMode ? "Done" : "Reorder")
                                         .font(.system(size: 13, weight: .medium))
                                 }
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
-                                .background(Color.accentColor)
+                                .background(Color(NSColor.controlBackgroundColor))
                                 .cornerRadius(6)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color(NSColor.separatorColor), lineWidth: 1)
+                                )
                             }
                             .buttonStyle(PlainButtonStyle())
                         }
