@@ -15,6 +15,7 @@ class SystemInfoService {
         APP INFORMATION:
         App Version: \(getAppVersion())
         Build Version: \(getBuildVersion())
+        License Status: \(getLicenseStatus())
 
         OPERATING SYSTEM:
         macOS Version: \(ProcessInfo.processInfo.operatingSystemVersionString)
@@ -35,7 +36,8 @@ class SystemInfoService {
         Secondary Hotkey: \(getSecondaryHotkey())
 
         TRANSCRIPTION SETTINGS:
-        Current Model: \(getCurrentTranscriptionModel())
+        Selected Model: \(getCurrentTranscriptionModel())
+        Selected Language: \(getCurrentLanguage())
         AI Enhancement: \(getAIEnhancementStatus())
         AI Provider: \(getAIProvider())
         AI Model: \(getAIModel())
@@ -189,6 +191,23 @@ class SystemInfoService {
         @unknown default:
             return "Unknown"
         }
+    }
+
+    private func getLicenseStatus() -> String {
+        let userDefaults = UserDefaults.standard
+
+        // Check for existing license key and activation
+        if let _ = userDefaults.licenseKey {
+            if userDefaults.activationId != nil || !userDefaults.bool(forKey: "VoiceInkLicenseRequiresActivation") {
+                return "Licensed (Pro)"
+            }
+        }
+
+        return "Not Licensed"
+    }
+
+    private func getCurrentLanguage() -> String {
+        return UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "en"
     }
 
 }
