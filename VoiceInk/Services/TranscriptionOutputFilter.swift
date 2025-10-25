@@ -15,7 +15,6 @@ struct TranscriptionOutputFilter {
         "hmm", "hm", "mmm", "mm", "mh", "ha", "ehh"
     ]
     static func filter(_ text: String) -> String {
-        logger.notice("🧹 Filtering hallucinations and filler words")
         var filteredText = text
 
         // Remove <TAG>...</TAG> blocks
@@ -48,9 +47,9 @@ struct TranscriptionOutputFilter {
 
         // Log results
         if filteredText != text {
-            logger.notice("✅ Removed hallucinations and filler words")
+            logger.notice("📝 Output filter result: \(filteredText)")
         } else {
-            logger.notice("✅ No hallucinations or filler words found")
+            logger.notice("📝 Output filter result (unchanged): \(filteredText)")
         }
 
         return filteredText

@@ -293,7 +293,9 @@ class WhisperState: NSObject, ObservableObject {
 
             let transcriptionStart = Date()
             var text = try await transcriptionService.transcribe(audioURL: url, model: model)
+            logger.notice("📝 Raw transcript: \(text)")
             text = TranscriptionOutputFilter.filter(text)
+            logger.notice("📝 Output filter result: \(text)")
             let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
 
             let powerModeManager = PowerModeManager.shared
@@ -307,10 +309,12 @@ class WhisperState: NSObject, ObservableObject {
 
             if UserDefaults.standard.object(forKey: "IsTextFormattingEnabled") as? Bool ?? true {
                 text = WhisperTextFormatter.format(text)
+                logger.notice("📝 Formatted transcript: \(text)")
             }
 
             if UserDefaults.standard.bool(forKey: "IsWordReplacementEnabled") {
                 text = WordReplacementService.shared.applyReplacements(to: text)
+                logger.notice("📝 WordReplacement: \(text)")
             }
 
             let audioAsset = AVURLAsset(url: url)
@@ -340,6 +344,7 @@ class WhisperState: NSObject, ObservableObject {
                 
                 do {
                     let (enhancedText, enhancementDuration, promptName) = try await enhancementService.enhance(textForAI)
+                    logger.notice("📝 AI enhancement: \(enhancedText)")
                     transcription.enhancedText = enhancedText
                     transcription.aiEnhancementModelName = enhancementService.getAIService()?.currentModel
                     transcription.promptName = promptName
