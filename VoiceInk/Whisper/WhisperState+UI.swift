@@ -80,6 +80,10 @@ extension WhisperState {
         
         await cleanupModelResources()
         
+        if UserDefaults.standard.bool(forKey: PowerModeDefaults.autoRestoreKey) {
+            await PowerModeSessionManager.shared.endSession()
+        }
+        
         await MainActor.run {
             recordingState = .idle
         }
