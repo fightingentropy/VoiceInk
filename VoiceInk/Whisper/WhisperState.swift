@@ -398,11 +398,6 @@ class WhisperState: NSObject, ObservableObject {
                     """
             }
 
-            let shouldAddSpace = UserDefaults.standard.object(forKey: "AppendTrailingSpace") as? Bool ?? true
-            if shouldAddSpace {
-                textToPaste += " "
-            }
-
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 CursorPaster.pasteAtCursor(textToPaste)
 
