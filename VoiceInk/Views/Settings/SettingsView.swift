@@ -228,19 +228,19 @@ struct SettingsView: View {
                             if soundManager.isEnabled {
                                 Spacer()
 
-                                Button(action: {
-                                    withAnimation(.easeInOut(duration: 0.2)) {
-                                        isCustomSoundsExpanded.toggle()
-                                    }
-                                }) {
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                        .rotationEffect(.degrees(isCustomSoundsExpanded ? 90 : 0))
-                                        .animation(.easeInOut(duration: 0.2), value: isCustomSoundsExpanded)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.secondary)
+                                    .rotationEffect(.degrees(isCustomSoundsExpanded ? 90 : 0))
+                                    .animation(.easeInOut(duration: 0.2), value: isCustomSoundsExpanded)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if soundManager.isEnabled {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    isCustomSoundsExpanded.toggle()
                                 }
-                                .buttonStyle(.plain)
-                                .help("Customize recording sounds")
                             }
                         }
 
