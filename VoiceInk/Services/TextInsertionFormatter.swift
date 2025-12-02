@@ -38,14 +38,22 @@ class TextInsertionFormatter {
         }
 
         let cursorPosition = rangeValue.location
-        let beforeStart = max(0, cursorPosition - 100)
-        let textBefore = String(text[text.index(text.startIndex, offsetBy: beforeStart)..<text.index(text.startIndex, offsetBy: cursorPosition)])
 
-        let afterEnd = min(text.count, cursorPosition + 100)
-        let textAfter = String(text[text.index(text.startIndex, offsetBy: cursorPosition)..<text.index(text.startIndex, offsetBy: afterEnd)])
+        guard let cursorUTF16Index = text.utf16.index(text.utf16.startIndex, offsetBy: cursorPosition, limitedBy: text.utf16.endIndex),
+              let cursorStringIndex = cursorUTF16Index.samePosition(in: text) else {
+            return nil
+        }
 
-        let charBefore = cursorPosition > 0 ? text[text.index(text.startIndex, offsetBy: cursorPosition - 1)] : nil
-        let charAfter = cursorPosition < text.count ? text[text.index(text.startIndex, offsetBy: cursorPosition)] : nil
+        let searchRangeLength = 100
+        
+        let beforeStartIndex = text.index(cursorStringIndex, offsetBy: -searchRangeLength, limitedBy: text.startIndex) ?? text.startIndex
+        let textBefore = String(text[beforeStartIndex..<cursorStringIndex])
+
+        let afterEndIndex = text.index(cursorStringIndex, offsetBy: searchRangeLength, limitedBy: text.endIndex) ?? text.endIndex
+        let textAfter = String(text[cursorStringIndex..<afterEndIndex])
+
+        let charBefore = cursorStringIndex > text.startIndex ? text[text.index(before: cursorStringIndex)] : nil
+        let charAfter = cursorStringIndex < text.endIndex ? text[cursorStringIndex] : nil
 
         return InsertionContext(
             textBefore: textBefore,
@@ -164,3 +172,4 @@ class TextInsertionFormatter {
         return false
     }
 }
+
