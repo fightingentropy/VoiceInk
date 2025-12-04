@@ -8,6 +8,7 @@ struct MenuBarView: View {
     @EnvironmentObject var updaterViewModel: UpdaterViewModel
     @EnvironmentObject var enhancementService: AIEnhancementService
     @EnvironmentObject var aiService: AIService
+    @ObservedObject var audioDeviceManager = AudioDeviceManager.shared
     @State private var launchAtLoginEnabled = LaunchAtLogin.isEnabled
     @State private var menuRefreshTrigger = false  // Added to force menu updates
     @State private var isHovered = false
@@ -70,7 +71,6 @@ struct MenuBarView: View {
                         .font(.system(size: 10))
                 }
             }
-            .disabled(!enhancementService.isEnhancementEnabled)
             
             Menu {
                 ForEach(aiService.connectedProviders, id: \.self) { provider in
@@ -85,16 +85,10 @@ struct MenuBarView: View {
                         }
                     }
                 }
-                
+
                 if aiService.connectedProviders.isEmpty {
                     Text("No providers connected")
                         .foregroundColor(.secondary)
-                }
-                
-                Divider()
-                
-                Button("Manage AI Providers") {
-                    menuBarManager.openMainWindowAndNavigate(to: "Enhancement")
                 }
             } label: {
                 HStack {
@@ -103,7 +97,6 @@ struct MenuBarView: View {
                         .font(.system(size: 10))
                 }
             }
-            .disabled(!enhancementService.isEnhancementEnabled)
             
             Menu {
                 ForEach(aiService.availableModels, id: \.self) { model in
@@ -118,16 +111,10 @@ struct MenuBarView: View {
                         }
                     }
                 }
-                
+
                 if aiService.availableModels.isEmpty {
                     Text("No models available")
                         .foregroundColor(.secondary)
-                }
-                
-                Divider()
-                
-                Button("Manage AI Models") {
-                    menuBarManager.openMainWindowAndNavigate(to: "Enhancement")
                 }
             } label: {
                 HStack {
@@ -136,10 +123,37 @@ struct MenuBarView: View {
                         .font(.system(size: 10))
                 }
             }
-            .disabled(!enhancementService.isEnhancementEnabled)
             
             LanguageSelectionView(whisperState: whisperState, displayMode: .menuItem, whisperPrompt: whisperState.whisperPrompt)
-            
+
+            Menu {
+                ForEach(audioDeviceManager.availableDevices, id: \.id) { device in
+                    Button {
+                        // Switch to Custom mode and select this device
+                        audioDeviceManager.inputMode = .custom
+                        audioDeviceManager.selectDevice(id: device.id)
+                    } label: {
+                        HStack {
+                            Text(device.name)
+                            if audioDeviceManager.getCurrentDevice() == device.id {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+
+                if audioDeviceManager.availableDevices.isEmpty {
+                    Text("No devices available")
+                        .foregroundColor(.secondary)
+                }
+            } label: {
+                HStack {
+                    Text("Audio Input")
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 10))
+                }
+            }
+
             Menu("Additional") {
                 Button {
                     enhancementService.useClipboardContext.toggle()
