@@ -7,9 +7,6 @@ class CursorPaster {
         let pasteboard = NSPasteboard.general
         let preserveTranscript = UserDefaults.standard.bool(forKey: "preserveTranscriptInClipboard")
 
-        let context = TextInsertionFormatter.getInsertionContext()
-        let textToInsert = TextInsertionFormatter.formatTextForInsertion(text, context: context)
-
         var savedContents: [(NSPasteboard.PasteboardType, Data)] = []
 
         // Only save clipboard contents if we plan to restore them
@@ -25,7 +22,7 @@ class CursorPaster {
             }
         }
 
-        ClipboardManager.setClipboard(textToInsert, transient: !preserveTranscript)
+        ClipboardManager.setClipboard(text, transient: !preserveTranscript)
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             if UserDefaults.standard.bool(forKey: "UseAppleScriptPaste") {
