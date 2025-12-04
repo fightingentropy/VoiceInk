@@ -134,7 +134,7 @@ class AudioDeviceManager: ObservableObject {
         let devices = deviceIDs.compactMap { deviceID -> (id: AudioDeviceID, uid: String, name: String)? in
             guard let name = getDeviceName(deviceID: deviceID),
                   let uid = getDeviceUID(deviceID: deviceID),
-                  isInputDevice(deviceID: deviceID) else {
+                  isValidInputDevice(deviceID: deviceID) else {
                 return nil
             }
             return (id: deviceID, uid: uid, name: name)
@@ -162,13 +162,13 @@ class AudioDeviceManager: ObservableObject {
         return name as String?
     }
     
-    private func isInputDevice(deviceID: AudioDeviceID) -> Bool {
+    private func isValidInputDevice(deviceID: AudioDeviceID) -> Bool {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyStreamConfiguration,
             mScope: kAudioDevicePropertyScopeInput,
             mElement: kAudioObjectPropertyElementMain
         )
-        
+
         var propertySize: UInt32 = 0
         var result = AudioObjectGetPropertyDataSize(
             deviceID,
@@ -177,15 +177,15 @@ class AudioDeviceManager: ObservableObject {
             nil,
             &propertySize
         )
-        
+
         if result != noErr {
             logger.error("Error checking input capability for device \(deviceID): \(result)")
             return false
         }
-        
+
         let bufferList = UnsafeMutablePointer<AudioBufferList>.allocate(capacity: Int(propertySize))
         defer { bufferList.deallocate() }
-        
+
         result = AudioObjectGetPropertyData(
             deviceID,
             &address,
@@ -194,16 +194,42 @@ class AudioDeviceManager: ObservableObject {
             &propertySize,
             bufferList
         )
-        
+
         if result != noErr {
             logger.error("Error getting stream configuration for device \(deviceID): \(result)")
             return false
         }
-        
+
         let bufferCount = Int(bufferList.pointee.mNumberBuffers)
-        return bufferCount > 0
+        guard bufferCount > 0 else {
+            return false
+        }
+
+        address.mSelector = kAudioDevicePropertyTransportType
+        address.mScope = kAudioObjectPropertyScopeGlobal
+        var transportType: UInt32 = 0
+        propertySize = UInt32(MemoryLayout<UInt32>.size)
+
+        let status = AudioObjectGetPropertyData(
+            deviceID,
+            &address,
+            0,
+            nil,
+            &propertySize,
+            &transportType
+        )
+
+        if status != noErr {
+            logger.warning("Could not get transport type for device \(deviceID), including it anyway")
+            return true
+        }
+
+        let isVirtual = transportType == kAudioDeviceTransportTypeVirtual
+        let isAggregate = transportType == kAudioDeviceTransportTypeAggregate
+
+        return !isVirtual && !isAggregate
     }
-    
+
     func selectDevice(id: AudioDeviceID) {
         logger.info("Selecting device with ID: \(id)")
         if let name = getDeviceName(deviceID: id) {
