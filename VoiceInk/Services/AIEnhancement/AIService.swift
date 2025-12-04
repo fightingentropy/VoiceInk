@@ -78,6 +78,7 @@ enum AIProvider: String, CaseIterable {
         case .cerebras:
             return [
                 "gpt-oss-120b",
+                "llama-3.1-8b",
                 "llama-4-scout-17b-16e-instruct",
                 "llama-3.3-70b",
                 "qwen-3-32b",
