@@ -10,7 +10,7 @@ struct MenuBarView: View {
     @EnvironmentObject var aiService: AIService
     @ObservedObject var audioDeviceManager = AudioDeviceManager.shared
     @State private var launchAtLoginEnabled = LaunchAtLogin.isEnabled
-    @State private var menuRefreshTrigger = false  // Added to force menu updates
+    @State private var menuRefreshTrigger = false
     @State private var isHovered = false
     
     var body: some View {
@@ -129,9 +129,7 @@ struct MenuBarView: View {
             Menu {
                 ForEach(audioDeviceManager.availableDevices, id: \.id) { device in
                     Button {
-                        // Switch to Custom mode and select this device
-                        audioDeviceManager.inputMode = .custom
-                        audioDeviceManager.selectDevice(id: device.id)
+                        audioDeviceManager.selectDeviceAndSwitchToCustomMode(id: device.id)
                     } label: {
                         HStack {
                             Text(device.name)

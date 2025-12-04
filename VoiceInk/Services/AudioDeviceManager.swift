@@ -223,6 +223,22 @@ class AudioDeviceManager: ObservableObject {
             fallbackToDefaultDevice()
         }
     }
+
+    func selectDeviceAndSwitchToCustomMode(id: AudioDeviceID) {
+        if let deviceToSelect = availableDevices.first(where: { $0.id == id }) {
+            let uid = deviceToSelect.uid
+            DispatchQueue.main.async {
+                self.inputMode = .custom
+                self.selectedDeviceID = id
+                UserDefaults.standard.audioInputModeRawValue = AudioInputMode.custom.rawValue
+                UserDefaults.standard.selectedAudioDeviceUID = uid
+                self.notifyDeviceChange()
+            }
+        } else {
+            logger.error("Attempted to select unavailable device: \(id)")
+            fallbackToDefaultDevice()
+        }
+    }
     
     func selectInputMode(_ mode: AudioInputMode) {
         inputMode = mode
