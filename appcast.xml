@@ -3,23 +3,21 @@
     <channel>
         <title>VoiceInk Releases</title>
         <item>
-            <title>1.62</title>
-            <pubDate>Sat, 29 Nov 2025 11:50:19 +0545</pubDate>
-            <sparkle:version>162</sparkle:version>
-            <sparkle:shortVersionString>1.62</sparkle:shortVersionString>
+            <title>1.63</title>
+            <pubDate>Thu, 04 Dec 2025 22:24:05 +0545</pubDate>
+            <sparkle:version>163</sparkle:version>
+            <sparkle:shortVersionString>1.63</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 
-                <h3>What's New in Version 1.62</h3>
+                <h3>What's New in Version 1.63</h3>
                 <ul>
-                    <li>Fix license verification issue</li>
-                    <li>Improved text formatting</li>
-                    <li>Improved clipboard handling</li>
-                    <li>Support for adding custom start/stop sounds</li>
+                    <li>Fixed the app crash issue</li>
+                    <li>Add audio device switcher in menu bar</li>
                 </ul>
 
             ]]></description>
-            <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.62/VoiceInk.dmg" length="24628631" type="application/octet-stream" sparkle:edSignature="OKOasDHQJz70Mdpb1VASyfgwz+UreiIAvuCAzWSSOX62swC1NM6jtqBNYr5NpVxV8o5JBgBxfydFRthCbqy1AA=="/>
+            <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.63/VoiceInk.dmg" length="24625339" type="application/octet-stream" sparkle:edSignature="/7uI3emxLJxVO9bIjht6olW1eliDDLqlDj975xfSVITy5Btx4twNHoOkrpiQn80wMpFBMSPgq7r5p8y9K1mfBQ=="/>
         </item>
     </channel>
 </rss>
