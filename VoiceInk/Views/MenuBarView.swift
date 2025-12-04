@@ -167,8 +167,7 @@ struct MenuBarView: View {
                         }
                     }
                 }
-                .disabled(!enhancementService.isEnhancementEnabled)
-                
+
                 Button {
                     enhancementService.useScreenCaptureContext.toggle()
                     menuRefreshTrigger.toggle()
@@ -181,7 +180,6 @@ struct MenuBarView: View {
                         }
                     }
                 }
-                .disabled(!enhancementService.isEnhancementEnabled)
             }
             .id("additional-menu-\(menuRefreshTrigger)")
             
