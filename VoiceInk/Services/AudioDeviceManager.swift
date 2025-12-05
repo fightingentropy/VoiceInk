@@ -201,33 +201,7 @@ class AudioDeviceManager: ObservableObject {
         }
 
         let bufferCount = Int(bufferList.pointee.mNumberBuffers)
-        guard bufferCount > 0 else {
-            return false
-        }
-
-        address.mSelector = kAudioDevicePropertyTransportType
-        address.mScope = kAudioObjectPropertyScopeGlobal
-        var transportType: UInt32 = 0
-        propertySize = UInt32(MemoryLayout<UInt32>.size)
-
-        let status = AudioObjectGetPropertyData(
-            deviceID,
-            &address,
-            0,
-            nil,
-            &propertySize,
-            &transportType
-        )
-
-        if status != noErr {
-            logger.warning("Could not get transport type for device \(deviceID), including it anyway")
-            return true
-        }
-
-        let isVirtual = transportType == kAudioDeviceTransportTypeVirtual
-        let isAggregate = transportType == kAudioDeviceTransportTypeAggregate
-
-        return !isVirtual && !isAggregate
+        return bufferCount > 0
     }
 
     func selectDevice(id: AudioDeviceID) {
