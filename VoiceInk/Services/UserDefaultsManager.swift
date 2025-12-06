@@ -8,7 +8,8 @@ extension UserDefaults {
         static let audioInputMode = "audioInputMode"
         static let selectedAudioDeviceUID = "selectedAudioDeviceUID"
         static let prioritizedDevices = "prioritizedDevices"
-        
+        static let affiliatePromotionDismissed = "VoiceInkAffiliatePromotionDismissed"
+
         // Obfuscated keys for license-related data
         enum License {
             static let trialStartDate = "VoiceInkTrialStartDate"
@@ -71,5 +72,11 @@ extension UserDefaults {
     var prioritizedDevicesData: Data? {
         get { data(forKey: Keys.prioritizedDevices) }
         set { setValue(newValue, forKey: Keys.prioritizedDevices) }
+    }
+
+    // MARK: - Affiliate Promotion Dismissal
+    var affiliatePromotionDismissed: Bool {
+        get { bool(forKey: Keys.affiliatePromotionDismissed) }
+        set { setValue(newValue, forKey: Keys.affiliatePromotionDismissed) }
     }
 } 
