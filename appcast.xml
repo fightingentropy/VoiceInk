@@ -1,23 +1,22 @@
 <?xml version="1.0" standalone="yes"?>
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
     <channel>
-        <title>VoiceInk Releases</title>
+        <title>VoiceInk</title>
         <item>
-            <title>1.63</title>
-            <pubDate>Thu, 04 Dec 2025 22:24:05 +0545</pubDate>
-            <sparkle:version>163</sparkle:version>
-            <sparkle:shortVersionString>1.63</sparkle:shortVersionString>
+            <title>1.64</title>
+            <pubDate>Sat, 06 Dec 2025 08:29:15 +0545</pubDate>
+            <sparkle:version>164</sparkle:version>
+            <sparkle:shortVersionString>1.64</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 
-                <h3>What's New in Version 1.63</h3>
+                <h3>What's New in Version 1.64</h3>
                 <ul>
-                    <li>Fixed the app crash issue</li>
-                    <li>Add audio device switcher in menu bar</li>
+                    <li>Fix virtual audio devices not being detected for recording</li>
                 </ul>
 
             ]]></description>
-            <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.63/VoiceInk.dmg" length="24625339" type="application/octet-stream" sparkle:edSignature="/7uI3emxLJxVO9bIjht6olW1eliDDLqlDj975xfSVITy5Btx4twNHoOkrpiQn80wMpFBMSPgq7r5p8y9K1mfBQ=="/>
+            <enclosure url="https://github.com/Beingpax/VoiceInk/releases/download/v1.64/VoiceInk.dmg" length="24629784" type="application/octet-stream" sparkle:edSignature="wOstprSNj4i41nw48VWU+1uxvr7LVvz4mTyMtKz559Q7SAYNt9f74+yAUFsR4owme4xrDiLO7z+j2QMsxrjnBw=="/>
         </item>
     </channel>
 </rss>
