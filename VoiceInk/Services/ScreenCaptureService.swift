@@ -20,47 +20,32 @@ class ScreenCaptureService: ObservableObject {
         let windowID: CGWindowID
         let ownerPID: pid_t
         let layer: Int32
-        let bounds: CGRect
     }
 
-    private func getActiveWindowInfo() async -> (title: String, ownerName: String, windowID: CGWindowID)? {
+    private func getActiveWindowInfo() -> (title: String, ownerName: String, windowID: CGWindowID)? {
         let currentPID = ProcessInfo.processInfo.processIdentifier
-        let frontmostPID = await NSWorkspace.shared.frontmostApplication?.processIdentifier
+        let frontmostPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        let windowListInfo = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
         
-        // Move expensive window list retrieval off the main thread
-        let candidates = await Task.detached(priority: .userInitiated) { () -> [WindowCandidate] in
-            let windowListInfo = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
-            
-            return windowListInfo.compactMap { info -> WindowCandidate? in
-                guard let windowID = info[kCGWindowNumber as String] as? CGWindowID,
-                      let ownerName = info[kCGWindowOwnerName as String] as? String,
-                      let ownerPIDNumber = info[kCGWindowOwnerPID as String] as? NSNumber,
-                      let layer = info[kCGWindowLayer as String] as? Int32,
-                      let boundsDict = info[kCGWindowBounds as String] as? [String: Any],
-                      let width = boundsDict["Width"] as? CGFloat,
-                      let height = boundsDict["Height"] as? CGFloat else {
-                    return nil
-                }
-
-                let rawTitle = (info[kCGWindowName as String] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-                let resolvedTitle = rawTitle?.isEmpty == false ? rawTitle! : ownerName
-                let bounds = CGRect(
-                    x: boundsDict["X"] as? CGFloat ?? 0,
-                    y: boundsDict["Y"] as? CGFloat ?? 0,
-                    width: width,
-                    height: height
-                )
-
-                return WindowCandidate(
-                    title: resolvedTitle,
-                    ownerName: ownerName,
-                    windowID: windowID,
-                    ownerPID: ownerPIDNumber.int32Value,
-                    layer: layer,
-                    bounds: bounds
-                )
+        let candidates = windowListInfo.compactMap { info -> WindowCandidate? in
+            guard let windowID = info[kCGWindowNumber as String] as? CGWindowID,
+                  let ownerName = info[kCGWindowOwnerName as String] as? String,
+                  let ownerPIDNumber = info[kCGWindowOwnerPID as String] as? NSNumber,
+                  let layer = info[kCGWindowLayer as String] as? Int32 else {
+                return nil
             }
-        }.value
+
+            let rawTitle = (info[kCGWindowName as String] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let resolvedTitle = rawTitle?.isEmpty == false ? rawTitle! : ownerName
+
+            return WindowCandidate(
+                title: resolvedTitle,
+                ownerName: ownerName,
+                windowID: windowID,
+                ownerPID: ownerPIDNumber.int32Value,
+                layer: layer
+            )
+        }
 
         func isEligible(_ candidate: WindowCandidate) -> Bool {
             guard candidate.layer == 0 else { return false }
@@ -81,7 +66,7 @@ class ScreenCaptureService: ObservableObject {
     }
     
     func captureActiveWindow() async -> NSImage? {
-        guard let windowInfo = await getActiveWindowInfo() else {
+        guard let windowInfo = getActiveWindowInfo() else {
             return nil
         }
         
@@ -158,7 +143,7 @@ class ScreenCaptureService: ObservableObject {
             }
         }
 
-        guard let windowInfo = await getActiveWindowInfo() else {
+        guard let windowInfo = getActiveWindowInfo() else {
             logger.notice("📸 No active window found")
             return nil
         }
