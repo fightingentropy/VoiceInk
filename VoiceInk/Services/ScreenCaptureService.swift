@@ -65,7 +65,7 @@ class ScreenCaptureService: ObservableObject {
         func isEligible(_ candidate: WindowCandidate) -> Bool {
             guard candidate.layer == 0 else { return false }
             guard candidate.ownerPID != currentPID else { return false }
-            return candidate.bounds.width >= 120 && candidate.bounds.height >= 120
+            return true
         }
 
         if let frontmostPID = frontmostPID,
