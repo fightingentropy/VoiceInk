@@ -42,11 +42,11 @@ extension WhisperState {
         } else {
             SoundManager.shared.playStartSound()
 
-            await toggleRecord()
-
             await MainActor.run {
                 isMiniRecorderVisible = true // This will call showRecorderPanel() via didSet
             }
+
+            await toggleRecord()
         }
     }
     
