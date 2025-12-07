@@ -14,20 +14,52 @@ class ScreenCaptureService: ObservableObject {
         category: "aienhancement"
     )
     
-    private func getActiveWindowInfo() -> (title: String, ownerName: String, windowID: CGWindowID)? {
-        let windowListInfo = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+    private struct WindowCandidate {
+        let title: String
+        let ownerName: String
+        let windowID: CGWindowID
+        let ownerPID: pid_t
+        let layer: Int32
+    }
 
-        if let frontWindow = windowListInfo.first(where: { info in
-            let layer = info[kCGWindowLayer as String] as? Int32 ?? 0
-            return layer == 0
-        }) {
-            guard let windowID = frontWindow[kCGWindowNumber as String] as? CGWindowID,
-                  let ownerName = frontWindow[kCGWindowOwnerName as String] as? String,
-                  let title = frontWindow[kCGWindowName as String] as? String else {
+    private func getActiveWindowInfo() -> (title: String, ownerName: String, windowID: CGWindowID)? {
+        let currentPID = ProcessInfo.processInfo.processIdentifier
+        let frontmostPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        let windowListInfo = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+        
+        let candidates = windowListInfo.compactMap { info -> WindowCandidate? in
+            guard let windowID = info[kCGWindowNumber as String] as? CGWindowID,
+                  let ownerName = info[kCGWindowOwnerName as String] as? String,
+                  let ownerPIDNumber = info[kCGWindowOwnerPID as String] as? NSNumber,
+                  let layer = info[kCGWindowLayer as String] as? Int32 else {
                 return nil
             }
 
-            return (title: title, ownerName: ownerName, windowID: windowID)
+            let rawTitle = (info[kCGWindowName as String] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let resolvedTitle = rawTitle?.isEmpty == false ? rawTitle! : ownerName
+
+            return WindowCandidate(
+                title: resolvedTitle,
+                ownerName: ownerName,
+                windowID: windowID,
+                ownerPID: ownerPIDNumber.int32Value,
+                layer: layer
+            )
+        }
+
+        func isEligible(_ candidate: WindowCandidate) -> Bool {
+            guard candidate.layer == 0 else { return false }
+            guard candidate.ownerPID != currentPID else { return false }
+            return true
+        }
+
+        if let frontmostPID = frontmostPID,
+           let focusedWindow = candidates.first(where: { isEligible($0) && $0.ownerPID == frontmostPID }) {
+            return (title: focusedWindow.title, ownerName: focusedWindow.ownerName, windowID: focusedWindow.windowID)
+        }
+
+        if let fallbackWindow = candidates.first(where: isEligible) {
+            return (title: fallbackWindow.title, ownerName: fallbackWindow.ownerName, windowID: fallbackWindow.windowID)
         }
 
         return nil
