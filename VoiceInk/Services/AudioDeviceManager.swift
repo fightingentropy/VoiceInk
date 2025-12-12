@@ -106,13 +106,39 @@ class AudioDeviceManager: ObservableObject {
     }
     
     private func fallbackToDefaultDevice() {
-        logger.info("Temporarily falling back to system default input device – user preference remains intact.")
+        logger.info("Current device unavailable, selecting new device...")
 
-        if let currentID = selectedDeviceID, !isDeviceAvailable(currentID) {
+        guard let newDeviceID = findBestAvailableDevice() else {
+            logger.error("No input devices available!")
             selectedDeviceID = nil
+            notifyDeviceChange()
+            return
         }
 
-        notifyDeviceChange()
+        let newDeviceName = getDeviceName(deviceID: newDeviceID) ?? "Unknown Device"
+        logger.info("Auto-selecting new device: \(newDeviceName)")
+        selectDevice(id: newDeviceID)
+    }
+
+    func findBestAvailableDevice() -> AudioDeviceID? {
+        if let device = availableDevices.first(where: { isBuiltInDevice($0.id) }) {
+            logger.info("Found built-in device: \(device.name)")
+            return device.id
+        }
+
+        if let device = availableDevices.first {
+            logger.warning("No built-in device found, using first available: \(device.name)")
+            return device.id
+        }
+
+        return nil
+    }
+
+    private func isBuiltInDevice(_ deviceID: AudioDeviceID) -> Bool {
+        guard let uid = getDeviceUID(deviceID: deviceID) else {
+            return false
+        }
+        return uid.contains("BuiltIn")
     }
     
     func loadAvailableDevices(completion: (() -> Void)? = nil) {
@@ -308,7 +334,8 @@ class AudioDeviceManager: ObservableObject {
             if let id = selectedDeviceID, isDeviceAvailable(id) {
                 return id
             } else {
-                return fallbackDeviceID ?? 0
+                // Use smart device finding instead of stale fallback
+                return findBestAvailableDevice() ?? 0
             }
         case .prioritized:
             let sortedDevices = prioritizedDevices.sorted { $0.priority < $1.priority }
@@ -317,7 +344,8 @@ class AudioDeviceManager: ObservableObject {
                     return available.id
                 }
             }
-            return fallbackDeviceID ?? 0
+            // Use smart device finding instead of stale fallback
+            return findBestAvailableDevice() ?? 0
         }
     }
     
