@@ -90,6 +90,13 @@ class Recorder: NSObject, ObservableObject {
             let engineRecorder = AudioEngineRecorder()
             recorder = engineRecorder
 
+            // Set up error callback to handle runtime recording failures
+            engineRecorder.onRecordingError = { [weak self] error in
+                Task { @MainActor in
+                    await self?.handleRecordingError(error)
+                }
+            }
+
             try engineRecorder.startRecording(toOutputFile: url)
 
             logger.info("✅ AudioEngineRecorder started successfully")
@@ -151,6 +158,21 @@ class Recorder: NSObject, ObservableObject {
             await playbackController.resumeMedia()
         }
         deviceManager.isRecordingActive = false
+    }
+
+    private func handleRecordingError(_ error: Error) async {
+        logger.error("❌ Recording error occurred: \(error.localizedDescription)")
+
+        // Stop the recording
+        stopRecording()
+
+        // Notify the user about the recording failure
+        await MainActor.run {
+            NotificationManager.shared.showNotification(
+                title: "Recording Failed: \(error.localizedDescription)",
+                type: .error
+            )
+        }
     }
 
     private func updateAudioMeter() {

@@ -26,6 +26,9 @@ class AudioEngineRecorder: ObservableObject {
     private let audioProcessingQueue = DispatchQueue(label: "com.prakashjoshipax.VoiceInk.audioProcessing", qos: .userInitiated)
     private let fileWriteLock = NSLock()
 
+    // Callback to notify parent class of runtime recording errors
+    var onRecordingError: ((Error) -> Void)?
+
     init() {
         setupNotifications()
     }
@@ -225,6 +228,9 @@ class AudioEngineRecorder: ObservableObject {
 
         guard let convertedBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: outputCapacity) else {
             logger.error("Failed to create converted buffer")
+            Task { @MainActor in
+                self.onRecordingError?(AudioEngineRecorderError.bufferConversionFailed)
+            }
             return
         }
 
@@ -244,6 +250,9 @@ class AudioEngineRecorder: ObservableObject {
 
         if let error = error {
             logger.error("Audio conversion error: \(error.localizedDescription)")
+            Task { @MainActor in
+                self.onRecordingError?(AudioEngineRecorderError.audioConversionError(error))
+            }
             return
         }
 
@@ -251,6 +260,9 @@ class AudioEngineRecorder: ObservableObject {
             try audioFile.write(from: convertedBuffer)
         } catch {
             logger.error("Failed to write buffer to file: \(error.localizedDescription)")
+            Task { @MainActor in
+                self.onRecordingError?(AudioEngineRecorderError.fileWriteFailed(error))
+            }
         }
     }
 
@@ -309,6 +321,9 @@ enum AudioEngineRecorderError: LocalizedError {
     case failedToCreateFile(Error)
     case failedToCreateConverter
     case failedToStartEngine(Error)
+    case bufferConversionFailed
+    case audioConversionError(Error)
+    case fileWriteFailed(Error)
 
     var errorDescription: String? {
         switch self {
@@ -322,6 +337,12 @@ enum AudioEngineRecorderError: LocalizedError {
             return "Failed to create audio format converter"
         case .failedToStartEngine(let error):
             return "Failed to start audio engine: \(error.localizedDescription)"
+        case .bufferConversionFailed:
+            return "Failed to create buffer for audio conversion"
+        case .audioConversionError(let error):
+            return "Audio format conversion failed: \(error.localizedDescription)"
+        case .fileWriteFailed(let error):
+            return "Failed to write audio data to file: \(error.localizedDescription)"
         }
     }
 }
