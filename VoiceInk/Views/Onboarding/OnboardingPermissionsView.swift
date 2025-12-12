@@ -278,8 +278,8 @@ struct OnboardingPermissionsView: View {
         // Check microphone permission
         permissionStates[0] = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
         
-        // Check if device is selected or system default mode is being used
-        permissionStates[1] = audioDeviceManager.selectedDeviceID != nil || audioDeviceManager.inputMode == .systemDefault
+        // Check if device is selected
+        permissionStates[1] = audioDeviceManager.selectedDeviceID != nil
         
         // Check accessibility permission
         permissionStates[2] = AXIsProcessTrusted()
@@ -315,7 +315,7 @@ struct OnboardingPermissionsView: View {
             audioDeviceManager.loadAvailableDevices()
             
             if audioDeviceManager.availableDevices.isEmpty {
-                audioDeviceManager.selectInputMode(.systemDefault)
+                audioDeviceManager.selectInputMode(.custom)
                 withAnimation {
                     permissionStates[currentPermissionIndex] = true
                     showAnimation = true
