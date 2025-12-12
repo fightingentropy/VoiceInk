@@ -258,15 +258,13 @@ struct InputModeCard: View {
     
     private var icon: String {
         switch mode {
-        case .systemDefault: return "macbook.and.iphone"
         case .custom: return "mic.circle.fill"
         case .prioritized: return "list.number"
         }
     }
-    
+
     private var description: String {
         switch mode {
-        case .systemDefault: return "Use system's default input device"
         case .custom: return "Select a specific input device"
         case .prioritized: return "Set up device priority order"
         }

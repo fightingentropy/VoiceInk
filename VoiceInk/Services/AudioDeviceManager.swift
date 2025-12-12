@@ -10,7 +10,6 @@ struct PrioritizedDevice: Codable, Identifiable {
 }
 
 enum AudioInputMode: String, CaseIterable {
-    case systemDefault = "System Default"
     case custom = "Custom Device"
     case prioritized = "Prioritized"
 }
@@ -19,27 +18,48 @@ class AudioDeviceManager: ObservableObject {
     private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "AudioDeviceManager")
     @Published var availableDevices: [(id: AudioDeviceID, uid: String, name: String)] = []
     @Published var selectedDeviceID: AudioDeviceID?
-    @Published var inputMode: AudioInputMode = .systemDefault
+    @Published var inputMode: AudioInputMode = .custom
     @Published var prioritizedDevices: [PrioritizedDevice] = []
     var fallbackDeviceID: AudioDeviceID?
-    
+
     var isRecordingActive: Bool = false
-    
+
     static let shared = AudioDeviceManager()
 
     init() {
         setupFallbackDevice()
         loadPrioritizedDevices()
-        loadAvailableDevices { [weak self] in
-            self?.initializeSelectedDevice()
-        }
-        
+
         if let savedMode = UserDefaults.standard.audioInputModeRawValue,
            let mode = AudioInputMode(rawValue: savedMode) {
             inputMode = mode
+        } else {
+            inputMode = .custom
         }
-        
+
+        loadAvailableDevices { [weak self] in
+            self?.migrateFromSystemDefaultIfNeeded()
+            self?.initializeSelectedDevice()
+        }
+
         setupDeviceChangeNotifications()
+    }
+
+    private func migrateFromSystemDefaultIfNeeded() {
+        if let savedModeRaw = UserDefaults.standard.audioInputModeRawValue,
+           savedModeRaw == "System Default" {
+            logger.info("Migrating from System Default mode to Custom mode")
+
+            if let fallbackID = fallbackDeviceID {
+                selectedDeviceID = fallbackID
+                if let device = availableDevices.first(where: { $0.id == fallbackID }) {
+                    UserDefaults.standard.selectedAudioDeviceUID = device.uid
+                    logger.info("Migrated to Custom mode with device: \(device.name)")
+                }
+            }
+
+            UserDefaults.standard.audioInputModeRawValue = AudioInputMode.custom.rawValue
+        }
     }
     
     func setupFallbackDevice() {
@@ -86,13 +106,39 @@ class AudioDeviceManager: ObservableObject {
     }
     
     private func fallbackToDefaultDevice() {
-        logger.info("Temporarily falling back to system default input device – user preference remains intact.")
+        logger.info("Current device unavailable, selecting new device...")
 
-        if let currentID = selectedDeviceID, !isDeviceAvailable(currentID) {
+        guard let newDeviceID = findBestAvailableDevice() else {
+            logger.error("No input devices available!")
             selectedDeviceID = nil
+            notifyDeviceChange()
+            return
         }
 
-        notifyDeviceChange()
+        let newDeviceName = getDeviceName(deviceID: newDeviceID) ?? "Unknown Device"
+        logger.info("Auto-selecting new device: \(newDeviceName)")
+        selectDevice(id: newDeviceID)
+    }
+
+    func findBestAvailableDevice() -> AudioDeviceID? {
+        if let device = availableDevices.first(where: { isBuiltInDevice($0.id) }) {
+            logger.info("Found built-in device: \(device.name)")
+            return device.id
+        }
+
+        if let device = availableDevices.first {
+            logger.warning("No built-in device found, using first available: \(device.name)")
+            return device.id
+        }
+
+        return nil
+    }
+
+    private func isBuiltInDevice(_ deviceID: AudioDeviceID) -> Bool {
+        guard let uid = getDeviceUID(deviceID: deviceID) else {
+            return false
+        }
+        return uid.contains("BuiltIn")
     }
     
     func loadAvailableDevices(completion: (() -> Void)? = nil) {
@@ -216,6 +262,14 @@ class AudioDeviceManager: ObservableObject {
                 self.selectedDeviceID = id
                 UserDefaults.standard.selectedAudioDeviceUID = uid
                 self.logger.info("Device selection saved with UID: \(uid)")
+
+                do {
+                    try AudioDeviceConfiguration.setDefaultInputDevice(id)
+                    self.logger.info("✅ Set device as system default immediately")
+                } catch {
+                    self.logger.error("Failed to set device as system default: \(error.localizedDescription)")
+                }
+
                 self.notifyDeviceChange()
             }
         } else {
@@ -232,6 +286,14 @@ class AudioDeviceManager: ObservableObject {
                 self.selectedDeviceID = id
                 UserDefaults.standard.audioInputModeRawValue = AudioInputMode.custom.rawValue
                 UserDefaults.standard.selectedAudioDeviceUID = uid
+
+                do {
+                    try AudioDeviceConfiguration.setDefaultInputDevice(id)
+                    self.logger.info("✅ Set device as system default immediately")
+                } catch {
+                    self.logger.error("Failed to set device as system default: \(error.localizedDescription)")
+                }
+
                 self.notifyDeviceChange()
             }
         } else {
@@ -243,11 +305,8 @@ class AudioDeviceManager: ObservableObject {
     func selectInputMode(_ mode: AudioInputMode) {
         inputMode = mode
         UserDefaults.standard.audioInputModeRawValue = mode.rawValue
-        
-        if mode == .systemDefault {
-            selectedDeviceID = nil
-            UserDefaults.standard.removeObject(forKey: UserDefaults.Keys.selectedAudioDeviceUID)
-        } else if selectedDeviceID == nil {
+
+        if selectedDeviceID == nil {
             if inputMode == .custom {
                 if let firstDevice = availableDevices.first {
                     selectDevice(id: firstDevice.id)
@@ -255,20 +314,28 @@ class AudioDeviceManager: ObservableObject {
             } else if inputMode == .prioritized {
                 selectHighestPriorityAvailableDevice()
             }
+        } else {
+            if let currentDeviceID = selectedDeviceID {
+                do {
+                    try AudioDeviceConfiguration.setDefaultInputDevice(currentDeviceID)
+                    logger.info("✅ Set current device as system default when mode changed")
+                } catch {
+                    logger.error("Failed to set device as system default: \(error.localizedDescription)")
+                }
+            }
         }
-        
+
         notifyDeviceChange()
     }
     
     func getCurrentDevice() -> AudioDeviceID {
         switch inputMode {
-        case .systemDefault:
-            return fallbackDeviceID ?? 0
         case .custom:
             if let id = selectedDeviceID, isDeviceAvailable(id) {
                 return id
             } else {
-                return fallbackDeviceID ?? 0
+                // Use smart device finding instead of stale fallback
+                return findBestAvailableDevice() ?? 0
             }
         case .prioritized:
             let sortedDevices = prioritizedDevices.sorted { $0.priority < $1.priority }
@@ -277,7 +344,8 @@ class AudioDeviceManager: ObservableObject {
                     return available.id
                 }
             }
-            return fallbackDeviceID ?? 0
+            // Use smart device finding instead of stale fallback
+            return findBestAvailableDevice() ?? 0
         }
     }
     
@@ -333,14 +401,15 @@ class AudioDeviceManager: ObservableObject {
     
     private func selectHighestPriorityAvailableDevice() {
         let sortedDevices = prioritizedDevices.sorted { $0.priority < $1.priority }
-        
+
         for device in sortedDevices {
             if let availableDevice = availableDevices.first(where: { $0.uid == device.id }) {
                 selectedDeviceID = availableDevice.id
                 logger.info("Selected prioritized device: \(device.name) (Priority: \(device.priority))")
-                
+
                 do {
                     try AudioDeviceConfiguration.setDefaultInputDevice(availableDevice.id)
+                    logger.info("✅ Set prioritized device as system default immediately")
                 } catch {
                     logger.error("Failed to set prioritized device: \(error.localizedDescription)")
                     continue
@@ -349,7 +418,7 @@ class AudioDeviceManager: ObservableObject {
                 return
             }
         }
-        
+
         fallbackToDefaultDevice()
     }
     
