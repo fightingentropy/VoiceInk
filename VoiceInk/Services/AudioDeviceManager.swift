@@ -29,17 +29,17 @@ class AudioDeviceManager: ObservableObject {
     init() {
         setupFallbackDevice()
         loadPrioritizedDevices()
-        loadAvailableDevices { [weak self] in
-            self?.initializeSelectedDevice()
-        }
-
-        migrateFromSystemDefaultIfNeeded()
 
         if let savedMode = UserDefaults.standard.audioInputModeRawValue,
            let mode = AudioInputMode(rawValue: savedMode) {
             inputMode = mode
         } else {
             inputMode = .custom
+        }
+
+        loadAvailableDevices { [weak self] in
+            self?.migrateFromSystemDefaultIfNeeded()
+            self?.initializeSelectedDevice()
         }
 
         setupDeviceChangeNotifications()
