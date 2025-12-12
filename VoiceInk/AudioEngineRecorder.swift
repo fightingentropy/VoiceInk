@@ -169,10 +169,17 @@ class AudioEngineRecorder: ObservableObject {
         }
 
         var error: NSError?
+        var hasProvidedBuffer = false
 
         converter.convert(to: convertedBuffer, error: &error) { inNumPackets, outStatus in
-            outStatus.pointee = .haveData
-            return buffer
+            if hasProvidedBuffer {
+                outStatus.pointee = .noDataNow
+                return nil
+            } else {
+                hasProvidedBuffer = true
+                outStatus.pointee = .haveData
+                return buffer
+            }
         }
 
         if let error = error {
