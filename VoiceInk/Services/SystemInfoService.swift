@@ -88,13 +88,7 @@ class SystemInfoService {
     }
 
     private func getArchitecture() -> String {
-        #if arch(x86_64)
-            return "Intel x86_64"
-        #elseif arch(arm64)
-            return "Apple Silicon (ARM64)"
-        #else
-            return "Unknown"
-        #endif
+        return SystemArchitecture.current
     }
 
     private func getAudioInputMode() -> String {
