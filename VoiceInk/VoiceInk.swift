@@ -22,12 +22,15 @@ struct VoiceInkApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("enableAnnouncements") private var enableAnnouncements = true
     @State private var showMenuBarIcon = true
-    
+
     // Audio cleanup manager for automatic deletion of old audio files
     private let audioCleanupManager = AudioCleanupManager.shared
-    
+
     // Transcription auto-cleanup service for zero data retention
     private let transcriptionAutoCleanupService = TranscriptionAutoCleanupService.shared
+
+    // Model prewarm service for optimizing model on wake from sleep
+    @StateObject private var prewarmService: ModelPrewarmService
     
     init() {
         // Configure FluidAudio logging subsystem
@@ -101,21 +104,26 @@ struct VoiceInkApp: App {
         
         let hotkeyManager = HotkeyManager(whisperState: whisperState)
         _hotkeyManager = StateObject(wrappedValue: hotkeyManager)
-        
+
         let menuBarManager = MenuBarManager()
         _menuBarManager = StateObject(wrappedValue: menuBarManager)
-        appDelegate.menuBarManager = menuBarManager
-        
+
         let activeWindowService = ActiveWindowService.shared
         activeWindowService.configure(with: enhancementService)
         activeWindowService.configureWhisperState(whisperState)
         _activeWindowService = StateObject(wrappedValue: activeWindowService)
+
         
+        let prewarmService = ModelPrewarmService(whisperState: whisperState, modelContext: container.mainContext)
+        _prewarmService = StateObject(wrappedValue: prewarmService)
+
+        appDelegate.menuBarManager = menuBarManager
+
         // Ensure no lingering recording state from previous runs
         Task {
             await whisperState.resetOnLaunch()
         }
-        
+
         AppShortcuts.updateAppShortcutParameters()
     }
     

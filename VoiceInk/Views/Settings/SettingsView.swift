@@ -381,7 +381,7 @@ struct SettingsView: View {
                         .controlSize(.large)
                     }
                 }
-                
+
                 SettingsSection(
                     icon: "lock.shield",
                     title: "Data & Privacy",
