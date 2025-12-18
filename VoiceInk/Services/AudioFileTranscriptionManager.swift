@@ -16,12 +16,7 @@ class AudioTranscriptionManager: ObservableObject {
     private var currentTask: Task<Void, Error>?
     private let audioProcessor = AudioProcessor()
     private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "AudioTranscriptionManager")
-    
-    // Transcription services - will be initialized when needed
-    private var localTranscriptionService: LocalTranscriptionService?
-    private lazy var cloudTranscriptionService = CloudTranscriptionService()
-    private lazy var nativeAppleTranscriptionService = NativeAppleTranscriptionService()
-    private var parakeetTranscriptionService: ParakeetTranscriptionService?
+    private var serviceRegistry: TranscriptionServiceRegistry?
     
     enum ProcessingPhase {
         case idle
@@ -64,52 +59,28 @@ class AudioTranscriptionManager: ObservableObject {
                 guard let currentModel = whisperState.currentTranscriptionModel else {
                     throw TranscriptionError.noModelSelected
                 }
-                
-                // Initialize local transcription service if needed
-                if localTranscriptionService == nil {
-                    localTranscriptionService = LocalTranscriptionService(modelsDirectory: whisperState.modelsDirectory, whisperState: whisperState)
-                }
-                
-                // Initialize parakeet transcription service if needed
-                if parakeetTranscriptionService == nil {
-                    parakeetTranscriptionService = ParakeetTranscriptionService()
-                }
-                
-                // Process audio file
+
+                serviceRegistry = TranscriptionServiceRegistry(whisperState: whisperState, modelsDirectory: whisperState.modelsDirectory)
+
                 processingPhase = .processingAudio
                 let samples = try await audioProcessor.processAudioToSamples(url)
-                
-                // Get audio duration
+
                 let audioAsset = AVURLAsset(url: url)
                 let duration = CMTimeGetSeconds(try await audioAsset.load(.duration))
-                
-                // Create permanent copy of the audio file
+
                 let recordingsDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
                     .appendingPathComponent("com.prakashjoshipax.VoiceInk")
                     .appendingPathComponent("Recordings")
-                
+
                 let fileName = "transcribed_\(UUID().uuidString).wav"
                 let permanentURL = recordingsDirectory.appendingPathComponent(fileName)
-                
+
                 try FileManager.default.createDirectory(at: recordingsDirectory, withIntermediateDirectories: true)
                 try audioProcessor.saveSamplesAsWav(samples: samples, to: permanentURL)
-                
-                // Transcribe using appropriate service
+
                 processingPhase = .transcribing
                 let transcriptionStart = Date()
-                var text: String
-                
-                switch currentModel.provider {
-                case .local:
-                    text = try await localTranscriptionService!.transcribe(audioURL: permanentURL, model: currentModel)
-                case .parakeet:
-                    text = try await parakeetTranscriptionService!.transcribe(audioURL: permanentURL, model: currentModel)
-                case .nativeApple:
-                    text = try await nativeAppleTranscriptionService.transcribe(audioURL: permanentURL, model: currentModel)
-                default: // Cloud models
-                    text = try await cloudTranscriptionService.transcribe(audioURL: permanentURL, model: currentModel)
-                }
-                
+                var text = try await serviceRegistry!.transcribe(audioURL: permanentURL, model: currentModel)
                 let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
                 text = TranscriptionOutputFilter.filter(text)
                 text = text.trimmingCharacters(in: .whitespacesAndNewlines)
