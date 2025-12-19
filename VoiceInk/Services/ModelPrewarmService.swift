@@ -8,17 +8,11 @@ final class ModelPrewarmService: ObservableObject {
     private let whisperState: WhisperState
     private let modelContext: ModelContext
     private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "ModelPrewarm")
-
-    // Services (initialized lazily)
-    private var localTranscriptionService: LocalTranscriptionService?
-    private var parakeetTranscriptionService: ParakeetTranscriptionService?
-    private let nativeAppleTranscriptionService = NativeAppleTranscriptionService()
-    private let cloudTranscriptionService = CloudTranscriptionService()
-
-    // Sample audio for prewarming
+    private lazy var serviceRegistry = TranscriptionServiceRegistry(
+        whisperState: whisperState,
+        modelsDirectory: whisperState.modelsDirectory
+    )
     private let prewarmAudioURL = Bundle.main.url(forResource: "esc", withExtension: "wav")
-
-    // User preference key
     private let prewarmEnabledKey = "PrewarmModelOnWake"
 
     init(whisperState: WhisperState, modelContext: ModelContext) {
@@ -83,33 +77,9 @@ final class ModelPrewarmService: ObservableObject {
         let startTime = Date()
 
         do {
-            // Initialize services lazily
-            if localTranscriptionService == nil {
-                localTranscriptionService = LocalTranscriptionService(
-                    modelsDirectory: whisperState.modelsDirectory,
-                    whisperState: whisperState
-                )
-            }
-            if parakeetTranscriptionService == nil {
-                parakeetTranscriptionService = ParakeetTranscriptionService()
-            }
-
-            // Run transcription to trigger model loading and ANE compilation
-            let transcribedText: String
-            switch currentModel.provider {
-            case .local:
-                transcribedText = try await localTranscriptionService!.transcribe(audioURL: audioURL, model: currentModel)
-            case .parakeet:
-                transcribedText = try await parakeetTranscriptionService!.transcribe(audioURL: audioURL, model: currentModel)
-            case .nativeApple:
-                transcribedText = try await nativeAppleTranscriptionService.transcribe(audioURL: audioURL, model: currentModel)
-            default:
-                transcribedText = try await cloudTranscriptionService.transcribe(audioURL: audioURL, model: currentModel)
-            }
-
+            let transcribedText = try await serviceRegistry.transcribe(audioURL: audioURL, model: currentModel)
             let duration = Date().timeIntervalSince(startTime)
 
-            // Save for telemetry
             let transcription = Transcription(
                 text: "[PREWARM] \(transcribedText)",
                 duration: 1.0,

@@ -68,11 +68,7 @@ class WhisperState: NSObject, ObservableObject {
     
     let modelContext: ModelContext
     
-    // Transcription Services
-    private var localTranscriptionService: LocalTranscriptionService!
-    private lazy var cloudTranscriptionService = CloudTranscriptionService()
-    private lazy var nativeAppleTranscriptionService = NativeAppleTranscriptionService()
-    internal lazy var parakeetTranscriptionService = ParakeetTranscriptionService()
+    internal var serviceRegistry: TranscriptionServiceRegistry!
     
     private var modelUrl: URL? {
         let possibleURLs = [
@@ -122,9 +118,9 @@ class WhisperState: NSObject, ObservableObject {
         if let enhancementService = enhancementService {
             PowerModeSessionManager.shared.configure(whisperState: self, enhancementService: enhancementService)
         }
-        
-        // Set the whisperState reference after super.init()
-        self.localTranscriptionService = LocalTranscriptionService(modelsDirectory: self.modelsDirectory, whisperState: self)
+
+        // Initialize the transcription service registry
+        self.serviceRegistry = TranscriptionServiceRegistry(whisperState: self, modelsDirectory: self.modelsDirectory)
         
         setupNotifications()
         createModelsDirectoryIfNeeded()
@@ -216,7 +212,7 @@ class WhisperState: NSObject, ObservableObject {
                                         }
                                     }
                                 } else if let parakeetModel = await self.currentTranscriptionModel as? ParakeetModel {
-                                    try? await self.parakeetTranscriptionService.loadModel(for: parakeetModel)
+                                    try? await self.serviceRegistry.parakeetTranscriptionService.loadModel(for: parakeetModel)
                                 }
 
                                 if let enhancementService = await self.enhancementService {
@@ -299,20 +295,8 @@ class WhisperState: NSObject, ObservableObject {
                 throw WhisperStateError.transcriptionFailed
             }
 
-            let transcriptionService: TranscriptionService
-            switch model.provider {
-            case .local:
-                transcriptionService = localTranscriptionService
-            case .parakeet:
-                transcriptionService = parakeetTranscriptionService
-            case .nativeApple:
-                transcriptionService = nativeAppleTranscriptionService
-            default:
-                transcriptionService = cloudTranscriptionService
-            }
-
             let transcriptionStart = Date()
-            var text = try await transcriptionService.transcribe(audioURL: url, model: model)
+            var text = try await serviceRegistry.transcribe(audioURL: url, model: model)
             logger.notice("📝 Raw transcript: \(text, privacy: .public)")
             text = TranscriptionOutputFilter.filter(text)
             logger.notice("📝 Output filter result: \(text, privacy: .public)")
