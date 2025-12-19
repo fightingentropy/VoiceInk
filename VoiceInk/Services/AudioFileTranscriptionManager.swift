@@ -16,7 +16,6 @@ class AudioTranscriptionManager: ObservableObject {
     private var currentTask: Task<Void, Error>?
     private let audioProcessor = AudioProcessor()
     private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "AudioTranscriptionManager")
-    private var serviceRegistry: TranscriptionServiceRegistry?
     
     enum ProcessingPhase {
         case idle
@@ -60,7 +59,7 @@ class AudioTranscriptionManager: ObservableObject {
                     throw TranscriptionError.noModelSelected
                 }
 
-                serviceRegistry = TranscriptionServiceRegistry(whisperState: whisperState, modelsDirectory: whisperState.modelsDirectory)
+                let serviceRegistry = TranscriptionServiceRegistry(whisperState: whisperState, modelsDirectory: whisperState.modelsDirectory)
 
                 processingPhase = .processingAudio
                 let samples = try await audioProcessor.processAudioToSamples(url)
@@ -80,7 +79,7 @@ class AudioTranscriptionManager: ObservableObject {
 
                 processingPhase = .transcribing
                 let transcriptionStart = Date()
-                var text = try await serviceRegistry!.transcribe(audioURL: permanentURL, model: currentModel)
+                var text = try await serviceRegistry.transcribe(audioURL: permanentURL, model: currentModel)
                 let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
                 text = TranscriptionOutputFilter.filter(text)
                 text = text.trimmingCharacters(in: .whitespacesAndNewlines)
