@@ -1,13 +1,13 @@
 {
-  "originHash" : "144ae35ef0b62c92588dc767eb6b2d443797062688bf1347662bed55d75a7ec2",
+  "originHash" : "93572b72309723585f9fa623350a6b09a152df9dec03f14a5b938629e0f677a0",
   "pins" : [
     {
       "identity" : "axswift",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/clavierorg/AXSwift.git",
+      "location" : "https://github.com/tisfeng/AXSwift.git",
       "state" : {
         "revision" : "2efa201fa18184de98674165592fd1ecb0c00a6d",
-        "version" : "0.3.5"
+        "version" : "0.3.6"
       }
     },
     {
@@ -60,7 +60,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/tisfeng/SelectedTextKit",
       "state" : {
-        "revision" : "f6c1574ad6f747e1110b544c35e6ec64ed6f52f1"
+        "revision" : "ecbf46d8be541b54296a0836b7ae2f60c0416b72",
+        "version" : "2.6.2"
       }
     },
     {
