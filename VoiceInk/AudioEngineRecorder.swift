@@ -17,8 +17,8 @@ class AudioEngineRecorder: ObservableObject {
     private var isRecording = false
     private var recordingURL: URL?
 
-    @Published var currentAveragePower: Float = 0.0
-    @Published var currentPeakPower: Float = 0.0
+    @Published var currentAveragePower: Float = -160.0
+    @Published var currentPeakPower: Float = -160.0
 
     private let tapBufferSize: AVAudioFrameCount = 4096
     private let tapBusNumber: AVAudioNodeBus = 0
