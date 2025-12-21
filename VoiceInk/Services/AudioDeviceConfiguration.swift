@@ -33,9 +33,6 @@ class AudioDeviceConfiguration {
     }
     
     static func setDefaultInputDevice(_ deviceID: AudioDeviceID) throws {
-        if let currentDefault = getDefaultInputDevice(), currentDefault == deviceID {
-            return
-        }
         var deviceIDCopy = deviceID
         let propertySize = UInt32(MemoryLayout<AudioDeviceID>.size)
         var address = AudioObjectPropertyAddress(

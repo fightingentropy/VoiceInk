@@ -17,8 +17,8 @@ class AudioEngineRecorder: ObservableObject {
     private var isRecording = false
     private var recordingURL: URL?
 
-    @Published var currentAveragePower: Float = 0.0
-    @Published var currentPeakPower: Float = 0.0
+    @Published var currentAveragePower: Float = -160.0
+    @Published var currentPeakPower: Float = -160.0
 
     private let tapBufferSize: AVAudioFrameCount = 4096
     private let tapBusNumber: AVAudioNodeBus = 0
@@ -26,37 +26,14 @@ class AudioEngineRecorder: ObservableObject {
     private let audioProcessingQueue = DispatchQueue(label: "com.prakashjoshipax.VoiceInk.audioProcessing", qos: .userInitiated)
     private let fileWriteLock = NSLock()
 
-    // Callback to notify parent class of runtime recording errors
     var onRecordingError: ((Error) -> Void)?
 
-    init() {
-        setupNotifications()
-    }
+    private var validationTimer: Timer?
+    private var hasReceivedValidBuffer = false
 
-    private func setupNotifications() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleConfigurationChange),
-            name: .AVAudioEngineConfigurationChange,
-            object: nil
-        )
-    }
-
-    @objc private func handleConfigurationChange(notification: Notification) {
-        Task { @MainActor in
-            guard isRecording else { return }
-            logger.info("⚠️ AVAudioEngine configuration change detected (e.g. sample rate change). Restarting engine...")
-            do {
-                try restartRecordingPreservingFile()
-            } catch {
-                logger.error("Failed to recover from configuration change: \(error.localizedDescription)")
-                stopRecording()
-            }
-        }
-    }
-
-    func startRecording(toOutputFile url: URL) throws {
+    func startRecording(toOutputFile url: URL, retryCount: Int = 0) throws {
         stopRecording()
+        hasReceivedValidBuffer = false
 
         let engine = AVAudioEngine()
         audioEngine = engine
@@ -124,6 +101,7 @@ class AudioEngineRecorder: ObservableObject {
         do {
             try engine.start()
             isRecording = true
+            startValidationTimer(url: url, retryCount: retryCount)
         } catch {
             logger.error("Failed to start audio engine: \(error.localizedDescription)")
             input.removeTap(onBus: tapBusNumber)
@@ -131,64 +109,44 @@ class AudioEngineRecorder: ObservableObject {
         }
     }
 
-    private func restartRecordingPreservingFile() throws {
-        if let input = inputNode {
-            input.removeTap(onBus: tapBusNumber)
-        }
-        audioEngine?.stop()
-
-        // Drain queue to prevent old-format buffers racing with new converter
-        audioProcessingQueue.sync { }
-
-        let engine = AVAudioEngine()
-        audioEngine = engine
-
-        let input = engine.inputNode
-        inputNode = input
-
-        let inputFormat = input.outputFormat(forBus: tapBusNumber)
-        logger.info("Restarting with new input format - Sample Rate: \(inputFormat.sampleRate)")
-
-        guard inputFormat.sampleRate > 0 else {
-            throw AudioEngineRecorderError.invalidInputFormat
-        }
-
-        guard let format = recordingFormat else {
-            throw AudioEngineRecorderError.invalidRecordingFormat
-        }
-
-        guard let newConverter = AVAudioConverter(from: inputFormat, to: format) else {
-            throw AudioEngineRecorderError.failedToCreateConverter
-        }
-
-        fileWriteLock.lock()
-        converter = newConverter
-        fileWriteLock.unlock()
-
-        input.installTap(onBus: tapBusNumber, bufferSize: tapBufferSize, format: inputFormat) { [weak self] (buffer, time) in
+    private func startValidationTimer(url: URL, retryCount: Int) {
+        validationTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { [weak self] _ in
             guard let self = self else { return }
-            self.audioProcessingQueue.async {
-                self.processAudioBuffer(buffer)
+
+            let validationPassed = self.hasReceivedValidBuffer
+
+            if !validationPassed {
+                self.logger.warning("Recording validation failed")
+                self.stopRecording()
+
+                if retryCount < 2 {
+                    self.logger.info("Retrying recording (attempt \(retryCount + 1)/2)...")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        do {
+                            try self.startRecording(toOutputFile: url, retryCount: retryCount + 1)
+                        } catch {
+                            self.logger.error("Retry failed: \(error.localizedDescription)")
+                            self.onRecordingError?(error)
+                        }
+                    }
+                } else {
+                    self.logger.error("Recording failed after 2 retry attempts")
+                    self.onRecordingError?(AudioEngineRecorderError.recordingValidationFailed)
+                }
+            } else {
+                self.logger.info("Recording validation successful")
             }
         }
-
-        engine.prepare()
-        try engine.start()
-        logger.info("✅ Audio engine successfully restarted after configuration change")
     }
 
     func stopRecording() {
-        guard isRecording else {
-            return
-        }
+        guard isRecording else { return }
 
-        if let input = inputNode {
-            input.removeTap(onBus: tapBusNumber)
-        }
+        validationTimer?.invalidate()
+        validationTimer = nil
 
+        inputNode?.removeTap(onBus: tapBusNumber)
         audioEngine?.stop()
-
-        // Wait for pending buffers to finish processing before clearing resources
         audioProcessingQueue.sync { }
 
         fileWriteLock.lock()
@@ -201,6 +159,7 @@ class AudioEngineRecorder: ObservableObject {
         inputNode = nil
         recordingURL = nil
         isRecording = false
+        hasReceivedValidBuffer = false
 
         currentAveragePower = 0.0
         currentPeakPower = 0.0
@@ -217,7 +176,10 @@ class AudioEngineRecorder: ObservableObject {
 
         guard let audioFile = audioFile,
               let converter = converter,
-              let format = recordingFormat else {
+              let format = recordingFormat else { return }
+
+        guard buffer.frameLength > 0 else {
+            logTapError(message: "Empty buffer received")
             return
         }
 
@@ -227,10 +189,7 @@ class AudioEngineRecorder: ObservableObject {
         let outputCapacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio)
 
         guard let convertedBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: outputCapacity) else {
-            logger.error("Failed to create converted buffer")
-            Task { @MainActor in
-                self.onRecordingError?(AudioEngineRecorderError.bufferConversionFailed)
-            }
+            logTapError(message: "Failed to create converted buffer")
             return
         }
 
@@ -249,21 +208,24 @@ class AudioEngineRecorder: ObservableObject {
         }
 
         if let error = error {
-            logger.error("Audio conversion error: \(error.localizedDescription)")
-            Task { @MainActor in
-                self.onRecordingError?(AudioEngineRecorderError.audioConversionError(error))
-            }
+            logTapError(message: "Audio conversion failed: \(error.localizedDescription)")
             return
         }
 
         do {
             try audioFile.write(from: convertedBuffer)
-        } catch {
-            logger.error("Failed to write buffer to file: \(error.localizedDescription)")
             Task { @MainActor in
-                self.onRecordingError?(AudioEngineRecorderError.fileWriteFailed(error))
+                if !self.hasReceivedValidBuffer {
+                    self.hasReceivedValidBuffer = true
+                }
             }
+        } catch {
+            logTapError(message: "File write failed: \(error.localizedDescription)")
         }
+    }
+
+    nonisolated private func logTapError(message: String) {
+        logger.error("\(message)")
     }
 
     nonisolated private func updateMeters(from buffer: AVAudioPCMBuffer) {
@@ -300,17 +262,8 @@ class AudioEngineRecorder: ObservableObject {
         }
     }
 
-    var isCurrentlyRecording: Bool {
-        return isRecording
-    }
-
-    var currentRecordingURL: URL? {
-        return recordingURL
-    }
-
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
+    var isCurrentlyRecording: Bool { isRecording }
+    var currentRecordingURL: URL? { recordingURL }
 }
 
 // MARK: - Error Types
@@ -324,6 +277,7 @@ enum AudioEngineRecorderError: LocalizedError {
     case bufferConversionFailed
     case audioConversionError(Error)
     case fileWriteFailed(Error)
+    case recordingValidationFailed
 
     var errorDescription: String? {
         switch self {
@@ -343,6 +297,8 @@ enum AudioEngineRecorderError: LocalizedError {
             return "Audio format conversion failed: \(error.localizedDescription)"
         case .fileWriteFailed(let error):
             return "Failed to write audio data to file: \(error.localizedDescription)"
+        case .recordingValidationFailed:
+            return "Recording failed to start - no valid audio received from device"
         }
     }
 }

@@ -36,20 +36,16 @@ class Recorder: NSObject, ObservableObject {
     
     private func handleDeviceChange() async {
         guard !isReconfiguring else { return }
+        guard recorder != nil else { return }
+        
         isReconfiguring = true
-
-        if recorder != nil {
-            let currentURL = recorder?.currentRecordingURL
-            stopRecording()
-
-            if let url = currentURL {
-                do {
-                    try await startRecording(toOutputFile: url)
-                } catch {
-                    logger.error("❌ Failed to restart recording after device change: \(error.localizedDescription)")
-                }
-            }
+        
+        try? await Task.sleep(nanoseconds: 200_000_000)
+        
+        await MainActor.run {
+            NotificationCenter.default.post(name: .toggleMiniRecorder, object: nil)
         }
+        
         isReconfiguring = false
     }
     
@@ -78,14 +74,12 @@ class Recorder: NSObject, ObservableObject {
         hasDetectedAudioInCurrentSession = false
 
         let deviceID = deviceManager.getCurrentDevice()
-        if deviceID != 0 {
-            do {
-                try await configureAudioSession(with: deviceID)
-            } catch {
-                logger.warning("⚠️ Failed to configure audio session for device \(deviceID), attempting to continue: \(error.localizedDescription)")
-            }
+        do {
+            try await configureAudioSession(with: deviceID)
+        } catch {
+            logger.warning("⚠️ Failed to configure audio session for device \(deviceID), attempting to continue: \(error.localizedDescription)")
         }
-        
+
         do {
             let engineRecorder = AudioEngineRecorder()
             recorder = engineRecorder

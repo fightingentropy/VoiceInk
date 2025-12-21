@@ -142,7 +142,6 @@ class AudioDeviceManager: ObservableObject {
     }
     
     func loadAvailableDevices(completion: (() -> Void)? = nil) {
-        logger.info("Loading available audio devices...")
         var propertySize: UInt32 = 0
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDevices,
@@ -159,7 +158,6 @@ class AudioDeviceManager: ObservableObject {
         )
         
         let deviceCount = Int(propertySize) / MemoryLayout<AudioDeviceID>.size
-        logger.info("Found \(deviceCount) total audio devices")
         
         var deviceIDs = [AudioDeviceID](repeating: 0, count: deviceCount)
         
@@ -184,11 +182,6 @@ class AudioDeviceManager: ObservableObject {
                 return nil
             }
             return (id: deviceID, uid: uid, name: name)
-        }
-        
-        logger.info("Found \(devices.count) input devices")
-        devices.forEach { device in
-            logger.info("Available device: \(device.name) (ID: \(device.id))")
         }
         
         DispatchQueue.main.async { [weak self] in
@@ -453,9 +446,17 @@ class AudioDeviceManager: ObservableObject {
     
     private func handleDeviceListChange() {
         logger.info("Device list change detected")
+
+        // Don't change devices while recording is active
+        // This prevents audio engine errors during recording startup
+        if isRecordingActive {
+            logger.info("Recording is active - deferring device change handling")
+            return
+        }
+
         loadAvailableDevices { [weak self] in
             guard let self = self else { return }
-            
+
             if self.inputMode == .prioritized {
                 self.selectHighestPriorityAvailableDevice()
             } else if self.inputMode == .custom,
@@ -526,8 +527,6 @@ class AudioDeviceManager: ObservableObject {
     }
     
     private func notifyDeviceChange() {
-        if !isRecordingActive {
-            NotificationCenter.default.post(name: NSNotification.Name("AudioDeviceChanged"), object: nil)
-        }
+        NotificationCenter.default.post(name: NSNotification.Name("AudioDeviceChanged"), object: nil)
     }
 } 
