@@ -38,7 +38,7 @@ class AudioDeviceConfiguration {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDefaultInputDevice,
             mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMaster
+            mElement: kAudioObjectPropertyElementMain
         )
         
         let setDeviceResult = AudioObjectSetPropertyData(
