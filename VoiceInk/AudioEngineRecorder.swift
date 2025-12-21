@@ -29,32 +29,6 @@ class AudioEngineRecorder: ObservableObject {
     // Callback to notify parent class of runtime recording errors
     var onRecordingError: ((Error) -> Void)?
 
-    init() {
-        setupNotifications()
-    }
-
-    private func setupNotifications() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleConfigurationChange),
-            name: .AVAudioEngineConfigurationChange,
-            object: nil
-        )
-    }
-
-    @objc private func handleConfigurationChange(notification: Notification) {
-        Task { @MainActor in
-            guard isRecording else { return }
-            logger.info("⚠️ AVAudioEngine configuration change detected (e.g. sample rate change). Restarting engine...")
-            do {
-                try restartRecordingPreservingFile()
-            } catch {
-                logger.error("Failed to recover from configuration change: \(error.localizedDescription)")
-                stopRecording()
-            }
-        }
-    }
-
     func startRecording(toOutputFile url: URL) throws {
         stopRecording()
 
@@ -129,52 +103,6 @@ class AudioEngineRecorder: ObservableObject {
             input.removeTap(onBus: tapBusNumber)
             throw AudioEngineRecorderError.failedToStartEngine(error)
         }
-    }
-
-    private func restartRecordingPreservingFile() throws {
-        if let input = inputNode {
-            input.removeTap(onBus: tapBusNumber)
-        }
-        audioEngine?.stop()
-
-        // Drain queue to prevent old-format buffers racing with new converter
-        audioProcessingQueue.sync { }
-
-        let engine = AVAudioEngine()
-        audioEngine = engine
-
-        let input = engine.inputNode
-        inputNode = input
-
-        let inputFormat = input.outputFormat(forBus: tapBusNumber)
-        logger.info("Restarting with new input format - Sample Rate: \(inputFormat.sampleRate)")
-
-        guard inputFormat.sampleRate > 0 else {
-            throw AudioEngineRecorderError.invalidInputFormat
-        }
-
-        guard let format = recordingFormat else {
-            throw AudioEngineRecorderError.invalidRecordingFormat
-        }
-
-        guard let newConverter = AVAudioConverter(from: inputFormat, to: format) else {
-            throw AudioEngineRecorderError.failedToCreateConverter
-        }
-
-        fileWriteLock.lock()
-        converter = newConverter
-        fileWriteLock.unlock()
-
-        input.installTap(onBus: tapBusNumber, bufferSize: tapBufferSize, format: inputFormat) { [weak self] (buffer, time) in
-            guard let self = self else { return }
-            self.audioProcessingQueue.async {
-                self.processAudioBuffer(buffer)
-            }
-        }
-
-        engine.prepare()
-        try engine.start()
-        logger.info("✅ Audio engine successfully restarted after configuration change")
     }
 
     func stopRecording() {
@@ -306,10 +234,6 @@ class AudioEngineRecorder: ObservableObject {
 
     var currentRecordingURL: URL? {
         return recordingURL
-    }
-
-    deinit {
-        NotificationCenter.default.removeObserver(self)
     }
 }
 

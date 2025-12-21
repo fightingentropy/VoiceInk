@@ -36,20 +36,15 @@ class Recorder: NSObject, ObservableObject {
     
     private func handleDeviceChange() async {
         guard !isReconfiguring else { return }
+        
         isReconfiguring = true
-
-        if recorder != nil {
-            let currentURL = recorder?.currentRecordingURL
-            stopRecording()
-
-            if let url = currentURL {
-                do {
-                    try await startRecording(toOutputFile: url)
-                } catch {
-                    logger.error("❌ Failed to restart recording after device change: \(error.localizedDescription)")
-                }
-            }
+        
+        try? await Task.sleep(nanoseconds: 200_000_000)
+        
+        await MainActor.run {
+            NotificationCenter.default.post(name: .toggleMiniRecorder, object: nil)
         }
+        
         isReconfiguring = false
     }
     
