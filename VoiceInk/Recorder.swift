@@ -36,6 +36,7 @@ class Recorder: NSObject, ObservableObject {
     
     private func handleDeviceChange() async {
         guard !isReconfiguring else { return }
+        guard recorder != nil else { return }
         
         isReconfiguring = true
         
