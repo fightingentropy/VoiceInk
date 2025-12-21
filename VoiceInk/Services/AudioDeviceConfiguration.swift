@@ -15,7 +15,7 @@ class AudioDeviceConfiguration {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDefaultInputDevice,
             mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain
+            mElement: kAudioObjectPropertyElementMaster
         )
         let status = AudioObjectGetPropertyData(
             AudioObjectID(kAudioObjectSystemObject),
@@ -33,15 +33,12 @@ class AudioDeviceConfiguration {
     }
     
     static func setDefaultInputDevice(_ deviceID: AudioDeviceID) throws {
-        if let currentDefault = getDefaultInputDevice(), currentDefault == deviceID {
-            return
-        }
         var deviceIDCopy = deviceID
         let propertySize = UInt32(MemoryLayout<AudioDeviceID>.size)
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDefaultInputDevice,
             mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain
+            mElement: kAudioObjectPropertyElementMaster
         )
         
         let setDeviceResult = AudioObjectSetPropertyData(

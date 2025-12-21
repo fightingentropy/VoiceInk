@@ -74,14 +74,12 @@ class Recorder: NSObject, ObservableObject {
         hasDetectedAudioInCurrentSession = false
 
         let deviceID = deviceManager.getCurrentDevice()
-        if deviceID != 0 {
-            do {
-                try await configureAudioSession(with: deviceID)
-            } catch {
-                logger.warning("⚠️ Failed to configure audio session for device \(deviceID), attempting to continue: \(error.localizedDescription)")
-            }
+        do {
+            try await configureAudioSession(with: deviceID)
+        } catch {
+            logger.warning("⚠️ Failed to configure audio session for device \(deviceID), attempting to continue: \(error.localizedDescription)")
         }
-        
+
         do {
             let engineRecorder = AudioEngineRecorder()
             recorder = engineRecorder
