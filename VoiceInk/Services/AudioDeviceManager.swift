@@ -447,13 +447,6 @@ class AudioDeviceManager: ObservableObject {
     private func handleDeviceListChange() {
         logger.info("Device list change detected")
 
-        // Don't change devices while recording is active
-        // This prevents audio engine errors during recording startup
-        if isRecordingActive {
-            logger.info("Recording is active - deferring device change handling")
-            return
-        }
-
         loadAvailableDevices { [weak self] in
             guard let self = self else { return }
 
