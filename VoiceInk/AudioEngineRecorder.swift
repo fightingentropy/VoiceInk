@@ -110,7 +110,7 @@ class AudioEngineRecorder: ObservableObject {
     }
 
     private func startValidationTimer(url: URL, retryCount: Int) {
-        validationTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+        validationTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { [weak self] _ in
             guard let self = self else { return }
 
             let validationPassed = self.hasReceivedValidBuffer
