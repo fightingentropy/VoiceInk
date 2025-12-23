@@ -274,6 +274,26 @@ import Foundation
             accuracy: 0.94,
             isMultilingual: true,
             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .gemini)
+        ),
+        CloudModel(
+            name: "gemini-3-pro-preview",
+            displayName: "Gemini 3 Pro",
+            description: "Google's latest multimodal model with enhanced transcription capabilities.",
+            provider: .gemini,
+            speed: 0.75,
+            accuracy: 0.97,
+            isMultilingual: true,
+            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .gemini)
+        ),
+        CloudModel(
+            name: "gemini-3-flash-preview",
+            displayName: "Gemini 3 Flash",
+            description: "Google's newest fast model combining intelligence with superior speed.",
+            provider: .gemini,
+            speed: 0.92,
+            accuracy: 0.95,
+            isMultilingual: true,
+            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .gemini)
         )
         ,
         CloudModel(
