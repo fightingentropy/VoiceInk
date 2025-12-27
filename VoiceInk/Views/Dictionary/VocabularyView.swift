@@ -10,7 +10,7 @@ struct VocabularyWord: Identifiable, Hashable, Codable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, word, dateAdded, isEnabled
+        case id, word, dateAdded
     }
 
     init(from decoder: Decoder) throws {
@@ -18,7 +18,6 @@ struct VocabularyWord: Identifiable, Hashable, Codable {
         word = try container.decode(String.self, forKey: .word)
         _ = try? container.decodeIfPresent(UUID.self, forKey: .id)
         _ = try? container.decodeIfPresent(Date.self, forKey: .dateAdded)
-        _ = try? container.decodeIfPresent(Bool.self, forKey: .isEnabled)
     }
 
     func encode(to encoder: Encoder) throws {
