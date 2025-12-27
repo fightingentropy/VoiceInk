@@ -109,6 +109,10 @@ struct VocabularyView: View {
         UserDefaults.standard.set(sortMode.rawValue, forKey: "vocabularySortMode")
     }
 
+    private var shouldShowAddButton: Bool {
+        !newWord.isEmpty
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             GroupBox {
@@ -129,16 +133,19 @@ struct VocabularyView: View {
                     .font(.system(size: 13))
                     .onSubmit { addWords() }
 
-                Button(action: addWords) {
-                    Image(systemName: "plus.circle.fill")
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.blue)
-                        .font(.system(size: 16, weight: .semibold))
+                if shouldShowAddButton {
+                    Button(action: addWords) {
+                        Image(systemName: "plus.circle.fill")
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(.blue)
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(newWord.isEmpty)
+                    .help("Add word")
                 }
-                .buttonStyle(.borderless)
-                .disabled(newWord.isEmpty)
-                .help("Add word")
             }
+            .animation(.easeInOut(duration: 0.2), value: shouldShowAddButton)
 
             if !vocabularyManager.items.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
@@ -214,7 +221,7 @@ struct VocabularyView: View {
 struct VocabularyWordView: View {
     let item: VocabularyWord
     let onDelete: () -> Void
-    @State private var isHovered = false
+    @State private var isDeleteHovered = false
 
     var body: some View {
         HStack(spacing: 6) {
@@ -228,14 +235,14 @@ struct VocabularyWordView: View {
             Button(action: onDelete) {
                 Image(systemName: "xmark.circle.fill")
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(isHovered ? .red : .secondary)
+                    .foregroundStyle(isDeleteHovered ? .red : .secondary)
                     .contentTransition(.symbolEffect(.replace))
             }
             .buttonStyle(.borderless)
             .help("Remove word")
             .onHover { hover in
                 withAnimation(.easeInOut(duration: 0.2)) {
-                    isHovered = hover
+                    isDeleteHovered = hover
                 }
             }
         }
