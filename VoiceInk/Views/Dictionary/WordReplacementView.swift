@@ -26,24 +26,68 @@ class WordReplacementManager: ObservableObject {
     init() {
         self.replacements = UserDefaults.standard.dictionary(forKey: "wordReplacements") as? [String: String] ?? [:]
     }
-    
-    func addReplacement(original: String, replacement: String) {
-        // Preserve comma-separated originals as a single entry
+
+    func addReplacement(original: String, replacement: String) -> (success: Bool, conflictingWord: String?) {
         let trimmed = original.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        guard !trimmed.isEmpty else { return (false, nil) }
+
+        let newTokensPairs = trimmed
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .map { (original: $0, lowercased: $0.lowercased()) }
+
+        for existingKey in replacements.keys {
+            let existingTokens = existingKey
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+                .filter { !$0.isEmpty }
+
+            for tokenPair in newTokensPairs {
+                if existingTokens.contains(tokenPair.lowercased) {
+                    return (false, tokenPair.original)
+                }
+            }
+        }
+
         replacements[trimmed] = replacement
+        return (true, nil)
     }
     
     func removeReplacement(original: String) {
         replacements.removeValue(forKey: original)
     }
     
-    func updateReplacement(oldOriginal: String, newOriginal: String, newReplacement: String) {
-        // Replace old key with the new comma-preserved key
-        replacements.removeValue(forKey: oldOriginal)
+    func updateReplacement(oldOriginal: String, newOriginal: String, newReplacement: String) -> (success: Bool, conflictingWord: String?) {
         let trimmed = newOriginal.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        guard !trimmed.isEmpty else { return (false, nil) }
+
+        let newTokensPairs = trimmed
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .map { (original: $0, lowercased: $0.lowercased()) }
+
+        for existingKey in replacements.keys {
+            if existingKey == oldOriginal {
+                continue
+            }
+
+            let existingTokens = existingKey
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+                .filter { !$0.isEmpty }
+
+            for tokenPair in newTokensPairs {
+                if existingTokens.contains(tokenPair.lowercased) {
+                    return (false, tokenPair.original)
+                }
+            }
+        }
+
+        replacements.removeValue(forKey: oldOriginal)
         replacements[trimmed] = newReplacement
+        return (true, nil)
     }
 }
 
@@ -227,7 +271,9 @@ struct AddReplacementSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var originalWord = ""
     @State private var replacementWord = ""
-    
+    @State private var showAlert = false
+    @State private var alertMessage = ""
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -385,21 +431,34 @@ struct AddReplacementSheet: View {
             }
         }
         .frame(width: 460, height: 520)
+        .alert("Word Replacement", isPresented: $showAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(alertMessage)
+        }
     }
-    
+
     private func addReplacement() {
-        let original = originalWord
+        let original = originalWord.trimmingCharacters(in: .whitespacesAndNewlines)
         let replacement = replacementWord
-        
-        // Validate that at least one non-empty token exists
+
         let tokens = original
             .split(separator: ",")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
         guard !tokens.isEmpty && !replacement.isEmpty else { return }
-        
-        manager.addReplacement(original: original, replacement: replacement)
-        dismiss()
+
+        let result = manager.addReplacement(original: original, replacement: replacement)
+        if result.success {
+            dismiss()
+        } else {
+            if let conflictingWord = result.conflictingWord {
+                alertMessage = "'\(conflictingWord)' already exists in word replacements"
+            } else {
+                alertMessage = "This word replacement already exists"
+            }
+            showAlert = true
+        }
     }
 }
 
