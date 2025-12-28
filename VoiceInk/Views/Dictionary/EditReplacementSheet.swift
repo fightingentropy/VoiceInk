@@ -1,8 +1,10 @@
 import SwiftUI
+import SwiftData
+
 // Edit existing word replacement entry
 struct EditReplacementSheet: View {
-    @ObservedObject var manager: WordReplacementManager
-    let originalKey: String
+    let replacement: WordReplacement
+    let modelContext: ModelContext
 
     @Environment(\.dismiss) private var dismiss
 
@@ -12,11 +14,11 @@ struct EditReplacementSheet: View {
     @State private var alertMessage = ""
 
     // MARK: – Initialiser
-    init(manager: WordReplacementManager, originalKey: String) {
-        self.manager = manager
-        self.originalKey = originalKey
-        _originalWord = State(initialValue: originalKey)
-        _replacementWord = State(initialValue: manager.replacements[originalKey] ?? "")
+    init(replacement: WordReplacement, modelContext: ModelContext) {
+        self.replacement = replacement
+        self.modelContext = modelContext
+        _originalWord = State(initialValue: replacement.originalText)
+        _replacementWord = State(initialValue: replacement.replacementText)
     }
 
     var body: some View {
@@ -128,25 +130,37 @@ struct EditReplacementSheet: View {
             .filter { !$0.isEmpty }
         guard !tokens.isEmpty, !newReplacement.isEmpty else { return }
 
-        let result = manager.updateReplacement(oldOriginal: originalKey, newOriginal: newOriginal, newReplacement: newReplacement)
-        if result.success {
-            dismiss()
-        } else {
-            if let conflictingWord = result.conflictingWord {
-                alertMessage = "'\(conflictingWord)' already exists in word replacements"
-            } else {
-                alertMessage = "This word replacement already exists"
-            }
-            showAlert = true
-        }
-    }
-}
+        // Check for duplicates (excluding current replacement)
+        let newTokensPairs = tokens.map { (original: $0, lowercased: $0.lowercased()) }
 
-// MARK: – Preview
-#if DEBUG
-struct EditReplacementSheet_Previews: PreviewProvider {
-    static var previews: some View {
-        EditReplacementSheet(manager: WordReplacementManager(), originalKey: "hello")
+        let descriptor = FetchDescriptor<WordReplacement>()
+        if let allReplacements = try? modelContext.fetch(descriptor) {
+            for existingReplacement in allReplacements {
+                // Skip checking against itself
+                if existingReplacement.id == replacement.id {
+                    continue
+                }
+
+                let existingTokens = existingReplacement.originalText
+                    .split(separator: ",")
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+                    .filter { !$0.isEmpty }
+
+                for tokenPair in newTokensPairs {
+                    if existingTokens.contains(tokenPair.lowercased) {
+                        alertMessage = "'\(tokenPair.original)' already exists in word replacements"
+                        showAlert = true
+                        return
+                    }
+                }
+            }
+        }
+
+        // Update the replacement
+        replacement.originalText = newOriginal
+        replacement.replacementText = newReplacement
+        try? modelContext.save()
+
+        dismiss()
     }
 }
-#endif

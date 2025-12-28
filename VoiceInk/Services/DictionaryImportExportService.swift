@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import UniformTypeIdentifiers
+import SwiftData
 
 struct DictionaryExportData: Codable {
     let version: String
@@ -11,19 +12,23 @@ struct DictionaryExportData: Codable {
 
 class DictionaryImportExportService {
     static let shared = DictionaryImportExportService()
-    private let dictionaryItemsKey = "CustomVocabularyItems"
-    private let wordReplacementsKey = "wordReplacements"
 
     private init() {}
 
-    func exportDictionary() {
+    func exportDictionary(from context: ModelContext) {
+        // Fetch vocabulary words from SwiftData
         var dictionaryWords: [String] = []
-        if let data = UserDefaults.standard.data(forKey: dictionaryItemsKey),
-           let items = try? JSONDecoder().decode([VocabularyWord].self, from: data) {
+        let vocabularyDescriptor = FetchDescriptor<VocabularyWord>(sortBy: [SortDescriptor(\VocabularyWord.word)])
+        if let items = try? context.fetch(vocabularyDescriptor) {
             dictionaryWords = items.map { $0.word }
         }
 
-        let wordReplacements = UserDefaults.standard.dictionary(forKey: wordReplacementsKey) as? [String: String] ?? [:]
+        // Fetch word replacements from SwiftData
+        var wordReplacements: [String: String] = [:]
+        let replacementsDescriptor = FetchDescriptor<WordReplacement>()
+        if let replacements = try? context.fetch(replacementsDescriptor) {
+            wordReplacements = Dictionary(uniqueKeysWithValues: replacements.map { ($0.originalText, $0.replacementText) })
+        }
 
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
 
@@ -66,7 +71,7 @@ class DictionaryImportExportService {
         }
     }
 
-    func importDictionary() {
+    func importDictionary(into context: ModelContext) {
         let openPanel = NSOpenPanel()
         openPanel.allowedContentTypes = [UTType.json]
         openPanel.canChooseFiles = true
@@ -88,63 +93,65 @@ class DictionaryImportExportService {
                     decoder.dateDecodingStrategy = .iso8601
                     let importedData = try decoder.decode(DictionaryExportData.self, from: jsonData)
 
-                    var existingItems: [VocabularyWord] = []
-                    if let data = UserDefaults.standard.data(forKey: self.dictionaryItemsKey),
-                       let items = try? JSONDecoder().decode([VocabularyWord].self, from: data) {
-                        existingItems = items
-                    }
-
+                    // Fetch existing vocabulary words from SwiftData
+                    let vocabularyDescriptor = FetchDescriptor<VocabularyWord>()
+                    let existingItems = (try? context.fetch(vocabularyDescriptor)) ?? []
                     let existingWordsLower = Set(existingItems.map { $0.word.lowercased() })
                     let originalExistingCount = existingItems.count
                     var newWordsAdded = 0
 
+                    // Import vocabulary words
                     for importedWord in importedData.vocabularyWords {
                         if !existingWordsLower.contains(importedWord.lowercased()) {
-                            existingItems.append(VocabularyWord(word: importedWord))
+                            let newWord = VocabularyWord(word: importedWord)
+                            context.insert(newWord)
                             newWordsAdded += 1
                         }
                     }
 
-                    if let encoded = try? JSONEncoder().encode(existingItems) {
-                        UserDefaults.standard.set(encoded, forKey: self.dictionaryItemsKey)
-                    }
-
-                    var existingReplacements = UserDefaults.standard.dictionary(forKey: self.wordReplacementsKey) as? [String: String] ?? [:]
+                    // Fetch existing word replacements from SwiftData
+                    let replacementsDescriptor = FetchDescriptor<WordReplacement>()
+                    let existingReplacements = (try? context.fetch(replacementsDescriptor)) ?? []
                     var addedCount = 0
                     var updatedCount = 0
 
+                    // Import word replacements
                     for (importedKey, importedReplacement) in importedData.wordReplacements {
                         let normalizedImportedKey = self.normalizeReplacementKey(importedKey)
                         let importedWords = self.extractWords(from: normalizedImportedKey)
 
-                        var modifiedExisting: [String: String] = [:]
-                        for (existingKey, existingReplacement) in existingReplacements {
-                            var existingWords = self.extractWords(from: existingKey)
+                        // Check for conflicts and update existing replacements
+                        var hasConflict = false
+                        for existingReplacement in existingReplacements {
+                            var existingWords = self.extractWords(from: existingReplacement.originalText)
                             var modified = false
 
                             for importedWord in importedWords {
                                 if let index = existingWords.firstIndex(where: { $0.lowercased() == importedWord.lowercased() }) {
                                     existingWords.remove(at: index)
                                     modified = true
+                                    hasConflict = true
                                 }
                             }
 
-                            if !existingWords.isEmpty {
-                                let newKey = existingWords.joined(separator: ", ")
-                                modifiedExisting[newKey] = existingReplacement
-                            }
-
                             if modified {
+                                if existingWords.isEmpty {
+                                    context.delete(existingReplacement)
+                                } else {
+                                    existingReplacement.originalText = existingWords.joined(separator: ", ")
+                                }
                                 updatedCount += 1
                             }
                         }
 
-                        existingReplacements = modifiedExisting
-                        existingReplacements[normalizedImportedKey] = importedReplacement
+                        // Add new replacement
+                        let newReplacement = WordReplacement(originalText: normalizedImportedKey, replacementText: importedReplacement)
+                        context.insert(newReplacement)
                         addedCount += 1
                     }
 
-                    UserDefaults.standard.set(existingReplacements, forKey: self.wordReplacementsKey)
+                    // Save all changes
+                    try context.save()
 
                     var message = "Dictionary data imported successfully from \(url.lastPathComponent).\n\n"
                     message += "Vocabulary Words: \(newWordsAdded) added, \(originalExistingCount) kept\n"

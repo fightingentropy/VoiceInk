@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 extension String: Identifiable {
     public var id: String { self }
@@ -16,110 +17,34 @@ enum SortColumn {
     case replacement
 }
 
-class WordReplacementManager: ObservableObject {
-    @Published var replacements: [String: String] {
-        didSet {
-            UserDefaults.standard.set(replacements, forKey: "wordReplacements")
-        }
-    }
-
-    init() {
-        self.replacements = UserDefaults.standard.dictionary(forKey: "wordReplacements") as? [String: String] ?? [:]
-    }
-
-    func addReplacement(original: String, replacement: String) -> (success: Bool, conflictingWord: String?) {
-        let trimmed = original.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return (false, nil) }
-
-        let newTokensPairs = trimmed
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .map { (original: $0, lowercased: $0.lowercased()) }
-
-        for existingKey in replacements.keys {
-            let existingTokens = existingKey
-                .split(separator: ",")
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
-                .filter { !$0.isEmpty }
-
-            for tokenPair in newTokensPairs {
-                if existingTokens.contains(tokenPair.lowercased) {
-                    return (false, tokenPair.original)
-                }
-            }
-        }
-
-        replacements[trimmed] = replacement
-        return (true, nil)
-    }
-    
-    func removeReplacement(original: String) {
-        replacements.removeValue(forKey: original)
-    }
-    
-    func updateReplacement(oldOriginal: String, newOriginal: String, newReplacement: String) -> (success: Bool, conflictingWord: String?) {
-        let trimmed = newOriginal.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return (false, nil) }
-
-        let newTokensPairs = trimmed
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .map { (original: $0, lowercased: $0.lowercased()) }
-
-        for existingKey in replacements.keys {
-            if existingKey == oldOriginal {
-                continue
-            }
-
-            let existingTokens = existingKey
-                .split(separator: ",")
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
-                .filter { !$0.isEmpty }
-
-            for tokenPair in newTokensPairs {
-                if existingTokens.contains(tokenPair.lowercased) {
-                    return (false, tokenPair.original)
-                }
-            }
-        }
-
-        replacements.removeValue(forKey: oldOriginal)
-        replacements[trimmed] = newReplacement
-        return (true, nil)
-    }
-}
-
 struct WordReplacementView: View {
-    @StateObject private var manager = WordReplacementManager()
+    @Query private var wordReplacements: [WordReplacement]
+    @Environment(\.modelContext) private var modelContext
     @State private var showAlert = false
-    @State private var editingOriginal: String? = nil
+    @State private var editingReplacement: WordReplacement? = nil
     @State private var alertMessage = ""
     @State private var sortMode: SortMode = .originalAsc
     @State private var originalWord = ""
     @State private var replacementWord = ""
     @State private var showInfoPopover = false
-    
+
     init() {
         if let savedSort = UserDefaults.standard.string(forKey: "wordReplacementSortMode"),
            let mode = SortMode(rawValue: savedSort) {
             _sortMode = State(initialValue: mode)
         }
     }
-    
-    private var sortedReplacements: [(key: String, value: String)] {
-        let pairs = Array(manager.replacements)
-        
+
+    private var sortedReplacements: [WordReplacement] {
         switch sortMode {
         case .originalAsc:
-            return pairs.sorted { $0.key.localizedCaseInsensitiveCompare($1.key) == .orderedAscending }
+            return wordReplacements.sorted { $0.originalText.localizedCaseInsensitiveCompare($1.originalText) == .orderedAscending }
         case .originalDesc:
-            return pairs.sorted { $0.key.localizedCaseInsensitiveCompare($1.key) == .orderedDescending }
+            return wordReplacements.sorted { $0.originalText.localizedCaseInsensitiveCompare($1.originalText) == .orderedDescending }
         case .replacementAsc:
-            return pairs.sorted { $0.value.localizedCaseInsensitiveCompare($1.value) == .orderedAscending }
+            return wordReplacements.sorted { $0.replacementText.localizedCaseInsensitiveCompare($1.replacementText) == .orderedAscending }
         case .replacementDesc:
-            return pairs.sorted { $0.value.localizedCaseInsensitiveCompare($1.value) == .orderedDescending }
+            return wordReplacements.sorted { $0.replacementText.localizedCaseInsensitiveCompare($1.replacementText) == .orderedDescending }
         }
     }
     
@@ -186,7 +111,7 @@ struct WordReplacementView: View {
             }
             .animation(.easeInOut(duration: 0.2), value: shouldShowAddButton)
 
-            if !manager.replacements.isEmpty {
+            if !wordReplacements.isEmpty {
                 VStack(spacing: 0) {
                     HStack(spacing: 8) {
                         Button(action: { toggleSort(for: .original) }) {
@@ -235,15 +160,15 @@ struct WordReplacementView: View {
 
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            ForEach(sortedReplacements, id: \.key) { pair in
+                            ForEach(sortedReplacements) { replacement in
                                 ReplacementRow(
-                                    original: pair.key,
-                                    replacement: pair.value,
-                                    onDelete: { manager.removeReplacement(original: pair.key) },
-                                    onEdit: { editingOriginal = pair.key }
+                                    original: replacement.originalText,
+                                    replacement: replacement.replacementText,
+                                    onDelete: { removeReplacement(replacement) },
+                                    onEdit: { editingReplacement = replacement }
                                 )
 
-                                if pair.key != sortedReplacements.last?.key {
+                                if replacement.id != sortedReplacements.last?.id {
                                     Divider()
                                 }
                             }
@@ -255,8 +180,8 @@ struct WordReplacementView: View {
             }
         }
         .padding()
-        .sheet(item: $editingOriginal) { original in
-            EditReplacementSheet(manager: manager, originalKey: original)
+        .sheet(item: $editingReplacement) { replacement in
+            EditReplacementSheet(replacement: replacement, modelContext: modelContext)
         }
         .alert("Word Replacement", isPresented: $showAlert) {
             Button("OK", role: .cancel) {}
@@ -275,18 +200,36 @@ struct WordReplacementView: View {
             .filter { !$0.isEmpty }
         guard !tokens.isEmpty && !replacement.isEmpty else { return }
 
-        let result = manager.addReplacement(original: original, replacement: replacement)
-        if result.success {
-            originalWord = ""
-            replacementWord = ""
-        } else {
-            if let conflictingWord = result.conflictingWord {
-                alertMessage = "'\(conflictingWord)' already exists in word replacements"
-            } else {
-                alertMessage = "This word replacement already exists"
+        // Check for duplicates
+        let newTokensPairs = tokens.map { (original: $0, lowercased: $0.lowercased()) }
+
+        for existingReplacement in wordReplacements {
+            let existingTokens = existingReplacement.originalText
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+                .filter { !$0.isEmpty }
+
+            for tokenPair in newTokensPairs {
+                if existingTokens.contains(tokenPair.lowercased) {
+                    alertMessage = "'\(tokenPair.original)' already exists in word replacements"
+                    showAlert = true
+                    return
+                }
             }
-            showAlert = true
         }
+
+        // Add new replacement
+        let newReplacement = WordReplacement(originalText: original, replacementText: replacement)
+        modelContext.insert(newReplacement)
+        try? modelContext.save()
+
+        originalWord = ""
+        replacementWord = ""
+    }
+
+    private func removeReplacement(_ replacement: WordReplacement) {
+        modelContext.delete(replacement)
+        try? modelContext.save()
     }
 }
 
