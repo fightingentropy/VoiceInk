@@ -235,9 +235,34 @@ class ImportExportService {
 
                     // Import word replacements to SwiftData
                     if let replacementsToImport = importedSettings.wordReplacements {
+                        let replacementsDescriptor = FetchDescriptor<WordReplacement>()
+                        let existingReplacements = (try? whisperState.modelContext.fetch(replacementsDescriptor)) ?? []
+
+                        // Build a set of existing replacement keys for duplicate checking
+                        var existingKeysSet = Set<String>()
+                        for existing in existingReplacements {
+                            let tokens = existing.originalText
+                                .split(separator: ",")
+                                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+                                .filter { !$0.isEmpty }
+                            existingKeysSet.formUnion(tokens)
+                        }
+
                         for (original, replacement) in replacementsToImport {
-                            let newReplacement = WordReplacement(originalText: original, replacementText: replacement)
-                            whisperState.modelContext.insert(newReplacement)
+                            let importTokens = original
+                                .split(separator: ",")
+                                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+                                .filter { !$0.isEmpty }
+
+                            // Check if any token already exists
+                            let hasConflict = importTokens.contains { existingKeysSet.contains($0) }
+
+                            if !hasConflict {
+                                let newReplacement = WordReplacement(originalText: original, replacementText: replacement)
+                                whisperState.modelContext.insert(newReplacement)
+                                // Add these tokens to the set to prevent duplicates within the import
+                                existingKeysSet.formUnion(importTokens)
+                            }
                         }
                         try? whisperState.modelContext.save()
                         print("Successfully imported word replacements to SwiftData.")

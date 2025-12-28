@@ -27,7 +27,8 @@ class DictionaryImportExportService {
         var wordReplacements: [String: String] = [:]
         let replacementsDescriptor = FetchDescriptor<WordReplacement>()
         if let replacements = try? context.fetch(replacementsDescriptor) {
-            wordReplacements = Dictionary(uniqueKeysWithValues: replacements.map { ($0.originalText, $0.replacementText) })
+            // Use uniquingKeysWith to handle potential duplicates gracefully (keep first occurrence)
+            wordReplacements = Dictionary(replacements.map { ($0.originalText, $0.replacementText) }, uniquingKeysWith: { first, _ in first })
         }
 
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
@@ -121,7 +122,6 @@ class DictionaryImportExportService {
                         let importedWords = self.extractWords(from: normalizedImportedKey)
 
                         // Check for conflicts and update existing replacements
-                        var hasConflict = false
                         for existingReplacement in existingReplacements {
                             var existingWords = self.extractWords(from: existingReplacement.originalText)
                             var modified = false
@@ -130,7 +130,6 @@ class DictionaryImportExportService {
                                 if let index = existingWords.firstIndex(where: { $0.lowercased() == importedWord.lowercased() }) {
                                     existingWords.remove(at: index)
                                     modified = true
-                                    hasConflict = true
                                 }
                             }
 
