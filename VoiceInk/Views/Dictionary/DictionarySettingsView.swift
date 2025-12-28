@@ -1,12 +1,14 @@
 import SwiftUI
+import SwiftData
 
 struct DictionarySettingsView: View {
+    @Environment(\.modelContext) private var modelContext
     @State private var selectedSection: DictionarySection = .replacements
     let whisperPrompt: WhisperPrompt
     
     enum DictionarySection: String, CaseIterable {
         case replacements = "Word Replacements"
-        case spellings = "Correct Spellings"
+        case spellings = "Vocabulary"
         
         var description: String {
             switch self {
@@ -83,24 +85,24 @@ struct DictionarySettingsView: View {
 
                 HStack(spacing: 12) {
                     Button(action: {
-                        DictionaryImportExportService.shared.importDictionary()
+                        DictionaryImportExportService.shared.importDictionary(into: modelContext)
                     }) {
                         Image(systemName: "square.and.arrow.down")
                             .font(.system(size: 18))
                             .foregroundColor(.blue)
                     }
                     .buttonStyle(.plain)
-                    .help("Import dictionary items and word replacements")
+                    .help("Import vocabulary and word replacements")
 
                     Button(action: {
-                        DictionaryImportExportService.shared.exportDictionary()
+                        DictionaryImportExportService.shared.exportDictionary(from: modelContext)
                     }) {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 18))
                             .foregroundColor(.blue)
                     }
                     .buttonStyle(.plain)
-                    .help("Export dictionary items and word replacements")
+                    .help("Export vocabulary and word replacements")
                 }
             }
 
@@ -120,7 +122,7 @@ struct DictionarySettingsView: View {
         VStack(alignment: .leading, spacing: 20) {
             switch selectedSection {
             case .spellings:
-                DictionaryView(whisperPrompt: whisperPrompt)
+                VocabularyView(whisperPrompt: whisperPrompt)
                     .background(CardBackground(isSelected: false))
             case .replacements:
                 WordReplacementView()
