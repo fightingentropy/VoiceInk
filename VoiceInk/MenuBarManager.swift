@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import AppKit
 
 class MenuBarManager: ObservableObject {
@@ -8,11 +9,16 @@ class MenuBarManager: ObservableObject {
             updateAppActivationPolicy()
         }
     }
-    
-    
+
+    private var modelContainer: ModelContainer?
+
     init() {
         self.isMenuBarOnly = UserDefaults.standard.bool(forKey: "IsMenuBarOnly")
         updateAppActivationPolicy()
+    }
+
+    func configure(modelContainer: ModelContainer) {
+        self.modelContainer = modelContainer
     }
     
     func toggleMenuBarOnly() {
@@ -54,17 +60,17 @@ class MenuBarManager: ObservableObject {
     
     func openMainWindowAndNavigate(to destination: String) {
         print("MenuBarManager: Navigating to \(destination)")
-        
+
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            
+
             self.applyActivationPolicy()
-            
+
             guard WindowManager.shared.showMainWindow() != nil else {
                 print("MenuBarManager: Unable to show main window for navigation")
                 return
             }
-            
+
             // Post a notification to navigate to the desired destination
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 NotificationCenter.default.post(
@@ -75,5 +81,13 @@ class MenuBarManager: ObservableObject {
                 print("MenuBarManager: Posted navigation notification for \(destination)")
             }
         }
+    }
+
+    func openHistoryWindow() {
+        guard let modelContainer = modelContainer else {
+            print("MenuBarManager: ModelContainer not configured")
+            return
+        }
+        HistoryWindowController.shared.showHistoryWindow(modelContainer: modelContainer)
     }
 }

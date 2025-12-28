@@ -106,22 +106,47 @@ struct ContentView: View {
 
                 ForEach(visibleViewTypes) { viewType in
                     Section {
-                        NavigationLink(value: viewType) {
-                            HStack(spacing: 12) {
-                                Image(systemName: viewType.icon)
-                                    .font(.system(size: 18, weight: .medium))
-                                    .frame(width: 24, height: 24)
+                        if viewType == .history {
+                            // History opens in separate window instead of inline
+                            Button(action: {
+                                HistoryWindowController.shared.showHistoryWindow(
+                                    modelContainer: modelContext.container
+                                )
+                            }) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: viewType.icon)
+                                        .font(.system(size: 18, weight: .medium))
+                                        .frame(width: 24, height: 24)
 
-                                Text(viewType.rawValue)
-                                    .font(.system(size: 14, weight: .medium))
+                                    Text(viewType.rawValue)
+                                        .font(.system(size: 14, weight: .medium))
 
-                                Spacer()
+                                    Spacer()
+                                }
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 2)
                             }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 2)
+                            .buttonStyle(.plain)
+                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                            .listRowSeparator(.hidden)
+                        } else {
+                            NavigationLink(value: viewType) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: viewType.icon)
+                                        .font(.system(size: 18, weight: .medium))
+                                        .frame(width: 24, height: 24)
+
+                                    Text(viewType.rawValue)
+                                        .font(.system(size: 14, weight: .medium))
+
+                                    Spacer()
+                                }
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 2)
+                            }
+                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                            .listRowSeparator(.hidden)
                         }
-                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                        .listRowSeparator(.hidden)
                     }
                 }
             }
@@ -150,7 +175,10 @@ struct ContentView: View {
                 case "VoiceInk Pro":
                     selectedView = .license
                 case "History":
-                    selectedView = .history
+                    // Open History in separate window instead of inline
+                    HistoryWindowController.shared.showHistoryWindow(
+                        modelContainer: modelContext.container
+                    )
                 case "Permissions":
                     selectedView = .permissions
                 case "Enhancement":
@@ -178,7 +206,9 @@ struct ContentView: View {
         case .transcribeAudio:
             AudioTranscribeView()
         case .history:
-            TranscriptionHistoryView()
+            // History now opens in separate window, not shown inline
+            Text("History")
+                .foregroundColor(.secondary)
         case .audioInput:
             AudioInputSettingsView()
         case .dictionary:
