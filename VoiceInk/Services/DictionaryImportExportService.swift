@@ -159,6 +159,8 @@ class DictionaryImportExportService {
                     self.showAlert(title: "Import Successful", message: message)
 
                 } catch {
+                    // Rollback any unsaved changes to maintain consistency
+                    context.rollback()
                     self.showAlert(title: "Import Error", message: "Error importing dictionary data: \(error.localizedDescription). The file might be corrupted or not in the correct format.")
                 }
             } else {
