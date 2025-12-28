@@ -108,9 +108,7 @@ struct VoiceInkApp: App {
 
         let menuBarManager = MenuBarManager()
         _menuBarManager = StateObject(wrappedValue: menuBarManager)
-
-        // Configure MenuBarManager with ModelContainer for window management
-        menuBarManager.configure(modelContainer: container)
+        menuBarManager.configure(modelContainer: container, whisperState: whisperState)
 
         let activeWindowService = ActiveWindowService.shared
         activeWindowService.configure(with: enhancementService)

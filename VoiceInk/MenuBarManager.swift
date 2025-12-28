@@ -11,14 +11,16 @@ class MenuBarManager: ObservableObject {
     }
 
     private var modelContainer: ModelContainer?
+    private var whisperState: WhisperState?
 
     init() {
         self.isMenuBarOnly = UserDefaults.standard.bool(forKey: "IsMenuBarOnly")
         updateAppActivationPolicy()
     }
 
-    func configure(modelContainer: ModelContainer) {
+    func configure(modelContainer: ModelContainer, whisperState: WhisperState) {
         self.modelContainer = modelContainer
+        self.whisperState = whisperState
     }
     
     func toggleMenuBarOnly() {
@@ -84,10 +86,14 @@ class MenuBarManager: ObservableObject {
     }
 
     func openHistoryWindow() {
-        guard let modelContainer = modelContainer else {
-            print("MenuBarManager: ModelContainer not configured")
+        guard let modelContainer = modelContainer,
+              let whisperState = whisperState else {
+            print("MenuBarManager: Dependencies not configured")
             return
         }
-        HistoryWindowController.shared.showHistoryWindow(modelContainer: modelContainer)
+        HistoryWindowController.shared.showHistoryWindow(
+            modelContainer: modelContainer,
+            whisperState: whisperState
+        )
     }
 }

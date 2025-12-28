@@ -13,22 +13,23 @@ class HistoryWindowController: NSObject, NSWindowDelegate {
         super.init()
     }
 
-    func showHistoryWindow(modelContainer: ModelContainer) {
+    func showHistoryWindow(modelContainer: ModelContainer, whisperState: WhisperState) {
         if let existingWindow = historyWindow, existingWindow.isVisible {
             existingWindow.makeKeyAndOrderFront(nil)
             NSApplication.shared.activate(ignoringOtherApps: true)
             return
         }
 
-        let window = createHistoryWindow(modelContainer: modelContainer)
+        let window = createHistoryWindow(modelContainer: modelContainer, whisperState: whisperState)
         historyWindow = window
         window.makeKeyAndOrderFront(nil)
         NSApplication.shared.activate(ignoringOtherApps: true)
     }
 
-    private func createHistoryWindow(modelContainer: ModelContainer) -> NSWindow {
+    private func createHistoryWindow(modelContainer: ModelContainer, whisperState: WhisperState) -> NSWindow {
         let historyView = TranscriptionHistoryView()
             .modelContainer(modelContainer)
+            .environmentObject(whisperState)
             .frame(minWidth: 800, minHeight: 600)
 
         let hostingController = NSHostingController(rootView: historyView)

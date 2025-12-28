@@ -107,10 +107,10 @@ struct ContentView: View {
                 ForEach(visibleViewTypes) { viewType in
                     Section {
                         if viewType == .history {
-                            // History opens in separate window instead of inline
                             Button(action: {
                                 HistoryWindowController.shared.showHistoryWindow(
-                                    modelContainer: modelContext.container
+                                    modelContainer: modelContext.container,
+                                    whisperState: whisperState
                                 )
                             }) {
                                 HStack(spacing: 12) {
@@ -175,9 +175,9 @@ struct ContentView: View {
                 case "VoiceInk Pro":
                     selectedView = .license
                 case "History":
-                    // Open History in separate window instead of inline
                     HistoryWindowController.shared.showHistoryWindow(
-                        modelContainer: modelContext.container
+                        modelContainer: modelContext.container,
+                        whisperState: whisperState
                     )
                 case "Permissions":
                     selectedView = .permissions
@@ -206,7 +206,6 @@ struct ContentView: View {
         case .transcribeAudio:
             AudioTranscribeView()
         case .history:
-            // History now opens in separate window, not shown inline
             Text("History")
                 .foregroundColor(.secondary)
         case .audioInput:
