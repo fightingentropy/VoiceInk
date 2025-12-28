@@ -221,15 +221,26 @@ struct WordReplacementView: View {
         // Add new replacement
         let newReplacement = WordReplacement(originalText: original, replacementText: replacement)
         modelContext.insert(newReplacement)
-        try? modelContext.save()
 
-        originalWord = ""
-        replacementWord = ""
+        do {
+            try modelContext.save()
+            originalWord = ""
+            replacementWord = ""
+        } catch {
+            alertMessage = "Failed to add replacement: \(error.localizedDescription)"
+            showAlert = true
+        }
     }
 
     private func removeReplacement(_ replacement: WordReplacement) {
         modelContext.delete(replacement)
-        try? modelContext.save()
+
+        do {
+            try modelContext.save()
+        } catch {
+            alertMessage = "Failed to remove replacement: \(error.localizedDescription)"
+            showAlert = true
+        }
     }
 }
 

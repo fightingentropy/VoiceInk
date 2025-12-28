@@ -154,12 +154,24 @@ struct VocabularyView: View {
 
         let newWord = VocabularyWord(word: normalizedWord)
         modelContext.insert(newWord)
-        try? modelContext.save()
+
+        do {
+            try modelContext.save()
+        } catch {
+            alertMessage = "Failed to add word: \(error.localizedDescription)"
+            showAlert = true
+        }
     }
 
     private func removeWord(_ word: VocabularyWord) {
         modelContext.delete(word)
-        try? modelContext.save()
+
+        do {
+            try modelContext.save()
+        } catch {
+            alertMessage = "Failed to remove word: \(error.localizedDescription)"
+            showAlert = true
+        }
     }
 }
 

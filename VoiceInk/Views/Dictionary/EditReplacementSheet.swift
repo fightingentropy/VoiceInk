@@ -159,8 +159,13 @@ struct EditReplacementSheet: View {
         // Update the replacement
         replacement.originalText = newOriginal
         replacement.replacementText = newReplacement
-        try? modelContext.save()
 
-        dismiss()
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            alertMessage = "Failed to save changes: \(error.localizedDescription)"
+            showAlert = true
+        }
     }
 }
