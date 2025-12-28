@@ -158,6 +158,8 @@ struct VocabularyView: View {
         do {
             try modelContext.save()
         } catch {
+            // Rollback the insert to maintain UI consistency
+            modelContext.delete(newWord)
             alertMessage = "Failed to add word: \(error.localizedDescription)"
             showAlert = true
         }
@@ -169,6 +171,8 @@ struct VocabularyView: View {
         do {
             try modelContext.save()
         } catch {
+            // Rollback the delete to restore UI consistency
+            modelContext.rollback()
             alertMessage = "Failed to remove word: \(error.localizedDescription)"
             showAlert = true
         }

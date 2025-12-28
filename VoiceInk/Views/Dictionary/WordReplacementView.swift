@@ -227,6 +227,8 @@ struct WordReplacementView: View {
             originalWord = ""
             replacementWord = ""
         } catch {
+            // Rollback the insert to maintain UI consistency
+            modelContext.delete(newReplacement)
             alertMessage = "Failed to add replacement: \(error.localizedDescription)"
             showAlert = true
         }
@@ -238,6 +240,8 @@ struct WordReplacementView: View {
         do {
             try modelContext.save()
         } catch {
+            // Rollback the delete to restore UI consistency
+            modelContext.rollback()
             alertMessage = "Failed to remove replacement: \(error.localizedDescription)"
             showAlert = true
         }
