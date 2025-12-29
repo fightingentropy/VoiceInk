@@ -30,12 +30,12 @@ class HistoryWindowController: NSObject, NSWindowDelegate {
         let historyView = TranscriptionHistoryView()
             .modelContainer(modelContainer)
             .environmentObject(whisperState)
-            .frame(minWidth: 800, minHeight: 600)
+            .frame(minWidth: 1000, minHeight: 700)
 
         let hostingController = NSHostingController(rootView: historyView)
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 700),
+            contentRect: NSRect(x: 0, y: 0, width: 1100, height: 750),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -50,7 +50,7 @@ class HistoryWindowController: NSObject, NSWindowDelegate {
         window.backgroundColor = NSColor.windowBackgroundColor
         window.isReleasedWhenClosed = false
         window.collectionBehavior = [.fullScreenPrimary]
-        window.minSize = NSSize(width: 700, height: 500)
+        window.minSize = NSSize(width: 1000, height: 700)
 
         window.setFrameAutosaveName(windowAutosaveName)
         if !window.setFrameUsingName(windowAutosaveName) {
