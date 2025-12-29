@@ -14,7 +14,10 @@ class HistoryWindowController: NSObject, NSWindowDelegate {
     }
 
     func showHistoryWindow(modelContainer: ModelContainer, whisperState: WhisperState) {
-        if let existingWindow = historyWindow, existingWindow.isVisible {
+        if let existingWindow = historyWindow {
+            if existingWindow.isMiniaturized {
+                existingWindow.deminiaturize(nil)
+            }
             existingWindow.makeKeyAndOrderFront(nil)
             NSApplication.shared.activate(ignoringOtherApps: true)
             return

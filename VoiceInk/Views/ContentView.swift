@@ -113,36 +113,14 @@ struct ContentView: View {
                                     whisperState: whisperState
                                 )
                             }) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: viewType.icon)
-                                        .font(.system(size: 18, weight: .medium))
-                                        .frame(width: 24, height: 24)
-
-                                    Text(viewType.rawValue)
-                                        .font(.system(size: 14, weight: .medium))
-
-                                    Spacer()
-                                }
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 2)
+                                SidebarItemView(viewType: viewType)
                             }
                             .buttonStyle(.plain)
                             .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                             .listRowSeparator(.hidden)
                         } else {
                             NavigationLink(value: viewType) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: viewType.icon)
-                                        .font(.system(size: 18, weight: .medium))
-                                        .frame(width: 24, height: 24)
-
-                                    Text(viewType.rawValue)
-                                        .font(.system(size: 14, weight: .medium))
-
-                                    Spacer()
-                                }
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 2)
+                                SidebarItemView(viewType: viewType)
                             }
                             .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                             .listRowSeparator(.hidden)
@@ -225,4 +203,22 @@ struct ContentView: View {
     }
 }
 
- 
+private struct SidebarItemView: View {
+    let viewType: ViewType
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: viewType.icon)
+                .font(.system(size: 18, weight: .medium))
+                .frame(width: 24, height: 24)
+
+            Text(viewType.rawValue)
+                .font(.system(size: 14, weight: .medium))
+
+            Spacer()
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 2)
+    }
+}
+

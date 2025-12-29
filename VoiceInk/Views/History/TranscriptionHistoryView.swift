@@ -357,8 +357,13 @@ struct TranscriptionHistoryView: View {
         selectedTranscriptions.remove(transcription)
 
         Task {
-            try? modelContext.save()
-            await loadInitialContent()
+            do {
+                try modelContext.save()
+                await loadInitialContent()
+            } catch {
+                print("Error saving deletion: \(error.localizedDescription)")
+                await loadInitialContent()
+            }
         }
     }
 
@@ -377,8 +382,13 @@ struct TranscriptionHistoryView: View {
         selectedTranscriptions.removeAll()
 
         Task {
-            try? modelContext.save()
-            await loadInitialContent()
+            do {
+                try modelContext.save()
+                await loadInitialContent()
+            } catch {
+                print("Error saving deletion: \(error.localizedDescription)")
+                await loadInitialContent()
+            }
         }
     }
     
