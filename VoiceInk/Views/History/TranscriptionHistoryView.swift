@@ -223,16 +223,31 @@ struct TranscriptionHistoryView: View {
                 TranscriptionDetailView(transcription: transcription)
                     .id(transcription.id)
             } else {
-                VStack(spacing: 12) {
-                    Image(systemName: "doc.text")
-                        .font(.system(size: 50))
-                        .foregroundColor(.secondary)
-                    Text("No Selection")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.secondary)
-                    Text("Select a transcription to view details")
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
+                ScrollView {
+                    VStack(spacing: 32) {
+                        Spacer()
+                            .frame(minHeight: 40)
+
+                        VStack(spacing: 12) {
+                            Image(systemName: "doc.text")
+                                .font(.system(size: 50))
+                                .foregroundColor(.secondary)
+                            Text("No Selection")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(.secondary)
+                            Text("Select a transcription to view details")
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary)
+                        }
+
+                        HistoryShortcutTipView()
+                            .padding(.horizontal, 24)
+
+                        Spacer()
+                            .frame(minHeight: 40)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 600)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color(NSColor.controlBackgroundColor))
