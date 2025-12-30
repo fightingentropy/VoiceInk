@@ -59,6 +59,7 @@ private struct MessageBubble: View {
     let label: String
     let text: String
     let isEnhanced: Bool
+    @State private var justCopied = false
 
     var body: some View {
         HStack(alignment: .bottom) {
@@ -70,31 +71,59 @@ private struct MessageBubble: View {
                     .foregroundColor(.secondary.opacity(0.7))
                     .padding(.horizontal, 12)
 
-                ScrollView {
-                    Text(text)
-                        .font(.system(size: 14, weight: .regular))
-                        .lineSpacing(2)
-                        .textSelection(.enabled)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                }
-                .frame(maxHeight: 350)
-                .background {
-                    if isEnhanced {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(Color.accentColor.opacity(0.2))
-                    } else {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(.thinMaterial)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5)
-                            )
+                HStack(alignment: .top, spacing: 8) {
+                    ScrollView {
+                        Text(text)
+                            .font(.system(size: 14, weight: .regular))
+                            .lineSpacing(2)
+                            .textSelection(.enabled)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
                     }
+                    .frame(maxHeight: 350)
+                    .background {
+                        if isEnhanced {
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(Color.accentColor.opacity(0.2))
+                        } else {
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(.thinMaterial)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5)
+                                )
+                        }
+                    }
+
+                    Button(action: {
+                        copyToClipboard(text)
+                    }) {
+                        Image(systemName: justCopied ? "checkmark" : "doc.on.doc")
+                            .font(.system(size: 12))
+                            .foregroundColor(justCopied ? .green : .secondary)
+                            .frame(width: 24, height: 24)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Copy to clipboard")
+                    .padding(.top, 8)
                 }
             }
 
             if !isEnhanced { Spacer(minLength: 60) }
+        }
+    }
+
+    private func copyToClipboard(_ text: String) {
+        let _ = ClipboardManager.copyToClipboard(text)
+
+        withAnimation {
+            justCopied = true
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation {
+                justCopied = false
+            }
         }
     }
 }
