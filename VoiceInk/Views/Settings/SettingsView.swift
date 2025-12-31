@@ -18,11 +18,12 @@ struct SettingsView: View {
     @AppStorage("autoUpdateCheck") private var autoUpdateCheck = true
     @AppStorage("enableAnnouncements") private var enableAnnouncements = true
     @AppStorage("restoreClipboardAfterPaste") private var restoreClipboardAfterPaste = false
-    @AppStorage("clipboardRestoreDelay") private var clipboardRestoreDelay = 1.5
+    @AppStorage("clipboardRestoreDelay") private var clipboardRestoreDelay = 2.0
     @State private var showResetOnboardingAlert = false
     @State private var currentShortcut = KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder)
     @State private var isCustomCancelEnabled = false
     @State private var isCustomSoundsExpanded = false
+    @State private var isSystemMuteExpanded = false
 
     
     var body: some View {
@@ -220,44 +221,49 @@ struct SettingsView: View {
                     subtitle: "Customize app & system feedback"
                 ) {
                     VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Toggle(isOn: $soundManager.isEnabled) {
-                                Text("Sound feedback")
-                            }
-                            .toggleStyle(.switch)
-
-                            if soundManager.isEnabled {
-                                Spacer()
-
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.secondary)
-                                    .rotationEffect(.degrees(isCustomSoundsExpanded ? 90 : 0))
-                                    .animation(.easeInOut(duration: 0.2), value: isCustomSoundsExpanded)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            if soundManager.isEnabled {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    isCustomSoundsExpanded.toggle()
-                                }
-                            }
-                        }
-
-                        if soundManager.isEnabled && isCustomSoundsExpanded {
+                        ExpandableToggleSection(
+                            title: "Sound feedback",
+                            helpText: "Play sounds when recording starts and stops",
+                            isEnabled: $soundManager.isEnabled,
+                            isExpanded: $isCustomSoundsExpanded
+                        ) {
                             CustomSoundSettingsView()
-                                .transition(.opacity.combined(with: .move(edge: .top)))
-                                .padding(.top, 4)
                         }
 
                         Divider()
 
-                        Toggle(isOn: $mediaController.isSystemMuteEnabled) {
-                            Text("Mute system audio during recording")
+                        ExpandableToggleSection(
+                            title: "Mute system audio during recording",
+                            helpText: "Automatically mute system audio when recording starts and restore when recording stops",
+                            isEnabled: $mediaController.isSystemMuteEnabled,
+                            isExpanded: $isSystemMuteExpanded
+                        ) {
+                            HStack(spacing: 8) {
+                                Text("Resumption Delay")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.secondary)
+
+                                Picker("", selection: $mediaController.audioResumptionDelay) {
+                                    Text("1s").tag(1.0)
+                                    Text("2s").tag(2.0)
+                                    Text("3s").tag(3.0)
+                                    Text("4s").tag(4.0)
+                                    Text("5s").tag(5.0)
+                                }
+                                .pickerStyle(.menu)
+                                .frame(width: 80)
+
+                                InfoTip(
+                                    title: "Audio Resumption Delay",
+                                    message: "Delay before unmuting system audio after recording stops. Useful for Bluetooth headphones that need time to switch from microphone mode back to high-quality audio mode. Recommended: 2s for AirPods/Bluetooth headphones, 1s for wired headphones."
+                                )
+
+                                Spacer()
+                            }
+                            .padding(.leading, 16)
                         }
-                        .toggleStyle(.switch)
-                        .help("Automatically mute system audio when recording starts and restore when recording stops")
+
+                        Divider()
 
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(spacing: 8) {
@@ -277,17 +283,14 @@ struct SettingsView: View {
                                         .foregroundColor(.secondary)
 
                                     Picker("", selection: $clipboardRestoreDelay) {
-                                        Text("0.5s").tag(0.5)
-                                        Text("1.0s").tag(1.0)
-                                        Text("1.5s").tag(1.5)
-                                        Text("2.0s").tag(2.0)
-                                        Text("2.5s").tag(2.5)
-                                        Text("3.0s").tag(3.0)
-                                        Text("4.0s").tag(4.0)
-                                        Text("5.0s").tag(5.0)
+                                        Text("1s").tag(1.0)
+                                        Text("2s").tag(2.0)
+                                        Text("3s").tag(3.0)
+                                        Text("4s").tag(4.0)
+                                        Text("5s").tag(5.0)
                                     }
                                     .pickerStyle(.menu)
-                                    .frame(width: 90)
+                                    .frame(width: 80)
 
                                     Spacer()
                                 }
