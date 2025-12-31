@@ -29,6 +29,15 @@ struct ExpandableToggleSection<Content: View>: View {
                 }
                 .toggleStyle(.switch)
                 .help(helpText)
+                .onChange(of: isEnabled) { _, newValue in
+                    if newValue {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isExpanded = true
+                        }
+                    } else {
+                        isExpanded = false
+                    }
+                }
 
                 if isEnabled {
                     Spacer()

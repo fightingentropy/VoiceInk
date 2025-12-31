@@ -67,7 +67,6 @@ struct ExperimentalFeaturesSection: View {
 
                         Spacer()
                     }
-                    .padding(.leading, 16)
                 }
             }
         }

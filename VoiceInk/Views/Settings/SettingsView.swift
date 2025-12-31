@@ -25,6 +25,8 @@ struct SettingsView: View {
     @State private var isCustomSoundsExpanded = false
     @State private var isSystemMuteExpanded = false
     @State private var isClipboardRestoreExpanded = false
+    @State private var isCustomCancelExpanded = false
+    @State private var isMiddleClickExpanded = false
 
     
     var body: some View {
@@ -136,81 +138,60 @@ struct SettingsView: View {
 
                         Divider()
 
-                        
-                        
-                        // Custom Cancel Shortcut
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(spacing: 8) {
-                                Toggle(isOn: $isCustomCancelEnabled.animation()) {
-                                    Text("Custom Cancel Shortcut")
-                                }
-                                .toggleStyle(.switch)
-                                .onChange(of: isCustomCancelEnabled) { _, newValue in
-                                    if !newValue {
-                                        KeyboardShortcuts.setShortcut(nil, for: .cancelRecorder)
-                                    }
-                                }
-                                
-                                InfoTip(
-                                    title: "Dismiss Recording",
-                                    message: "Shortcut for cancelling the current recording session. Default: double-tap Escape."
-                                )
+
+
+                        ExpandableToggleSection(
+                            title: "Custom Cancel Shortcut",
+                            helpText: "Shortcut for cancelling the current recording session. Default: double-tap Escape.",
+                            isEnabled: $isCustomCancelEnabled,
+                            isExpanded: $isCustomCancelExpanded
+                        ) {
+                            HStack(spacing: 12) {
+                                Text("Cancel Shortcut")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.secondary)
+
+                                KeyboardShortcuts.Recorder(for: .cancelRecorder)
+                                    .controlSize(.small)
+
+                                Spacer()
                             }
-                            
-                            if isCustomCancelEnabled {
-                                HStack(spacing: 12) {
-                                    Text("Cancel Shortcut")
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                    
-                                    KeyboardShortcuts.Recorder(for: .cancelRecorder)
-                                        .controlSize(.small)
-                                    
-                                    Spacer()
-                                }
-                                .padding(.leading, 16)
-                                .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                        .onChange(of: isCustomCancelEnabled) { _, newValue in
+                            if !newValue {
+                                KeyboardShortcuts.setShortcut(nil, for: .cancelRecorder)
                             }
                         }
 
                         Divider()
 
-                        // Middle-Click Toggle
-                        VStack(alignment: .leading, spacing: 12) {
+                        ExpandableToggleSection(
+                            title: "Enable Middle-Click Toggle",
+                            helpText: "Use middle mouse button to toggle VoiceInk recording.",
+                            isEnabled: $hotkeyManager.isMiddleClickToggleEnabled,
+                            isExpanded: $isMiddleClickExpanded
+                        ) {
                             HStack(spacing: 8) {
-                                Toggle("Enable Middle-Click Toggle", isOn: $hotkeyManager.isMiddleClickToggleEnabled)
-                                    .toggleStyle(.switch)
+                                Text("Activation Delay")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.secondary)
 
-                                InfoTip(
-                                    title: "Middle-Click Toggle",
-                                    message: "Use middle mouse button to toggle VoiceInk recording."
-                                )
-                            }
+                                TextField("", value: $hotkeyManager.middleClickActivationDelay, formatter: {
+                                    let formatter = NumberFormatter()
+                                    formatter.numberStyle = .none
+                                    formatter.minimum = 0
+                                    return formatter
+                                }())
+                                .textFieldStyle(PlainTextFieldStyle())
+                                .padding(EdgeInsets(top: 3, leading: 6, bottom: 3, trailing: 6))
+                                .background(Color(NSColor.textBackgroundColor))
+                                .cornerRadius(5)
+                                .frame(width: 70)
 
-                            if hotkeyManager.isMiddleClickToggleEnabled {
-                                HStack(spacing: 8) {
-                                    Text("Activation Delay")
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(.secondary)
+                                Text("ms")
+                                    .foregroundColor(.secondary)
 
-                                    TextField("", value: $hotkeyManager.middleClickActivationDelay, formatter: {
-                                        let formatter = NumberFormatter()
-                                        formatter.numberStyle = .none
-                                        formatter.minimum = 0
-                                        return formatter
-                                    }())
-                                    .textFieldStyle(PlainTextFieldStyle())
-                                    .padding(EdgeInsets(top: 3, leading: 6, bottom: 3, trailing: 6))
-                                    .background(Color(NSColor.textBackgroundColor))
-                                    .cornerRadius(5)
-                                    .frame(width: 70)
-
-                                    Text("ms")
-                                        .foregroundColor(.secondary)
-
-                                    Spacer()
-                                }
-                                .padding(.leading, 16)
+                                Spacer()
                             }
                         }
                     }
@@ -261,7 +242,6 @@ struct SettingsView: View {
 
                                 Spacer()
                             }
-                            .padding(.leading, 16)
                         }
 
                         Divider()
@@ -289,7 +269,6 @@ struct SettingsView: View {
 
                                 Spacer()
                             }
-                            .padding(.leading, 16)
                         }
 
                     }
