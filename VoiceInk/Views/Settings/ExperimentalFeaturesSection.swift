@@ -47,11 +47,12 @@ struct ExperimentalFeaturesSection: View {
                     expandedSections: $expandedSections
                 ) {
                     HStack(spacing: 8) {
-                        Text("Resumption Delay")
+                        Text("Resume Delay")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.secondary)
 
                         Picker("", selection: $mediaController.audioResumptionDelay) {
+                            Text("0s").tag(0.0)
                             Text("1s").tag(1.0)
                             Text("2s").tag(2.0)
                             Text("3s").tag(3.0)
@@ -62,8 +63,8 @@ struct ExperimentalFeaturesSection: View {
                         .frame(width: 80)
 
                         InfoTip(
-                            title: "Audio Resumption Delay",
-                            message: "Delay before resuming media playback after recording stops. Useful for Bluetooth headphones that need time to switch from microphone mode back to high-quality audio mode. Recommended: 2s for AirPods/Bluetooth headphones, 1s for wired headphones."
+                            title: "Audio Resume Delay",
+                            message: "Delay before resuming media playback after recording stops. Useful for Bluetooth headphones that need time to switch from microphone mode back to high-quality audio mode. Recommended: 2s for AirPods/Bluetooth headphones, 0s for wired headphones."
                         )
 
                         Spacer()

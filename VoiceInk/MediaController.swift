@@ -18,10 +18,7 @@ class MediaController: ObservableObject {
         }
     }
 
-    @Published var audioResumptionDelay: Double = {
-        let value = UserDefaults.standard.double(forKey: "audioResumptionDelay")
-        return value < 1.0 ? 1.0 : value
-    }() {
+    @Published var audioResumptionDelay: Double = UserDefaults.standard.double(forKey: "audioResumptionDelay") {
         didSet {
             UserDefaults.standard.set(audioResumptionDelay, forKey: "audioResumptionDelay")
         }
@@ -33,9 +30,7 @@ class MediaController: ObservableObject {
         }
 
         if !UserDefaults.standard.contains(key: "audioResumptionDelay") {
-            UserDefaults.standard.set(1.0, forKey: "audioResumptionDelay")
-        } else if audioResumptionDelay < 1.0 {
-            audioResumptionDelay = 1.0
+            UserDefaults.standard.set(0.0, forKey: "audioResumptionDelay")
         }
     }
     
