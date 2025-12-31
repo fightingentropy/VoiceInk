@@ -357,53 +357,51 @@ struct TranscriptionHistoryView: View {
         hasMoreContent = true
         isLoading = false
     }
-    
-    private func deleteTranscription(_ transcription: Transcription) {
+
+    private func performDeletion(for transcription: Transcription) {
         if let urlString = transcription.audioFileURL,
-           let url = URL(string: urlString) {
-            try? FileManager.default.removeItem(at: url)
+           let url = URL(string: urlString),
+           FileManager.default.fileExists(atPath: url.path) {
+            do {
+                try FileManager.default.removeItem(at: url)
+            } catch {
+                print("Error deleting audio file: \(error.localizedDescription)")
+            }
         }
 
-        modelContext.delete(transcription)
         if selectedTranscription == transcription {
             selectedTranscription = nil
         }
 
         selectedTranscriptions.remove(transcription)
+        modelContext.delete(transcription)
+    }
 
+    private func saveAndReload() async {
+        do {
+            try modelContext.save()
+            await loadInitialContent()
+        } catch {
+            print("Error saving deletion: \(error.localizedDescription)")
+            await loadInitialContent()
+        }
+    }
+
+    private func deleteTranscription(_ transcription: Transcription) {
+        performDeletion(for: transcription)
         Task {
-            do {
-                try modelContext.save()
-                await loadInitialContent()
-            } catch {
-                print("Error saving deletion: \(error.localizedDescription)")
-                await loadInitialContent()
-            }
+            await saveAndReload()
         }
     }
 
     private func deleteSelectedTranscriptions() {
         for transcription in selectedTranscriptions {
-            if let urlString = transcription.audioFileURL,
-               let url = URL(string: urlString) {
-                try? FileManager.default.removeItem(at: url)
-            }
-            modelContext.delete(transcription)
-            if selectedTranscription == transcription {
-                selectedTranscription = nil
-            }
+            performDeletion(for: transcription)
         }
-
         selectedTranscriptions.removeAll()
 
         Task {
-            do {
-                try modelContext.save()
-                await loadInitialContent()
-            } catch {
-                print("Error saving deletion: \(error.localizedDescription)")
-                await loadInitialContent()
-            }
+            await saveAndReload()
         }
     }
     

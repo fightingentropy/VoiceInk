@@ -23,7 +23,7 @@ struct TranscriptionListItem: View {
                         .foregroundColor(.secondary)
                     Spacer()
                     if transcription.duration > 0 {
-                        Text(formatTiming(transcription.duration))
+                        Text(transcription.duration.formatTiming())
                             .font(.system(size: 10, weight: .medium))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
@@ -53,18 +53,6 @@ struct TranscriptionListItem: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { onSelect() }
-    }
-
-    private func formatTiming(_ duration: TimeInterval) -> String {
-        if duration < 1 {
-            return String(format: "%.0fms", duration * 1000)
-        }
-        if duration < 60 {
-            return String(format: "%.1fs", duration)
-        }
-        let minutes = Int(duration) / 60
-        let seconds = duration.truncatingRemainder(dividingBy: 60)
-        return String(format: "%dm %.0fs", minutes, seconds)
     }
 }
 

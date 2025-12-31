@@ -1,37 +1,63 @@
 import SwiftUI
 import AVFoundation
 
+extension TimeInterval {
+    func formatTiming() -> String {
+        if self < 1 {
+            return String(format: "%.0fms", self * 1000)
+        }
+        if self < 60 {
+            return String(format: "%.1fs", self)
+        }
+        let minutes = Int(self) / 60
+        let seconds = self.truncatingRemainder(dividingBy: 60)
+        return String(format: "%dm %.0fs", minutes, seconds)
+    }
+}
+
 class WaveformGenerator {
+    private static let cache = NSCache<NSString, NSArray>()
+
     static func generateWaveformSamples(from url: URL, sampleCount: Int = 200) async -> [Float] {
+        let cacheKey = url.absoluteString as NSString
+
+        if let cachedSamples = cache.object(forKey: cacheKey) as? [Float] {
+            return cachedSamples
+        }
         guard let audioFile = try? AVAudioFile(forReading: url) else { return [] }
         let format = audioFile.processingFormat
         let frameCount = UInt32(audioFile.length)
         let stride = max(1, Int(frameCount) / sampleCount)
         let bufferSize = min(UInt32(4096), frameCount)
-        
+
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: bufferSize) else { return [] }
-        
+
         do {
             var maxValues = [Float](repeating: 0.0, count: sampleCount)
             var sampleIndex = 0
             var framePosition: AVAudioFramePosition = 0
-            
+
             while sampleIndex < sampleCount && framePosition < AVAudioFramePosition(frameCount) {
                 audioFile.framePosition = framePosition
                 try audioFile.read(into: buffer)
-                
+
                 if let channelData = buffer.floatChannelData?[0], buffer.frameLength > 0 {
                     maxValues[sampleIndex] = abs(channelData[0])
                     sampleIndex += 1
                 }
-                
+
                 framePosition += AVAudioFramePosition(stride)
             }
-            
+
+            let normalizedSamples: [Float]
             if let maxSample = maxValues.max(), maxSample > 0 {
-                return maxValues.map { $0 / maxSample }
+                normalizedSamples = maxValues.map { $0 / maxSample }
+            } else {
+                normalizedSamples = maxValues
             }
-            return maxValues
+
+            cache.setObject(normalizedSamples as NSArray, forKey: cacheKey)
+            return normalizedSamples
         } catch {
             print("Error reading audio file: \(error)")
             return []
@@ -94,14 +120,20 @@ class AudioPlayerManager: ObservableObject {
             }
         }
     }
-    
+
     private func stopTimer() {
         timer?.invalidate()
         timer = nil
     }
-    
-    deinit {
+
+    func cleanup() {
         stopTimer()
+        audioPlayer?.stop()
+        audioPlayer = nil
+    }
+
+    deinit {
+        cleanup()
     }
 }
 
@@ -344,6 +376,9 @@ struct AudioPlayerView: View {
         .padding(.bottom, 6)
         .onAppear {
             playerManager.loadAudio(from: url)
+        }
+        .onDisappear {
+            playerManager.cleanup()
         }
         .overlay(
             VStack {

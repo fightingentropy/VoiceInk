@@ -21,7 +21,7 @@ struct TranscriptionMetadataView: View {
                     metadataRow(
                         icon: "hourglass",
                         label: "Duration",
-                        value: formatTiming(transcription.duration)
+                        value: transcription.duration.formatTiming()
                     )
 
                     if let modelName = transcription.transcriptionModelName {
@@ -37,7 +37,7 @@ struct TranscriptionMetadataView: View {
                             metadataRow(
                                 icon: "clock.fill",
                                 label: "Transcription Time",
-                                value: formatTiming(duration)
+                                value: duration.formatTiming()
                             )
                         }
                     }
@@ -55,7 +55,7 @@ struct TranscriptionMetadataView: View {
                             metadataRow(
                                 icon: "clock.fill",
                                 label: "Enhancement Time",
-                                value: formatTiming(duration)
+                                value: duration.formatTiming()
                             )
                         }
                     }
@@ -153,18 +153,6 @@ struct TranscriptionMetadataView: View {
                 .foregroundColor(.primary)
                 .lineLimit(1)
         }
-    }
-
-    private func formatTiming(_ duration: TimeInterval) -> String {
-        if duration < 1 {
-            return String(format: "%.0fms", duration * 1000)
-        }
-        if duration < 60 {
-            return String(format: "%.1fs", duration)
-        }
-        let minutes = Int(duration) / 60
-        let seconds = duration.truncatingRemainder(dividingBy: 60)
-        return String(format: "%dm %.0fs", minutes, seconds)
     }
 
     private func powerModeDisplay(name: String?, emoji: String?) -> String? {
