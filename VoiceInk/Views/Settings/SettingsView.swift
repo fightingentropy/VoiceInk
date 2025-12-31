@@ -24,6 +24,7 @@ struct SettingsView: View {
     @State private var isCustomCancelEnabled = false
     @State private var isCustomSoundsExpanded = false
     @State private var isSystemMuteExpanded = false
+    @State private var isClipboardRestoreExpanded = false
 
     
     var body: some View {
@@ -265,37 +266,30 @@ struct SettingsView: View {
 
                         Divider()
 
-                        VStack(alignment: .leading, spacing: 12) {
+                        ExpandableToggleSection(
+                            title: "Restore clipboard after paste",
+                            helpText: "When enabled, VoiceInk will restore your original clipboard content after pasting the transcription.",
+                            isEnabled: $restoreClipboardAfterPaste,
+                            isExpanded: $isClipboardRestoreExpanded
+                        ) {
                             HStack(spacing: 8) {
-                                Toggle("Restore clipboard after paste", isOn: $restoreClipboardAfterPaste)
-                                    .toggleStyle(.switch)
+                                Text("Restore Delay")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.secondary)
 
-                                InfoTip(
-                                    title: "Restore Clipboard",
-                                    message: "When enabled, VoiceInk will restore your original clipboard content after pasting the transcription."
-                                )
-                            }
-
-                            if restoreClipboardAfterPaste {
-                                HStack(spacing: 8) {
-                                    Text("Restore Delay")
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(.secondary)
-
-                                    Picker("", selection: $clipboardRestoreDelay) {
-                                        Text("1s").tag(1.0)
-                                        Text("2s").tag(2.0)
-                                        Text("3s").tag(3.0)
-                                        Text("4s").tag(4.0)
-                                        Text("5s").tag(5.0)
-                                    }
-                                    .pickerStyle(.menu)
-                                    .frame(width: 80)
-
-                                    Spacer()
+                                Picker("", selection: $clipboardRestoreDelay) {
+                                    Text("1s").tag(1.0)
+                                    Text("2s").tag(2.0)
+                                    Text("3s").tag(3.0)
+                                    Text("4s").tag(4.0)
+                                    Text("5s").tag(5.0)
                                 }
-                                .padding(.leading, 16)
+                                .pickerStyle(.menu)
+                                .frame(width: 80)
+
+                                Spacer()
                             }
+                            .padding(.leading, 16)
                         }
 
                     }
