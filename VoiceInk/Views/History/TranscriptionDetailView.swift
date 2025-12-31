@@ -71,41 +71,42 @@ private struct MessageBubble: View {
                     .foregroundColor(.secondary.opacity(0.7))
                     .padding(.horizontal, 12)
 
-                HStack(alignment: .top, spacing: 8) {
-                    ScrollView {
-                        Text(text)
-                            .font(.system(size: 14, weight: .regular))
-                            .lineSpacing(2)
-                            .textSelection(.enabled)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
+                ScrollView {
+                    Text(text)
+                        .font(.system(size: 14, weight: .regular))
+                        .lineSpacing(2)
+                        .textSelection(.enabled)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                }
+                .frame(maxHeight: 350)
+                .background {
+                    if isEnhanced {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(Color.accentColor.opacity(0.2))
+                    } else {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(.thinMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5)
+                            )
                     }
-                    .frame(maxHeight: 350)
-                    .background {
-                        if isEnhanced {
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(Color.accentColor.opacity(0.2))
-                        } else {
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(.thinMaterial)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                        .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5)
-                                )
-                        }
-                    }
-
+                }
+                .overlay(alignment: .bottomTrailing) {
                     Button(action: {
                         copyToClipboard(text)
                     }) {
                         Image(systemName: justCopied ? "checkmark" : "doc.on.doc")
                             .font(.system(size: 12))
                             .foregroundColor(justCopied ? .green : .secondary)
-                            .frame(width: 24, height: 24)
+                            .frame(width: 28, height: 28)
+                            .background(Color(NSColor.controlBackgroundColor).opacity(0.9))
+                            .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
                     .help("Copy to clipboard")
-                    .padding(.top, 8)
+                    .padding(8)
                 }
             }
 
