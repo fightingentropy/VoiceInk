@@ -22,11 +22,7 @@ struct SettingsView: View {
     @State private var showResetOnboardingAlert = false
     @State private var currentShortcut = KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder)
     @State private var isCustomCancelEnabled = false
-    @State private var isCustomSoundsExpanded = false
-    @State private var isSystemMuteExpanded = false
-    @State private var isClipboardRestoreExpanded = false
-    @State private var isCustomCancelExpanded = false
-    @State private var isMiddleClickExpanded = false
+    @State private var expandedSections: Set<ExpandableSection> = []
 
     
     var body: some View {
@@ -141,10 +137,11 @@ struct SettingsView: View {
 
 
                         ExpandableToggleSection(
+                            section: .customCancel,
                             title: "Custom Cancel Shortcut",
                             helpText: "Shortcut for cancelling the current recording session. Default: double-tap Escape.",
                             isEnabled: $isCustomCancelEnabled,
-                            isExpanded: $isCustomCancelExpanded
+                            expandedSections: $expandedSections
                         ) {
                             HStack(spacing: 12) {
                                 Text("Cancel Shortcut")
@@ -166,10 +163,11 @@ struct SettingsView: View {
                         Divider()
 
                         ExpandableToggleSection(
+                            section: .middleClick,
                             title: "Enable Middle-Click Toggle",
                             helpText: "Use middle mouse button to toggle VoiceInk recording.",
                             isEnabled: $hotkeyManager.isMiddleClickToggleEnabled,
-                            isExpanded: $isMiddleClickExpanded
+                            expandedSections: $expandedSections
                         ) {
                             HStack(spacing: 8) {
                                 Text("Activation Delay")
@@ -204,10 +202,11 @@ struct SettingsView: View {
                 ) {
                     VStack(alignment: .leading, spacing: 12) {
                         ExpandableToggleSection(
+                            section: .soundFeedback,
                             title: "Sound feedback",
                             helpText: "Play sounds when recording starts and stops",
                             isEnabled: $soundManager.isEnabled,
-                            isExpanded: $isCustomSoundsExpanded
+                            expandedSections: $expandedSections
                         ) {
                             CustomSoundSettingsView()
                         }
@@ -215,10 +214,11 @@ struct SettingsView: View {
                         Divider()
 
                         ExpandableToggleSection(
+                            section: .systemMute,
                             title: "Mute system audio during recording",
                             helpText: "Automatically mute system audio when recording starts and restore when recording stops",
                             isEnabled: $mediaController.isSystemMuteEnabled,
-                            isExpanded: $isSystemMuteExpanded
+                            expandedSections: $expandedSections
                         ) {
                             HStack(spacing: 8) {
                                 Text("Resumption Delay")
@@ -247,10 +247,11 @@ struct SettingsView: View {
                         Divider()
 
                         ExpandableToggleSection(
+                            section: .clipboardRestore,
                             title: "Restore clipboard after paste",
                             helpText: "When enabled, VoiceInk will restore your original clipboard content after pasting the transcription.",
                             isEnabled: $restoreClipboardAfterPaste,
-                            isExpanded: $isClipboardRestoreExpanded
+                            expandedSections: $expandedSections
                         ) {
                             HStack(spacing: 8) {
                                 Text("Restore Delay")

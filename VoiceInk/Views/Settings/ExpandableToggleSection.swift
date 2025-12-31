@@ -1,24 +1,40 @@
 import SwiftUI
 
+enum ExpandableSection: Hashable {
+    case soundFeedback
+    case systemMute
+    case pauseMedia
+    case clipboardRestore
+    case customCancel
+    case middleClick
+}
+
 struct ExpandableToggleSection<Content: View>: View {
+    let section: ExpandableSection
     let title: String
     let helpText: String
     @Binding var isEnabled: Bool
-    @Binding var isExpanded: Bool
+    @Binding var expandedSections: Set<ExpandableSection>
     let content: Content
 
     init(
+        section: ExpandableSection,
         title: String,
         helpText: String,
         isEnabled: Binding<Bool>,
-        isExpanded: Binding<Bool>,
+        expandedSections: Binding<Set<ExpandableSection>>,
         @ViewBuilder content: () -> Content
     ) {
+        self.section = section
         self.title = title
         self.helpText = helpText
         self._isEnabled = isEnabled
-        self._isExpanded = isExpanded
+        self._expandedSections = expandedSections
         self.content = content()
+    }
+
+    private var isExpanded: Bool {
+        expandedSections.contains(section)
     }
 
     var body: some View {
@@ -30,12 +46,12 @@ struct ExpandableToggleSection<Content: View>: View {
                 .toggleStyle(.switch)
                 .help(helpText)
                 .onChange(of: isEnabled) { _, newValue in
-                    if newValue {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isExpanded = true
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        if newValue {
+                            _ = expandedSections.insert(section)
+                        } else {
+                            expandedSections.remove(section)
                         }
-                    } else {
-                        isExpanded = false
                     }
                 }
 
@@ -53,7 +69,11 @@ struct ExpandableToggleSection<Content: View>: View {
             .onTapGesture {
                 if isEnabled {
                     withAnimation(.easeInOut(duration: 0.2)) {
-                        isExpanded.toggle()
+                        if isExpanded {
+                            expandedSections.remove(section)
+                        } else {
+                            _ = expandedSections.insert(section)
+                        }
                     }
                 }
             }

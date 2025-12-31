@@ -4,7 +4,7 @@ struct ExperimentalFeaturesSection: View {
     @AppStorage("isExperimentalFeaturesEnabled") private var isExperimentalFeaturesEnabled = false
     @ObservedObject private var playbackController = PlaybackController.shared
     @ObservedObject private var mediaController = MediaController.shared
-    @State private var isPauseMediaExpanded = false
+    @State private var expandedSections: Set<ExpandableSection> = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -40,10 +40,11 @@ struct ExperimentalFeaturesSection: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
 
                 ExpandableToggleSection(
+                    section: .pauseMedia,
                     title: "Pause Media during recording",
                     helpText: "Automatically pause active media playback during recordings and resume afterward.",
                     isEnabled: $playbackController.isPauseMediaEnabled,
-                    isExpanded: $isPauseMediaExpanded
+                    expandedSections: $expandedSections
                 ) {
                     HStack(spacing: 8) {
                         Text("Resumption Delay")
