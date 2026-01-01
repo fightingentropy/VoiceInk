@@ -108,13 +108,18 @@ class PlaybackController: ObservableObject {
             return
         }
 
-        try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+        let task = Task {
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
 
-        if Task.isCancelled {
-            return
+            if Task.isCancelled {
+                return
+            }
+
+            mediaController.play()
         }
 
-        mediaController.play()
+        resumeTask = task
+        await task.value
     }
     
     private func isAppStillRunning(bundleId: String) -> Bool {

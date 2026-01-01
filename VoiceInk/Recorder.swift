@@ -213,6 +213,7 @@ class Recorder: NSObject, ObservableObject {
     deinit {
         audioLevelCheckTask?.cancel()
         audioMeterUpdateTask?.cancel()
+        audioRestorationTask?.cancel()
         if let observer = deviceObserver {
             NotificationCenter.default.removeObserver(observer)
         }

@@ -86,18 +86,23 @@ class MediaController: ObservableObject {
         let delay = audioResumptionDelay
         let shouldUnmute = didMuteAudio && !wasAudioMutedBeforeRecording
 
-        try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+        let task = Task {
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
 
-        if Task.isCancelled {
-            return
+            if Task.isCancelled {
+                return
+            }
+
+            if shouldUnmute {
+                _ = executeAppleScript(command: "set volume without output muted")
+            }
+
+            didMuteAudio = false
+            currentMuteTask = nil
         }
 
-        if shouldUnmute {
-            _ = executeAppleScript(command: "set volume without output muted")
-        }
-
-        didMuteAudio = false
-        currentMuteTask = nil
+        unmuteTask = task
+        await task.value
     }
     
     private func executeAppleScript(command: String) -> Bool {
