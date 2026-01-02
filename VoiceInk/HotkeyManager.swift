@@ -73,7 +73,9 @@ class HotkeyManager: ObservableObject {
     private var shortcutCurrentKeyState = false
     private var lastShortcutTriggerTime: Date?
     private let shortcutCooldownInterval: TimeInterval = 0.5
-    
+
+    private var registeredPowerModeIds: Set<UUID> = []
+
     enum HotkeyOption: String, CaseIterable {
         case none = "none"
         case rightOption = "rightOption"
@@ -162,6 +164,21 @@ class HotkeyManager: ObservableObject {
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 100_000_000)
             self.setupHotkeyMonitoring()
+            self.setupPowerModeHotkeys()
+        }
+
+        // Observe PowerMode configuration changes
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(powerModeConfigurationsDidChange),
+            name: NSNotification.Name("PowerModeConfigurationsDidChange"),
+            object: nil
+        )
+    }
+
+    @objc private func powerModeConfigurationsDidChange() {
+        Task { @MainActor in
+            setupPowerModeHotkeys()
         }
     }
     
@@ -423,5 +440,54 @@ class HotkeyManager: ObservableObject {
         Task { @MainActor in
             removeAllMonitoring()
         }
+    }
+}
+
+// MARK: - PowerMode Hotkey Management
+extension HotkeyManager {
+    func setupPowerModeHotkeys() {
+        let powerModesWithShortcuts = Set(PowerModeManager.shared.configurations
+            .filter { $0.hotkeyShortcut != nil }
+            .map { $0.id })
+
+        let idsToRemove = registeredPowerModeIds.subtracting(powerModesWithShortcuts)
+
+        idsToRemove.forEach { id in
+            KeyboardShortcuts.setShortcut(nil, for: .powerMode(id: id))
+            KeyboardShortcuts.disable(.powerMode(id: id))
+            registeredPowerModeIds.remove(id)
+        }
+
+        PowerModeManager.shared.configurations.forEach { config in
+            guard config.hotkeyShortcut != nil else { return }
+            guard !registeredPowerModeIds.contains(config.id) else { return }
+
+            KeyboardShortcuts.onKeyUp(for: .powerMode(id: config.id)) { [weak self] in
+                guard let self = self else { return }
+                Task { @MainActor in
+                    await self.handlePowerModeHotkey(powerModeId: config.id)
+                }
+            }
+
+            registeredPowerModeIds.insert(config.id)
+        }
+    }
+
+    private func handlePowerModeHotkey(powerModeId: UUID) async {
+        guard canProcessHotkeyAction else { return }
+
+        guard let config = PowerModeManager.shared.getConfiguration(with: powerModeId),
+              config.hotkeyShortcut != nil else {
+            return
+        }
+
+        await whisperState.toggleMiniRecorder(powerModeId: powerModeId)
+    }
+}
+
+// MARK: - PowerMode Keyboard Shortcut Names
+extension KeyboardShortcuts.Name {
+    static func powerMode(id: UUID) -> Self {
+        Self("powerMode_\(id.uuidString)")
     }
 }
