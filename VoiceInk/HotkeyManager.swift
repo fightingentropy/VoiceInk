@@ -437,6 +437,7 @@ class HotkeyManager: ObservableObject {
     }
     
     deinit {
+        NotificationCenter.default.removeObserver(self)
         Task { @MainActor in
             removeAllMonitoring()
         }
