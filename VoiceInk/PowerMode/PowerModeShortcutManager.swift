@@ -38,7 +38,6 @@ class PowerModeShortcutManager {
         let idsToRemove = registeredPowerModeIds.subtracting(powerModesWithShortcuts)
         idsToRemove.forEach { id in
             KeyboardShortcuts.setShortcut(nil, for: .powerMode(id: id))
-            KeyboardShortcuts.disable(.powerMode(id: id))
             registeredPowerModeIds.remove(id)
         }
 
