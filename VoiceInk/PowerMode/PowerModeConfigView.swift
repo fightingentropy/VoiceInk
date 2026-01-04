@@ -167,7 +167,7 @@ struct ConfigurationView: View {
                     HStack {
                         Text("Applications")
                         Spacer()
-                        Button("Add…") {
+                        AddIconButton(helpText: "Add application") {
                             loadInstalledApps()
                             isShowingAppPicker = true
                         }
@@ -224,12 +224,9 @@ struct ConfigurationView: View {
                             .textFieldStyle(.roundedBorder)
                             .onSubmit { addWebsite() }
 
-                        Button {
+                        AddIconButton(helpText: "Add website", isDisabled: newWebsiteURL.isEmpty) {
                             addWebsite()
-                        } label: {
-                            Image(systemName: "plus")
                         }
-                        .disabled(newWebsiteURL.isEmpty)
                     }
 
                     if websiteConfigs.isEmpty {
@@ -451,21 +448,19 @@ struct ConfigurationView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(Color(NSColor.controlBackgroundColor))
         .navigationTitle(mode.title)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") {
-                    presentationMode.wrappedValue.dismiss()
-                }
-                .keyboardShortcut(.escape, modifiers: [])
-            }
-
             ToolbarItem(placement: .primaryAction) {
-                Button(mode.isAdding ? "Add" : "Save") {
+                Button("Save") {
                     saveConfiguration()
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(!canSave)
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+                .padding(.horizontal, 4)
             }
 
             if case .edit = mode {
@@ -473,6 +468,9 @@ struct ConfigurationView: View {
                     Button("Delete", role: .destructive) {
                         isShowingDeleteConfirmation = true
                     }
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
+                    .padding(.horizontal, 4)
                 }
             }
         }
