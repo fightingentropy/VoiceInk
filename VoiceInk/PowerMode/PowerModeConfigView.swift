@@ -150,19 +150,9 @@ struct ConfigurationView: View {
                         .textFieldStyle(.roundedBorder)
                         .focused($isNameFieldFocused)
                 }
-
-                Toggle(isOn: $isDefault) {
-                    HStack(spacing: 6) {
-                        Text("Set as default power mode")
-                        InfoTip(
-                            title: "Default Power Mode",
-                            message: "Default power mode is used when no specific app or website matches are found"
-                        )
-                    }
-                }
             }
 
-            Section("When to Trigger") {
+            Section("Trigger Scenarios") {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Text("Applications")
@@ -422,6 +412,16 @@ struct ConfigurationView: View {
             }
 
             Section("Advanced") {
+                Toggle(isOn: $isDefault) {
+                    HStack(spacing: 6) {
+                        Text("Set as default")
+                        InfoTip(
+                            title: "Default Power Mode",
+                            message: "Default power mode is used when no specific app or website matches are found"
+                        )
+                    }
+                }
+
                 Toggle(isOn: $isAutoSendEnabled) {
                     HStack(spacing: 6) {
                         Text("Auto Send")
