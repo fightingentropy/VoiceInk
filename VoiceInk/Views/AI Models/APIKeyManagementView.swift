@@ -142,8 +142,10 @@ struct APIKeyManagementView: View {
                             .help("Reset to default")
                         }
                     }
-                    
+
                     if !ollamaModels.isEmpty {
+                        Divider()
+
                         Picker("Model", selection: $selectedOllamaModel) {
                             ForEach(ollamaModels) { model in
                                 Text(model.name).tag(model.name)
@@ -153,16 +155,19 @@ struct APIKeyManagementView: View {
                             aiService.updateSelectedOllamaModel(newValue)
                         }
                     }
-                    
-                    Button("Refresh Connection") {
-                        checkOllamaConnection()
-                    }
-                    
+
                 } else if aiService.selectedProvider == .custom {
                     // Custom Configuration inline
                     TextField("API Endpoint URL", text: $aiService.customBaseURL)
+                        .textFieldStyle(.roundedBorder)
+
+                    Divider()
+
                     TextField("Model Name", text: $aiService.customModel)
-                    
+                        .textFieldStyle(.roundedBorder)
+
+                    Divider()
+
                     if aiService.isAPIKeyValid {
                         HStack {
                             Text("API Key Set")
@@ -173,6 +178,8 @@ struct APIKeyManagementView: View {
                         }
                     } else {
                         SecureField("API Key", text: $apiKey)
+                            .textFieldStyle(.roundedBorder)
+
                         Button("Verify and Save") {
                             isVerifying = true
                             aiService.saveAPIKey(apiKey) { success, errorMessage in
