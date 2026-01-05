@@ -58,54 +58,6 @@ struct EnhancementShortcutsView: View {
     }
 }
 
-struct EnhancementShortcutsSection: View {
-    @State private var isExpanded = false
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            Button {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                    isExpanded.toggle()
-                }
-            } label: {
-                HStack(spacing: 12) {
-                    Text("Enhancement Shortcuts")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-
-                    Spacer()
-
-                    Image(systemName: "chevron.down")
-                        .rotationEffect(.degrees(isExpanded ? 0 : -90))
-                        .foregroundColor(.secondary)
-                        .font(.system(size: 13, weight: .medium))
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            
-            if isExpanded {
-                Divider()
-                    .transition(.opacity)
-
-                EnhancementShortcutsView()
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .transition(
-                        .asymmetric(
-                            insertion: .opacity.combined(with: .scale(scale: 0.98, anchor: .top)),
-                            removal: .opacity
-                        )
-                    )
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(CardBackground(isSelected: false))
-    }
-}
-
 // MARK: - Supporting Views
 private struct KeyChip: View {
     let label: String
