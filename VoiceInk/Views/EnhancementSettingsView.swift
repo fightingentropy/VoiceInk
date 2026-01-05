@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 struct EnhancementSettingsView: View {
     @EnvironmentObject private var enhancementService: AIEnhancementService
     @State private var isEditingPrompt = false
-    @State private var isSettingsExpanded = true
+    @State private var isShortcutsExpanded = false
     @State private var selectedPromptForEdit: CustomPrompt?
     
     var body: some View {
@@ -76,9 +76,15 @@ struct EnhancementSettingsView: View {
             }
             .opacity(enhancementService.isEnhancementEnabled ? 1.0 : 0.8)
             
-            Section("Shortcuts") {
-                EnhancementShortcutsView()
-                    .padding(.vertical, 8)
+            Section {
+                DisclosureGroup(isExpanded: $isShortcutsExpanded) {
+                    EnhancementShortcutsView()
+                        .padding(.vertical, 8)
+                } label: {
+                    Text("Shortcuts")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                }
             }
             .opacity(enhancementService.isEnhancementEnabled ? 1.0 : 0.8)
         }
