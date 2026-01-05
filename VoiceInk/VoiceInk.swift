@@ -276,6 +276,8 @@ struct VoiceInkApp: App {
             }
         }
         .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 970, height: 730)
+        .windowResizability(.contentSize)
         .commands {
             CommandGroup(replacing: .newItem) { }
 
