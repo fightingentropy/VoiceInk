@@ -223,39 +223,35 @@ struct AddCustomModelCardView: View {
         }
         
         isSaving = true
-        
-        // Simulate a brief save operation for better UX
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             if let editing = editingModel {
-                // Update existing model
                 let updatedModel = CustomCloudModel(
                     id: editing.id,
                     name: generatedName,
                     displayName: trimmedDisplayName,
                     description: "Custom transcription model",
                     apiEndpoint: trimmedApiEndpoint,
-                    apiKey: trimmedApiKey,
                     modelName: trimmedModelName,
                     isMultilingual: isMultilingual
                 )
+                APIKeyManager.shared.saveCustomModelAPIKey(trimmedApiKey, forModelId: editing.id)
                 customModelManager.updateCustomModel(updatedModel)
             } else {
-                // Add new model
                 let customModel = CustomCloudModel(
                     name: generatedName,
                     displayName: trimmedDisplayName,
                     description: "Custom transcription model",
                     apiEndpoint: trimmedApiEndpoint,
-                    apiKey: trimmedApiKey,
                     modelName: trimmedModelName,
                     isMultilingual: isMultilingual
                 )
+                APIKeyManager.shared.saveCustomModelAPIKey(trimmedApiKey, forModelId: customModel.id)
                 customModelManager.addCustomModel(customModel)
             }
-            
+
             onModelAdded()
-            
-            // Reset form and collapse
+
             withAnimation(.interpolatingSpring(stiffness: 170, damping: 20)) {
                 isExpanded = false
                 clearForm()

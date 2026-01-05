@@ -167,7 +167,7 @@ class AIService: ObservableObject {
         didSet {
             userDefaults.set(selectedProvider.rawValue, forKey: "selectedAIProvider")
             if selectedProvider.requiresAPIKey {
-                if let savedKey = userDefaults.string(forKey: "\(selectedProvider.rawValue)APIKey") {
+                if let savedKey = APIKeyManager.shared.getAPIKey(forProvider: selectedProvider.rawValue) {
                     self.apiKey = savedKey
                     self.isAPIKeyValid = true
                 } else {
@@ -199,7 +199,7 @@ class AIService: ObservableObject {
             if provider == .ollama {
                 return ollamaService.isConnected
             } else if provider.requiresAPIKey {
-                return userDefaults.string(forKey: "\(provider.rawValue)APIKey") != nil
+                return APIKeyManager.shared.hasAPIKey(forProvider: provider.rawValue)
             }
             return false
         }
@@ -230,16 +230,16 @@ class AIService: ObservableObject {
         } else {
             self.selectedProvider = .gemini
         }
-        
+
         if selectedProvider.requiresAPIKey {
-            if let savedKey = userDefaults.string(forKey: "\(selectedProvider.rawValue)APIKey") {
+            if let savedKey = APIKeyManager.shared.getAPIKey(forProvider: selectedProvider.rawValue) {
                 self.apiKey = savedKey
                 self.isAPIKeyValid = true
             }
         } else {
             self.isAPIKeyValid = true
         }
-        
+
         loadSavedModelSelections()
         loadSavedOpenRouterModels()
     }
@@ -283,14 +283,14 @@ class AIService: ObservableObject {
             completion(true, nil)
             return
         }
-        
+
         verifyAPIKey(key) { [weak self] isValid, errorMessage in
             guard let self = self else { return }
             DispatchQueue.main.async {
                 if isValid {
                     self.apiKey = key
                     self.isAPIKeyValid = true
-                    self.userDefaults.set(key, forKey: "\(self.selectedProvider.rawValue)APIKey")
+                    APIKeyManager.shared.saveAPIKey(key, forProvider: self.selectedProvider.rawValue)
                     NotificationCenter.default.post(name: .aiProviderKeyChanged, object: nil)
                 } else {
                     self.isAPIKeyValid = false
@@ -515,10 +515,10 @@ class AIService: ObservableObject {
     
     func clearAPIKey() {
         guard selectedProvider.requiresAPIKey else { return }
-        
+
         apiKey = ""
         isAPIKeyValid = false
-        userDefaults.removeObject(forKey: "\(selectedProvider.rawValue)APIKey")
+        APIKeyManager.shared.deleteAPIKey(forProvider: selectedProvider.rawValue)
         NotificationCenter.default.post(name: .aiProviderKeyChanged, object: nil)
     }
     
