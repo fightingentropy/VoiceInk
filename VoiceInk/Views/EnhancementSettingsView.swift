@@ -81,9 +81,18 @@ struct EnhancementSettingsView: View {
                     EnhancementShortcutsView()
                         .padding(.vertical, 8)
                 } label: {
-                    Text("Shortcuts")
-                        .font(.headline)
-                        .foregroundColor(.primary)
+                    HStack {
+                        Text("Shortcuts")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        Spacer()
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation {
+                            isShortcutsExpanded.toggle()
+                        }
+                    }
                 }
             }
             .opacity(enhancementService.isEnhancementEnabled ? 1.0 : 0.8)
