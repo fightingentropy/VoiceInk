@@ -7,7 +7,6 @@ final class KeychainService {
     static let shared = KeychainService()
 
     private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "KeychainService")
-    private let accessGroup = "com.prakashjoshipax.VoiceInk"
     private let service = "com.prakashjoshipax.VoiceInk"
 
     private init() {}
@@ -104,7 +103,6 @@ final class KeychainService {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
-            kSecAttrAccessGroup as String: accessGroup,
             kSecUseDataProtectionKeychain as String: true
         ]
 
