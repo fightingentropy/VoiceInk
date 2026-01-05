@@ -2,7 +2,7 @@ import Foundation
 
 enum AIProvider: String, CaseIterable {
     case cerebras = "Cerebras"
-    case groq = "GROQ"
+    case groq = "Groq"
     case gemini = "Gemini"
     case anthropic = "Anthropic"
     case openAI = "OpenAI"

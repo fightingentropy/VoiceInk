@@ -27,7 +27,7 @@ struct CloudModelCardView: View {
     private var providerKey: String {
         switch model.provider {
         case .groq:
-            return "GROQ"
+            return "Groq"
         case .elevenLabs:
             return "ElevenLabs"
         case .deepgram:
