@@ -235,8 +235,15 @@ struct AddCustomModelCardView: View {
                     modelName: trimmedModelName,
                     isMultilingual: isMultilingual
                 )
-                APIKeyManager.shared.saveCustomModelAPIKey(trimmedApiKey, forModelId: editing.id)
-                customModelManager.updateCustomModel(updatedModel)
+                
+                if APIKeyManager.shared.saveCustomModelAPIKey(trimmedApiKey, forModelId: editing.id) {
+                    customModelManager.updateCustomModel(updatedModel)
+                } else {
+                    validationErrors = ["Failed to securely save API Key to Keychain. Please check your system settings or try again."]
+                    showingAlert = true
+                    isSaving = false
+                    return
+                }
             } else {
                 let customModel = CustomCloudModel(
                     name: generatedName,
@@ -246,8 +253,15 @@ struct AddCustomModelCardView: View {
                     modelName: trimmedModelName,
                     isMultilingual: isMultilingual
                 )
-                APIKeyManager.shared.saveCustomModelAPIKey(trimmedApiKey, forModelId: customModel.id)
-                customModelManager.addCustomModel(customModel)
+                
+                if APIKeyManager.shared.saveCustomModelAPIKey(trimmedApiKey, forModelId: customModel.id) {
+                    customModelManager.addCustomModel(customModel)
+                } else {
+                    validationErrors = ["Failed to securely save API Key to Keychain. Please check your system settings or try again."]
+                    showingAlert = true
+                    isSaving = false
+                    return
+                }
             }
 
             onModelAdded()
