@@ -224,6 +224,11 @@ class AIService: ObservableObject {
     }
     
     init() {
+        // Migrate legacy "GROQ" raw value to "Groq"
+        if userDefaults.string(forKey: "selectedAIProvider") == "GROQ" {
+            userDefaults.set("Groq", forKey: "selectedAIProvider")
+        }
+
         if let savedProvider = userDefaults.string(forKey: "selectedAIProvider"),
            let provider = AIProvider(rawValue: savedProvider) {
             self.selectedProvider = provider
