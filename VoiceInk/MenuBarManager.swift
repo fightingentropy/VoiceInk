@@ -25,6 +25,10 @@ class MenuBarManager: ObservableObject {
         )
     }
 
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
     @objc private func windowDidClose(_ notification: Notification) {
         guard isMenuBarOnly else { return }
 
