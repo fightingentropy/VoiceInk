@@ -106,14 +106,10 @@ struct AudioInputSettingsView: View {
                 Text("Prioritized Devices")
                     .font(.title2)
                     .fontWeight(.semibold)
-                Text("Devices will be used in order of priority. If a device is unavailable, the next one will be tried. If no prioritized device is available, the system default microphone will be used.")
+                Text("Devices will be used in order of priority. If a device is unavailable, the next one will be tried. If no prioritized device is available, the built-in microphone will be used.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("Warning: Using a prioritized device will override your Mac\'s system-wide default microphone if it becomes active.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 4)
             }
             
             if audioDeviceManager.prioritizedDevices.isEmpty {
