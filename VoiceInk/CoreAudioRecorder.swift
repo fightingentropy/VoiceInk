@@ -68,6 +68,12 @@ final class CoreAudioRecorder {
             throw CoreAudioRecorderError.failedToSetDevice(status: 0)
         }
 
+        // Validate device still exists before proceeding with setup
+        guard isDeviceAvailable(deviceID) else {
+            logger.error("Cannot start recording - device \(deviceID) is no longer available")
+            throw CoreAudioRecorderError.deviceNotAvailable
+        }
+
         currentDeviceID = deviceID
         recordingURL = url
 
@@ -816,6 +822,29 @@ final class CoreAudioRecorder {
 
         return status == noErr ? bufferSize : nil
     }
+
+    /// Checks if a device is currently available using Apple's kAudioDevicePropertyDeviceIsAlive
+    private func isDeviceAvailable(_ deviceID: AudioDeviceID) -> Bool {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyDeviceIsAlive,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+
+        var isAlive: UInt32 = 0
+        var propertySize = UInt32(MemoryLayout<UInt32>.size)
+
+        let status = AudioObjectGetPropertyData(
+            deviceID,
+            &address,
+            0,
+            nil,
+            &propertySize,
+            &isAlive
+        )
+
+        return status == noErr && isAlive == 1
+    }
 }
 
 // MARK: - Error Types
@@ -823,6 +852,7 @@ final class CoreAudioRecorder {
 enum CoreAudioRecorderError: LocalizedError {
     case audioUnitNotFound
     case audioUnitNotInitialized
+    case deviceNotAvailable
     case failedToCreateAudioUnit(status: OSStatus)
     case failedToEnableInput(status: OSStatus)
     case failedToDisableOutput(status: OSStatus)
@@ -841,6 +871,8 @@ enum CoreAudioRecorderError: LocalizedError {
             return "HAL Output AudioUnit not found"
         case .audioUnitNotInitialized:
             return "AudioUnit not initialized"
+        case .deviceNotAvailable:
+            return "Audio device is no longer available"
         case .failedToCreateAudioUnit(let status):
             return "Failed to create AudioUnit: \(status)"
         case .failedToEnableInput(let status):
