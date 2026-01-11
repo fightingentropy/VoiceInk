@@ -101,7 +101,9 @@ final class LogExporter {
         let fileName = "VoiceInk_Logs_\(timestamp).log"
 
         // Get Downloads folder
-        let downloadsURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first!
+        guard let downloadsURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first else {
+            throw NSError(domain: "LogExporter", code: 1, userInfo: [NSLocalizedDescriptionKey: "Downloads directory unavailable"])
+        }
         let fileURL = downloadsURL.appendingPathComponent(fileName)
 
         let content = logs.joined(separator: "\n")

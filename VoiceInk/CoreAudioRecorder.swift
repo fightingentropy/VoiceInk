@@ -586,10 +586,13 @@ final class CoreAudioRecorder {
 
     private func calculateMeters(from bufferList: inout AudioBufferList, frameCount: UInt32) {
         guard let data = bufferList.mBuffers.mData else { return }
+        guard frameCount > 0 else { return }
 
         let samples = data.assumingMemoryBound(to: Float32.self)
         let channelCount = Int(deviceFormat.mChannelsPerFrame)
         let totalSamples = Int(frameCount) * channelCount
+
+        guard totalSamples > 0 else { return }
 
         var sum: Float = 0.0
         var peak: Float = 0.0
@@ -683,7 +686,10 @@ final class CoreAudioRecorder {
             )
         )
 
-        ExtAudioFileWrite(file, outputFrameCount, &outputBufferList)
+        let writeStatus = ExtAudioFileWrite(file, outputFrameCount, &outputBufferList)
+        if writeStatus != noErr {
+            logger.error("🎙️ ExtAudioFileWrite failed with status: \(writeStatus)")
+        }
     }
 
     // MARK: - Device Info Logging
