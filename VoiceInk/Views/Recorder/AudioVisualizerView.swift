@@ -69,7 +69,7 @@ struct AudioVisualizer: View {
 
 struct StaticVisualizer: View {
     // Match AudioVisualizer dimensions
-    private let barCount = 14
+    private let barCount = 15
     private let barWidth: CGFloat = 3
     private let staticHeight: CGFloat = 4
     private let barSpacing: CGFloat = 2
@@ -105,6 +105,15 @@ struct ProcessingStatusDisplay: View {
         }
     }
 
+    private var animationSpeed: Double {
+        switch mode {
+        case .transcribing:
+            return 0.18
+        case .enhancing:
+            return 0.22
+        }
+    }
+
     var body: some View {
         VStack(spacing: 4) {
             Text(label)
@@ -113,7 +122,7 @@ struct ProcessingStatusDisplay: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
 
-            ProgressAnimation(color: color)
+            ProgressAnimation(color: color, animationSpeed: animationSpeed)
         }
         .frame(height: 28) // Match AudioVisualizer maxHeight for no layout shift
     }
