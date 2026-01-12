@@ -121,9 +121,13 @@ class AudioCleanupManager {
                     if let urlString = transcription.audioFileURL,
                        let url = URL(string: urlString),
                        FileManager.default.fileExists(atPath: url.path) {
-                        try? FileManager.default.removeItem(at: url)
-                        transcription.audioFileURL = nil
-                        deletedCount += 1
+                        do {
+                            try FileManager.default.removeItem(at: url)
+                            transcription.audioFileURL = nil
+                            deletedCount += 1
+                        } catch {
+                            // Skip this file - don't update audioFileURL if deletion failed
+                        }
                     }
                 }
 
