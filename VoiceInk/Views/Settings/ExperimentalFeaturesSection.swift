@@ -7,74 +7,82 @@ struct ExperimentalFeaturesSection: View {
     @State private var expandedSections: Set<ExpandableSection> = []
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
+            // Compact header
+            HStack(spacing: 8) {
                 Image(systemName: "flask")
-                    .font(.system(size: 20))
-                    .foregroundColor(.accentColor)
-                    .frame(width: 24, height: 24)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .frame(width: 16, height: 16)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Experimental Features")
-                        .font(.headline)
-                    Text("Experimental features that might be unstable & bit buggy.")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
+                Text("Experimental")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.secondary)
+                    .textCase(.uppercase)
+                    .tracking(0.5)
 
                 Spacer()
 
-                Toggle("Experimental Features", isOn: $isExperimentalFeaturesEnabled)
-                    .labelsHidden()
+                Toggle("", isOn: $isExperimentalFeaturesEnabled)
                     .toggleStyle(.switch)
+                    .scaleEffect(0.8)
                     .onChange(of: isExperimentalFeaturesEnabled) { _, newValue in
                         if !newValue {
                             playbackController.isPauseMediaEnabled = false
                         }
                     }
             }
+            .padding(.horizontal, 12)
+            .padding(.top, 10)
+            .padding(.bottom, 8)
 
-            if isExperimentalFeaturesEnabled {
-                Divider()
-                    .padding(.vertical, 4)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+            // Content
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Features that may be unstable.")
+                    .font(.system(size: 11))
+                    .foregroundColor(Color(NSColor.tertiaryLabelColor))
 
-                ExpandableToggleSection(
-                    section: .pauseMedia,
-                    title: "Pause Media during recording",
-                    helpText: "Automatically pause active media playback during recordings and resume afterward.",
-                    isEnabled: $playbackController.isPauseMediaEnabled,
-                    expandedSections: $expandedSections
-                ) {
-                    HStack(spacing: 8) {
-                        Text("Resume Delay")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
-
-                        Picker("", selection: $mediaController.audioResumptionDelay) {
-                            Text("0s").tag(0.0)
-                            Text("1s").tag(1.0)
-                            Text("2s").tag(2.0)
-                            Text("3s").tag(3.0)
-                            Text("4s").tag(4.0)
-                            Text("5s").tag(5.0)
+                if isExperimentalFeaturesEnabled {
+                    ExpandableToggleSection(
+                        section: .pauseMedia,
+                        title: "Pause Media",
+                        helpText: "Pause playback during recording",
+                        isEnabled: $playbackController.isPauseMediaEnabled,
+                        expandedSections: $expandedSections
+                    ) {
+                        HStack(spacing: 6) {
+                            Text("Resume")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                            Picker("", selection: $mediaController.audioResumptionDelay) {
+                                Text("0s").tag(0.0)
+                                Text("1s").tag(1.0)
+                                Text("2s").tag(2.0)
+                                Text("3s").tag(3.0)
+                                Text("4s").tag(4.0)
+                                Text("5s").tag(5.0)
+                            }
+                            .pickerStyle(.menu)
+                            .frame(width: 60)
+                            .scaleEffect(0.9)
+                            Spacer()
                         }
-                        .pickerStyle(.menu)
-                        .frame(width: 80)
-
-                        InfoTip(
-                            title: "Audio Resume Delay",
-                            message: "Delay before resuming media playback after recording stops. Useful for Bluetooth headphones that need time to switch from microphone mode back to high-quality audio mode. Recommended: 2s for AirPods/Bluetooth headphones, 0s for wired headphones."
-                        )
-
-                        Spacer()
                     }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 12)
         }
-        .animation(.easeInOut(duration: 0.3), value: isExperimentalFeaturesEnabled)
-        .padding(16)
+        .animation(.easeInOut(duration: 0.2), value: isExperimentalFeaturesEnabled)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(CardBackground(isSelected: false, useAccentGradientWhenSelected: true))
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(NSColor.controlBackgroundColor).opacity(0.5))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color(NSColor.separatorColor).opacity(0.5), lineWidth: 0.5)
+        )
     }
 }

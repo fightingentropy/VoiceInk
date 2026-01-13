@@ -38,37 +38,40 @@ struct ExpandableToggleSection<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Toggle(isOn: $isEnabled) {
-                    Text(title)
-                }
-                .toggleStyle(.switch)
-                .help(helpText)
-                .onChange(of: isEnabled) { _, newValue in
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        if newValue {
-                            _ = expandedSections.insert(section)
-                        } else {
-                            expandedSections.remove(section)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Toggle("", isOn: $isEnabled)
+                    .toggleStyle(.switch)
+                    .scaleEffect(0.75)
+                    .frame(width: 36)
+                    .onChange(of: isEnabled) { _, newValue in
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            if newValue {
+                                _ = expandedSections.insert(section)
+                            } else {
+                                expandedSections.remove(section)
+                            }
                         }
                     }
-                }
+
+                Text(title)
+                    .font(.system(size: 12))
+                    .foregroundColor(isEnabled ? .primary : .secondary)
+
+                Spacer()
 
                 if isEnabled {
-                    Spacer()
-
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundColor(Color(NSColor.tertiaryLabelColor))
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                        .animation(.easeInOut(duration: 0.2), value: isExpanded)
+                        .animation(.easeInOut(duration: 0.15), value: isExpanded)
                 }
             }
             .contentShape(Rectangle())
             .onTapGesture {
                 if isEnabled {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.easeInOut(duration: 0.15)) {
                         if isExpanded {
                             expandedSections.remove(section)
                         } else {
@@ -77,11 +80,13 @@ struct ExpandableToggleSection<Content: View>: View {
                     }
                 }
             }
+            .help(helpText)
 
             if isEnabled && isExpanded {
                 content
                     .transition(.opacity.combined(with: .move(edge: .top)))
-                    .padding(.top, 4)
+                    .padding(.leading, 42)
+                    .padding(.top, 2)
             }
         }
     }
