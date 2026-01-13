@@ -50,10 +50,13 @@ class WhisperState: NSObject, ObservableObject {
     
     @Published var isMiniRecorderVisible = false {
         didSet {
-            if isMiniRecorderVisible {
-                showRecorderPanel()
-            } else {
-                hideRecorderPanel()
+            // Dispatch asynchronously to avoid "Publishing changes from within view updates" warning
+            DispatchQueue.main.async { [self] in
+                if isMiniRecorderVisible {
+                    showRecorderPanel()
+                } else {
+                    hideRecorderPanel()
+                }
             }
         }
     }

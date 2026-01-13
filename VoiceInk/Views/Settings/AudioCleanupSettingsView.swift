@@ -36,12 +36,11 @@ struct AudioCleanupSettingsView: View {
 
                     Spacer()
 
-                    if isTranscriptionCleanupEnabled {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.secondary)
-                            .rotationEffect(.degrees(isTranscriptExpanded ? 90 : 0))
-                    }
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .rotationEffect(.degrees(isTranscriptionCleanupEnabled && isTranscriptExpanded ? 90 : 0))
+                        .opacity(isTranscriptionCleanupEnabled ? 1 : 0.4)
                 }
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -114,12 +113,11 @@ struct AudioCleanupSettingsView: View {
 
                         Spacer()
 
-                        if isAudioCleanupEnabled {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.secondary)
-                                .rotationEffect(.degrees(isAudioExpanded ? 90 : 0))
-                        }
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .rotationEffect(.degrees(isAudioCleanupEnabled && isAudioExpanded ? 90 : 0))
+                            .opacity(isAudioCleanupEnabled ? 1 : 0.4)
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
