@@ -117,7 +117,11 @@ struct SettingsView: View {
                 ) {
                     LabeledContent("Activation Delay") {
                         HStack {
-                            TextField("", value: $hotkeyManager.middleClickActivationDelay, formatter: NumberFormatter())
+                            TextField("", value: $hotkeyManager.middleClickActivationDelay, formatter: {
+                                let formatter = NumberFormatter()
+                                formatter.minimum = 0
+                                return formatter
+                            }())
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 60)
                             Text("ms")
@@ -429,7 +433,12 @@ struct PowerModeSection: View {
 
                 if powerModeUIFlag && isExpanded {
                     VStack(alignment: .leading, spacing: 8) {
-                        Toggle("Auto-Restore Preferences", isOn: $powerModeAutoRestoreEnabled)
+                        Toggle(isOn: $powerModeAutoRestoreEnabled) {
+                            HStack(spacing: 4) {
+                                Text("Auto-Restore Preferences")
+                                InfoTip("After each recording session, revert preferences to what was configured before Power Mode was activated.")
+                            }
+                        }
                     }
                     .padding(.top, 12)
                     .padding(.leading, 4)
@@ -574,4 +583,10 @@ extension Text {
             .foregroundColor(.secondary)
             .fixedSize(horizontal: false, vertical: true)
     }
+}
+
+// MARK: - Power Mode Defaults
+
+enum PowerModeDefaults {
+    static let autoRestoreKey = "powerModeAutoRestoreEnabled"
 }
