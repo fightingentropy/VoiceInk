@@ -176,9 +176,6 @@ struct SettingsView: View {
             // MARK: - Power Mode
             PowerModeSection()
 
-            // MARK: - Experimental
-            ExperimentalSection()
-
             // MARK: - Interface
             Section("Interface") {
                 Picker("Recorder Style", selection: $whisperState.recorderType) {
@@ -197,6 +194,9 @@ struct SettingsView: View {
                     }
                 }
             }
+
+            // MARK: - Experimental
+            ExperimentalSection()
 
             // MARK: - General
             Section("General") {
@@ -479,119 +479,28 @@ struct PowerModeSection: View {
 // MARK: - Experimental Section
 
 struct ExperimentalSection: View {
-    @AppStorage("isExperimentalFeaturesEnabled") private var isExperimentalFeaturesEnabled = false
     @ObservedObject private var playbackController = PlaybackController.shared
     @ObservedObject private var mediaController = MediaController.shared
-    @State private var isExpanded = false
     @State private var isPauseMediaExpanded = false
-    @State private var isHandlingToggleChange = false
-    @State private var isHandlingPauseMediaToggle = false
 
     var body: some View {
         Section {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    Toggle(isOn: $isExperimentalFeaturesEnabled) {
-                        HStack(spacing: 4) {
-                            Text("Experimental Features")
-                            InfoTip("Features in development that may be unstable.")
-                        }
+            ExpandableSettingsRow(
+                isExpanded: $isPauseMediaExpanded,
+                isEnabled: $playbackController.isPauseMediaEnabled,
+                label: "Pause Media While Recording",
+                infoMessage: "Pauses playing media when recording starts and resumes when done."
+            ) {
+                HStack(spacing: 4) {
+                    Picker("Resume Delay", selection: $mediaController.audioResumptionDelay) {
+                        Text("0s").tag(0.0)
+                        Text("1s").tag(1.0)
+                        Text("2s").tag(2.0)
+                        Text("3s").tag(3.0)
+                        Text("4s").tag(4.0)
+                        Text("5s").tag(5.0)
                     }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.secondary)
-                        .rotationEffect(.degrees(isExperimentalFeaturesEnabled && isExpanded ? 90 : 0))
-                        .opacity(isExperimentalFeaturesEnabled ? 1 : 0.4)
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    guard !isHandlingToggleChange else { return }
-                    if isExperimentalFeaturesEnabled {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isExpanded.toggle()
-                        }
-                    }
-                }
-
-                if isExperimentalFeaturesEnabled && isExpanded {
-                    VStack(alignment: .leading, spacing: 0) {
-                        // Pause Media sub-option
-                        HStack {
-                            Toggle("Pause Media While Recording", isOn: $playbackController.isPauseMediaEnabled)
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.secondary)
-                                .rotationEffect(.degrees(playbackController.isPauseMediaEnabled && isPauseMediaExpanded ? 90 : 0))
-                                .opacity(playbackController.isPauseMediaEnabled ? 1 : 0.4)
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            guard !isHandlingPauseMediaToggle else { return }
-                            if playbackController.isPauseMediaEnabled {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    isPauseMediaExpanded.toggle()
-                                }
-                            }
-                        }
-
-                        if playbackController.isPauseMediaEnabled && isPauseMediaExpanded {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack(spacing: 4) {
-                                    Picker("Resume Delay", selection: $mediaController.audioResumptionDelay) {
-                                        Text("0s").tag(0.0)
-                                        Text("1s").tag(1.0)
-                                        Text("2s").tag(2.0)
-                                        Text("3s").tag(3.0)
-                                        Text("4s").tag(4.0)
-                                        Text("5s").tag(5.0)
-                                    }
-                                    InfoTip("Delay before resuming playback. Use 2s for Bluetooth headphones, 0s for wired.")
-                                }
-                            }
-                            .padding(.top, 12)
-                            .padding(.leading, 4)
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                        }
-                    }
-                    .padding(.top, 12)
-                    .padding(.leading, 4)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                    .animation(.easeInOut(duration: 0.2), value: isPauseMediaExpanded)
-                }
-            }
-            .animation(.easeInOut(duration: 0.2), value: isExpanded)
-            .onChange(of: isExperimentalFeaturesEnabled) { _, newValue in
-                isHandlingToggleChange = true
-                if newValue {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isExpanded = true
-                    }
-                } else {
-                    playbackController.isPauseMediaEnabled = false
-                    isExpanded = false
-                    isPauseMediaExpanded = false
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    isHandlingToggleChange = false
-                }
-            }
-            .onChange(of: playbackController.isPauseMediaEnabled) { _, newValue in
-                isHandlingPauseMediaToggle = true
-                if newValue {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isPauseMediaExpanded = true
-                    }
-                } else {
-                    isPauseMediaExpanded = false
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    isHandlingPauseMediaToggle = false
+                    InfoTip("Delay before resuming playback. Use 2s for Bluetooth headphones, 0s for wired.")
                 }
             }
         } header: {
