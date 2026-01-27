@@ -324,6 +324,7 @@ struct ExpandableSettingsRow<Content: View>: View {
     @Binding var isEnabled: Bool
     let label: String
     var infoMessage: String? = nil
+    var infoURL: String? = nil
     @ViewBuilder let content: () -> Content
 
     @State private var isHandlingToggleChange = false
@@ -336,7 +337,11 @@ struct ExpandableSettingsRow<Content: View>: View {
                     HStack(spacing: 4) {
                         Text(label)
                         if let message = infoMessage {
-                            InfoTip(message)
+                            if let url = infoURL {
+                                InfoTip(message, learnMoreURL: url)
+                            } else {
+                                InfoTip(message)
+                            }
                         }
                     }
                 }
@@ -394,55 +399,23 @@ struct PowerModeSection: View {
     @AppStorage(PowerModeDefaults.autoRestoreKey) private var powerModeAutoRestoreEnabled = false
     @State private var showDisableAlert = false
     @State private var isExpanded = false
-    @State private var isHandlingToggleChange = false
 
     var body: some View {
         Section {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    Toggle(isOn: toggleBinding) {
-                        HStack(spacing: 4) {
-                            Text("Power Mode")
-                            InfoTip(
-                                "Apply custom settings based on active app or website.",
-                                learnMoreURL: "https://tryvoiceink.com/docs/power-mode"
-                            )
-                        }
+            ExpandableSettingsRow(
+                isExpanded: $isExpanded,
+                isEnabled: toggleBinding,
+                label: "Power Mode",
+                infoMessage: "Apply custom settings based on active app or website.",
+                infoURL: "https://tryvoiceink.com/docs/power-mode"
+            ) {
+                Toggle(isOn: $powerModeAutoRestoreEnabled) {
+                    HStack(spacing: 4) {
+                        Text("Auto-Restore Preferences")
+                        InfoTip("After each recording session, revert preferences to what was configured before Power Mode was activated.")
                     }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.secondary)
-                        .rotationEffect(.degrees(powerModeUIFlag && isExpanded ? 90 : 0))
-                        .opacity(powerModeUIFlag ? 1 : 0.4)
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    guard !isHandlingToggleChange else { return }
-                    if powerModeUIFlag {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isExpanded.toggle()
-                        }
-                    }
-                }
-
-                if powerModeUIFlag && isExpanded {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Toggle(isOn: $powerModeAutoRestoreEnabled) {
-                            HStack(spacing: 4) {
-                                Text("Auto-Restore Preferences")
-                                InfoTip("After each recording session, revert preferences to what was configured before Power Mode was activated.")
-                            }
-                        }
-                    }
-                    .padding(.top, 12)
-                    .padding(.leading, 4)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
-            .animation(.easeInOut(duration: 0.2), value: isExpanded)
         } header: {
             Text("Power Mode")
         }
@@ -450,19 +423,6 @@ struct PowerModeSection: View {
             Button("Got it", role: .cancel) { }
         } message: {
             Text("Disable or remove your Power Modes first.")
-        }
-        .onChange(of: powerModeUIFlag) { _, newValue in
-            isHandlingToggleChange = true
-            if newValue {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isExpanded = true
-                }
-            } else {
-                isExpanded = false
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                isHandlingToggleChange = false
-            }
         }
     }
 
@@ -509,62 +469,6 @@ struct ExperimentalSection: View {
         } header: {
             Text("Experimental")
         }
-    }
-}
-
-// MARK: - Legacy SettingsSection (kept for other views that may use it)
-
-struct SettingsSection<Content: View>: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-    let content: Content
-    var showWarning: Bool = false
-
-    init(icon: String, title: String, subtitle: String, showWarning: Bool = false, @ViewBuilder content: () -> Content) {
-        self.icon = icon
-        self.title = title
-        self.subtitle = subtitle
-        self.showWarning = showWarning
-        self.content = content()
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.system(size: 16))
-                    .foregroundColor(showWarning ? .red : .accentColor)
-                    .frame(width: 20, height: 20)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.headline)
-                    if !subtitle.isEmpty {
-                        Text(subtitle)
-                            .font(.subheadline)
-                            .foregroundColor(showWarning ? .red : .secondary)
-                    }
-                }
-
-                if showWarning {
-                    Spacer()
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.red)
-                }
-            }
-
-            Divider()
-
-            content
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(CardBackground(isSelected: showWarning, useAccentGradientWhenSelected: true))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(showWarning ? Color.red.opacity(0.5) : Color.clear, lineWidth: 1)
-        )
     }
 }
 
