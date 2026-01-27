@@ -148,16 +148,13 @@ struct SettingsView: View {
                     isEnabled: $mediaController.isSystemMuteEnabled,
                     label: "Mute Audio While Recording"
                 ) {
-                    HStack(spacing: 4) {
-                        Picker("Resume Delay", selection: $mediaController.audioResumptionDelay) {
-                            Text("0s").tag(0.0)
-                            Text("1s").tag(1.0)
-                            Text("2s").tag(2.0)
-                            Text("3s").tag(3.0)
-                            Text("4s").tag(4.0)
-                            Text("5s").tag(5.0)
-                        }
-                        InfoTip("Delay before unmuting. Use 2s for Bluetooth headphones, 0s for wired.")
+                    Picker("Resume Delay", selection: $mediaController.audioResumptionDelay) {
+                        Text("0s").tag(0.0)
+                        Text("1s").tag(1.0)
+                        Text("2s").tag(2.0)
+                        Text("3s").tag(3.0)
+                        Text("4s").tag(4.0)
+                        Text("5s").tag(5.0)
                     }
                 }
 
@@ -500,16 +497,13 @@ struct ExperimentalSection: View {
                 label: "Pause Media While Recording",
                 infoMessage: "Pauses playing media when recording starts and resumes when done."
             ) {
-                HStack(spacing: 4) {
-                    Picker("Resume Delay", selection: $mediaController.audioResumptionDelay) {
-                        Text("0s").tag(0.0)
-                        Text("1s").tag(1.0)
-                        Text("2s").tag(2.0)
-                        Text("3s").tag(3.0)
-                        Text("4s").tag(4.0)
-                        Text("5s").tag(5.0)
-                    }
-                    InfoTip("Delay before resuming playback. Use 2s for Bluetooth headphones, 0s for wired.")
+                Picker("Resume Delay", selection: $mediaController.audioResumptionDelay) {
+                    Text("0s").tag(0.0)
+                    Text("1s").tag(1.0)
+                    Text("2s").tag(2.0)
+                    Text("3s").tag(3.0)
+                    Text("4s").tag(4.0)
+                    Text("5s").tag(5.0)
                 }
             }
         } header: {
