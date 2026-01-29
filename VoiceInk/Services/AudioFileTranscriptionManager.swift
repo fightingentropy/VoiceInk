@@ -124,6 +124,7 @@ class AudioTranscriptionManager: ObservableObject {
                         modelContext.insert(transcription)
                         try modelContext.save()
                         NotificationCenter.default.post(name: .transcriptionCreated, object: transcription)
+                        NotificationCenter.default.post(name: .transcriptionCompleted, object: transcription)
                         currentTranscription = transcription
                     } catch {
                         logger.error("Enhancement failed: \(error.localizedDescription)")
@@ -140,6 +141,7 @@ class AudioTranscriptionManager: ObservableObject {
                         modelContext.insert(transcription)
                         try modelContext.save()
                         NotificationCenter.default.post(name: .transcriptionCreated, object: transcription)
+                        NotificationCenter.default.post(name: .transcriptionCompleted, object: transcription)
                         currentTranscription = transcription
                     }
                 } else {
@@ -156,6 +158,7 @@ class AudioTranscriptionManager: ObservableObject {
                     modelContext.insert(transcription)
                     try modelContext.save()
                     NotificationCenter.default.post(name: .transcriptionCreated, object: transcription)
+                    NotificationCenter.default.post(name: .transcriptionCompleted, object: transcription)
                     currentTranscription = transcription
                 }
                 

@@ -161,6 +161,7 @@ class WhisperState: NSObject, ObservableObject {
 
                     await transcribeAudio(on: transcription)
                 } else {
+                    try? FileManager.default.removeItem(at: recordedFile)
                     await MainActor.run {
                         recordingState = .idle
                     }
