@@ -318,7 +318,7 @@ class WhisperState: NSObject, ObservableObject {
 
             text = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            if UserDefaults.standard.object(forKey: "IsTextFormattingEnabled") as? Bool ?? true {
+            if UserDefaults.standard.bool(forKey: "IsTextFormattingEnabled") {
                 text = WhisperTextFormatter.format(text)
                 logger.notice("📝 Formatted transcript: \(text, privacy: .public)")
             }
