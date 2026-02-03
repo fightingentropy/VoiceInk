@@ -18,6 +18,9 @@ class Recorder: NSObject, ObservableObject {
     private var audioMeterUpdateTask: Task<Void, Never>?
     private var audioRestorationTask: Task<Void, Never>?
     private var hasDetectedAudioInCurrentSession = false
+
+    /// Audio chunk callback for streaming. Set before calling startRecording().
+    var onAudioChunk: ((_ data: Data) -> Void)?
     
     enum RecorderError: Error {
         case couldNotStartRecording
@@ -134,6 +137,7 @@ class Recorder: NSObject, ObservableObject {
 
         do {
             let coreAudioRecorder = CoreAudioRecorder()
+            coreAudioRecorder.onAudioChunk = onAudioChunk
             recorder = coreAudioRecorder
 
             try coreAudioRecorder.startRecording(toOutputFile: url, deviceID: deviceID)
@@ -192,6 +196,7 @@ class Recorder: NSObject, ObservableObject {
         audioMeterUpdateTask?.cancel()
         recorder?.stopRecording()
         recorder = nil
+        onAudioChunk = nil
         audioMeter = AudioMeter(averagePower: 0, peakPower: 0)
 
         audioRestorationTask = Task {

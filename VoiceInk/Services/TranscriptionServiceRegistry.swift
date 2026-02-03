@@ -15,7 +15,6 @@ class TranscriptionServiceRegistry {
     private(set) lazy var cloudTranscriptionService = CloudTranscriptionService(modelContext: whisperState.modelContext)
     private(set) lazy var nativeAppleTranscriptionService = NativeAppleTranscriptionService()
     private(set) lazy var parakeetTranscriptionService = ParakeetTranscriptionService()
-
     init(whisperState: WhisperState, modelsDirectory: URL) {
         self.whisperState = whisperState
         self.modelsDirectory = modelsDirectory
@@ -38,6 +37,27 @@ class TranscriptionServiceRegistry {
         let service = service(for: model.provider)
         logger.debug("Transcribing with \(model.displayName) using \(String(describing: type(of: service)))")
         return try await service.transcribe(audioURL: audioURL, model: model)
+    }
+
+    /// Creates a streaming or file-based session depending on the model's capabilities.
+    func createSession(for model: any TranscriptionModel) -> TranscriptionSession {
+        if supportsStreaming(model: model) {
+            let streamingService = StreamingTranscriptionService()
+            let fallback = service(for: model.provider)
+            return StreamingTranscriptionSession(streamingService: streamingService, fallbackService: fallback)
+        } else {
+            return FileTranscriptionSession(service: service(for: model.provider))
+        }
+    }
+
+    /// Whether the given model supports streaming transcription
+    private func supportsStreaming(model: any TranscriptionModel) -> Bool {
+        switch model.provider {
+        case .elevenLabs:
+            return model.name == "scribe_v2"
+        default:
+            return false
+        }
     }
 
     func cleanup() {

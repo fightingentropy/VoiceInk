@@ -27,6 +27,7 @@ class WhisperState: NSObject, ObservableObject {
     @Published var clipboardMessage = ""
     @Published var miniRecorderError: String?
     @Published var shouldCancelRecording = false
+    private var currentSession: TranscriptionSession?
 
 
     @Published var recorderType: String = UserDefaults.standard.string(forKey: "RecorderType") ?? "mini" {
@@ -162,6 +163,8 @@ class WhisperState: NSObject, ObservableObject {
 
                     await transcribeAudio(on: transcription)
                 } else {
+                    currentSession?.cancel()
+                    currentSession = nil
                     try? FileManager.default.removeItem(at: recordedFile)
                     await MainActor.run {
                         recordingState = .idle
@@ -170,6 +173,8 @@ class WhisperState: NSObject, ObservableObject {
                 }
             } else {
                 logger.error("❌ No recorded file found after stopping recording")
+                currentSession?.cancel()
+                currentSession = nil
                 await MainActor.run {
                     recordingState = .idle
                 }
@@ -195,6 +200,15 @@ class WhisperState: NSObject, ObservableObject {
                             let permanentURL = self.recordingsDirectory.appendingPathComponent(fileName)
                             self.recordedFile = permanentURL
 
+                            // Prepare transcription session and wire up audio callback
+                            if let model = self.currentTranscriptionModel {
+                                let session = self.serviceRegistry.createSession(for: model)
+                                self.currentSession = session
+                                let chunkCallback = try await session.prepare(model: model)
+                                self.recorder.onAudioChunk = chunkCallback
+                            }
+
+                            // Start recording immediately — no waiting for network
                             try await self.recorder.startRecording(toOutputFile: permanentURL)
 
                             await MainActor.run {
@@ -307,8 +321,14 @@ class WhisperState: NSObject, ObservableObject {
             }
 
             let transcriptionStart = Date()
-            var text = try await serviceRegistry.transcribe(audioURL: url, model: model)
-            logger.notice("📝 Raw transcript: \(text, privacy: .public)")
+            var text: String
+            if let session = currentSession {
+                text = try await session.transcribe(audioURL: url)
+                currentSession = nil
+            } else {
+                text = try await serviceRegistry.transcribe(audioURL: url, model: model)
+            }
+            logger.notice("📝 Transcript: \(text, privacy: .public)")
             text = TranscriptionOutputFilter.filter(text)
             logger.notice("📝 Output filter result: \(text, privacy: .public)")
             let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
