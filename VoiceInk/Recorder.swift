@@ -19,8 +19,11 @@ class Recorder: NSObject, ObservableObject {
     private var audioRestorationTask: Task<Void, Never>?
     private var hasDetectedAudioInCurrentSession = false
 
-    /// Audio chunk callback for streaming. Set before calling startRecording().
-    var onAudioChunk: ((_ data: Data) -> Void)?
+    /// Audio chunk callback for streaming. Can be updated while recording;
+    /// changes are forwarded to the live CoreAudioRecorder.
+    var onAudioChunk: ((_ data: Data) -> Void)? {
+        didSet { recorder?.onAudioChunk = onAudioChunk }
+    }
     
     enum RecorderError: Error {
         case couldNotStartRecording

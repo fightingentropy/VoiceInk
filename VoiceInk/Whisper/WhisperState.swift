@@ -200,12 +200,10 @@ class WhisperState: NSObject, ObservableObject {
                             let permanentURL = self.recordingsDirectory.appendingPathComponent(fileName)
                             self.recordedFile = permanentURL
 
-                            // Prepare transcription session and wire up audio callback
-                            if let model = self.currentTranscriptionModel {
-                                let session = self.serviceRegistry.createSession(for: model)
-                                self.currentSession = session
-                                let chunkCallback = try await session.prepare(model: model)
-                                self.recorder.onAudioChunk = chunkCallback
+                            // Buffer chunks from the start; session created after Power Mode resolves
+                            let pendingChunks = OSAllocatedUnfairLock(initialState: [Data]())
+                            self.recorder.onAudioChunk = { data in
+                                pendingChunks.withLock { $0.append(data) }
                             }
 
                             // Start recording immediately — no waiting for network
@@ -216,9 +214,29 @@ class WhisperState: NSObject, ObservableObject {
                             }
                             self.logger.notice("toggleRecord: recording started successfully, state=recording")
 
-                            // Detect and apply Power Mode for current app/website in background
-                            Task {
-                                await ActiveWindowService.shared.applyConfiguration(powerModeId: powerModeId)
+                            // Power Mode resolves while recording runs (~50-200ms)
+                            await ActiveWindowService.shared.applyConfiguration(powerModeId: powerModeId)
+
+                            // Create session with the resolved model (skip if user already stopped)
+                            if self.recordingState == .recording, let model = self.currentTranscriptionModel {
+                                let session = self.serviceRegistry.createSession(for: model)
+                                self.currentSession = session
+                                let realCallback = try await session.prepare(model: model)
+
+                                if let realCallback = realCallback {
+                                    // Swap callback first so new chunks go straight to the session
+                                    self.recorder.onAudioChunk = realCallback
+                                    // Then flush anything that was buffered before the swap
+                                    let buffered = pendingChunks.withLock { chunks -> [Data] in
+                                        let result = chunks
+                                        chunks.removeAll()
+                                        return result
+                                    }
+                                    for chunk in buffered { realCallback(chunk) }
+                                } else {
+                                    self.recorder.onAudioChunk = nil
+                                    pendingChunks.withLock { $0.removeAll() }
+                                }
                             }
 
                             // Load model and capture context in background without blocking
