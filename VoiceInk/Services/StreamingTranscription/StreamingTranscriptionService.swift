@@ -40,8 +40,10 @@ class StreamingTranscriptionService {
     private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "StreamingTranscriptionService")
     private var provider: StreamingTranscriptionProvider?
     private var sendTask: Task<Void, Never>?
+    private var eventConsumerTask: Task<Void, Never>?
     private let chunkBuffer = ChunkBuffer()
     private var state: StreamingState = .idle
+    private var committedSegments: [String] = []
 
     /// Whether the streaming connection is fully established and actively sending.
     var isActive: Bool { state == .streaming || state == .committing }
@@ -49,6 +51,7 @@ class StreamingTranscriptionService {
     /// Start a streaming transcription session for the given model.
     func startStreaming(model: any TranscriptionModel) async throws {
         state = .connecting
+        committedSegments = []
 
         let provider = createProvider(for: model)
         self.provider = provider
@@ -66,6 +69,7 @@ class StreamingTranscriptionService {
 
         state = .streaming
         startSendLoop()
+        startEventConsumer()
 
         logger.notice("Streaming started for model: \(model.displayName)")
     }
@@ -86,7 +90,9 @@ class StreamingTranscriptionService {
         // Drain any remaining buffered chunks
         await drainRemainingChunks()
 
-        // Send commit to finalize transcription
+        let segmentCountBeforeCommit = committedSegments.count
+
+        // Send commit to finalize any remaining audio
         do {
             try await provider.commit()
         } catch {
@@ -96,8 +102,8 @@ class StreamingTranscriptionService {
             throw error
         }
 
-        // Wait for the committed_transcript event with a timeout
-        let finalText = await waitForCommittedTranscript(provider: provider)
+        // Wait for the committed segment from our explicit commit
+        let finalText = await waitForFinalCommit(afterIndex: segmentCountBeforeCommit)
 
         state = .done
         await cleanupStreaming()
@@ -108,6 +114,8 @@ class StreamingTranscriptionService {
     /// Cancels the streaming session without waiting for results.
     func cancel() {
         state = .cancelled
+        eventConsumerTask?.cancel()
+        eventConsumerTask = nil
         sendTask?.cancel()
         sendTask = nil
 
@@ -119,6 +127,7 @@ class StreamingTranscriptionService {
             await providerToDisconnect?.disconnect()
         }
 
+        committedSegments = []
         logger.notice("Streaming cancelled")
     }
 
@@ -177,62 +186,66 @@ class StreamingTranscriptionService {
         }
     }
 
-    private func waitForCommittedTranscript(provider: StreamingTranscriptionProvider) async -> String {
+    /// Consumes transcription events throughout the session, accumulating committed segments.
+    private func startEventConsumer() {
+        guard let provider = provider else { return }
         let events = provider.transcriptionEvents
 
-        return await withTaskGroup(of: String.self) { group in
-            // Task 1: Listen for the committed transcript
-            group.addTask { [logger] in
-                var lastPartial = ""
-                for await event in events {
-                    switch event {
-                    case .committed(let text):
-                        logger.notice("Received final committed transcript")
-                        return text
-                    case .partial(let text):
-                        lastPartial = text
-                    case .error(let error):
-                        logger.error("Streaming error while waiting for commit: \(error.localizedDescription)")
-                        return lastPartial
-                    case .sessionStarted:
+        eventConsumerTask = Task { [weak self] in
+            for await event in events {
+                guard let self = self else { break }
+                switch event {
+                case .committed(let text):
+                    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trimmed.isEmpty else {
+                        self.logger.notice("Skipping empty committed segment")
                         break
                     }
+                    self.committedSegments.append(trimmed)
+                    self.logger.notice("Accumulated committed segment #\(self.committedSegments.count): \(trimmed.prefix(60))…")
+                case .partial, .sessionStarted:
+                    break
+                case .error(let error):
+                    self.logger.error("Streaming event error: \(error.localizedDescription)")
                 }
-                return lastPartial
             }
-
-            // Task 2: Timeout after 10 seconds
-            group.addTask {
-                try? await Task.sleep(nanoseconds: 10_000_000_000)
-                return ""
-            }
-
-            // Whichever finishes first wins
-            var result = ""
-            if let first = await group.next() {
-                result = first
-            }
-            group.cancelAll()
-
-            // If the timeout won (empty string), give the event task a moment
-            // to return any accumulated partial text after cancellation.
-            if result.isEmpty, let second = await group.next() {
-                result = second
-            }
-
-            if result.isEmpty {
-                logger.warning("No transcript received from streaming")
-            }
-            return result
         }
     }
 
+    /// Polls until a new committed segment arrives beyond `afterIndex`, with a 10-second timeout.
+    private func waitForFinalCommit(afterIndex expectedCount: Int) async -> String {
+        let timeoutNs: UInt64 = 10_000_000_000 // 10 seconds
+        let pollIntervalNs: UInt64 = 100_000_000 // 100ms
+        var elapsed: UInt64 = 0
+
+        while elapsed < timeoutNs {
+            if committedSegments.count > expectedCount {
+                logger.notice("Received final committed transcript (total segments: \(self.committedSegments.count))")
+                return committedSegments.joined(separator: " ")
+            }
+            try? await Task.sleep(nanoseconds: pollIntervalNs)
+            elapsed += pollIntervalNs
+        }
+
+        // Timeout — return whatever we accumulated
+        if !committedSegments.isEmpty {
+            logger.warning("Timeout waiting for final commit, returning \(self.committedSegments.count) accumulated segment(s)")
+            return committedSegments.joined(separator: " ")
+        }
+
+        logger.warning("No transcript received from streaming")
+        return ""
+    }
+
     private func cleanupStreaming() async {
+        eventConsumerTask?.cancel()
+        eventConsumerTask = nil
         sendTask?.cancel()
         sendTask = nil
         await provider?.disconnect()
         provider = nil
         state = .idle
         chunkBuffer.clear()
+        committedSegments = []
     }
 }

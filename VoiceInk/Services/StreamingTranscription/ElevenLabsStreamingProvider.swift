@@ -11,7 +11,6 @@ final class ElevenLabsStreamingProvider: StreamingTranscriptionProvider {
     private var receiveTask: Task<Void, Never>?
 
     private(set) var transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
-    private var _eventStream: AsyncStream<StreamingTranscriptionEvent>?
 
     init() {
         var continuation: AsyncStream<StreamingTranscriptionEvent>.Continuation!
@@ -29,7 +28,7 @@ final class ElevenLabsStreamingProvider: StreamingTranscriptionProvider {
         var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "model_id", value: "scribe_v2_realtime"),
             URLQueryItem(name: "audio_format", value: "pcm_16000"),
-            URLQueryItem(name: "commit_strategy", value: "manual"),
+            URLQueryItem(name: "commit_strategy", value: "vad"),
         ]
 
         if let language = language, language != "auto", !language.isEmpty {
