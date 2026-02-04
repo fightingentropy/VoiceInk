@@ -1,24 +1,23 @@
 import Foundation
 import os
 
-/// Thread-safe lock-based buffer for audio chunks, accessible from any thread.
-private final class ChunkBuffer: @unchecked Sendable {
-    private let storage = OSAllocatedUnfairLock(initialState: [Data]())
+/// Sendable source that bridges audio chunks from any thread into an AsyncStream.
+private final class AudioChunkSource: @unchecked Sendable {
+    let stream: AsyncStream<Data>
+    private let continuation: AsyncStream<Data>.Continuation
 
-    func append(_ data: Data) {
-        storage.withLock { $0.append(data) }
+    init() {
+        let (stream, continuation) = AsyncStream.makeStream(of: Data.self, bufferingPolicy: .unbounded)
+        self.stream = stream
+        self.continuation = continuation
     }
 
-    func drainAll() -> [Data] {
-        storage.withLock { chunks in
-            let result = chunks
-            chunks.removeAll()
-            return result
-        }
+    func send(_ data: Data) {
+        continuation.yield(data)
     }
 
-    func clear() {
-        storage.withLock { $0.removeAll() }
+    func finish() {
+        continuation.finish()
     }
 }
 
@@ -33,7 +32,7 @@ enum StreamingState {
     case cancelled
 }
 
-/// Manages a streaming transcription lifecycle: buffers audio chunks, sends them to the provider, and collects the final text on commit.
+/// Manages a streaming transcription lifecycle: buffers audio chunks, sends them to the provider, and collects the final text.
 @MainActor
 class StreamingTranscriptionService {
 
@@ -41,9 +40,12 @@ class StreamingTranscriptionService {
     private var provider: StreamingTranscriptionProvider?
     private var sendTask: Task<Void, Never>?
     private var eventConsumerTask: Task<Void, Never>?
-    private let chunkBuffer = ChunkBuffer()
+    private let chunkSource = AudioChunkSource()
     private var state: StreamingState = .idle
     private var committedSegments: [String] = []
+
+    /// Signal used to notify `waitForFinalCommit` when a new committed segment arrives.
+    private var commitSignal: AsyncStream<Void>.Continuation?
 
     /// Whether the streaming connection is fully established and actively sending.
     var isActive: Bool { state == .streaming || state == .committing }
@@ -76,7 +78,7 @@ class StreamingTranscriptionService {
 
     /// Buffers an audio chunk for sending. Safe to call from the audio callback thread.
     nonisolated func sendAudioChunk(_ data: Data) {
-        chunkBuffer.append(data)
+        chunkSource.send(data)
     }
 
     /// Stops streaming, commits remaining audio, and returns the final transcribed text.
@@ -87,23 +89,27 @@ class StreamingTranscriptionService {
 
         state = .committing
 
-        // Drain any remaining buffered chunks
+        // Finish the chunk source so the send loop drains remaining chunks and exits naturally.
         await drainRemainingChunks()
 
-        let segmentCountBeforeCommit = committedSegments.count
+        // Set up the commit signal BEFORE sending commit to avoid a race with the response.
+        let (signalStream, signalContinuation) = AsyncStream.makeStream(of: Void.self)
+        self.commitSignal = signalContinuation
 
         // Send commit to finalize any remaining audio
         do {
             try await provider.commit()
         } catch {
+            commitSignal?.finish()
+            commitSignal = nil
             logger.error("Failed to send commit: \(error.localizedDescription)")
             state = .failed
             await cleanupStreaming()
             throw error
         }
 
-        // Wait for the committed segment from our explicit commit
-        let finalText = await waitForFinalCommit(afterIndex: segmentCountBeforeCommit)
+        // Wait for the server to acknowledge our commit (or timeout)
+        let finalText = await waitForFinalCommit(signalStream: signalStream)
 
         state = .done
         await cleanupStreaming()
@@ -118,12 +124,16 @@ class StreamingTranscriptionService {
         eventConsumerTask = nil
         sendTask?.cancel()
         sendTask = nil
+        chunkSource.finish()
+
+        // Clean up commit signal if waiting
+        commitSignal?.finish()
+        commitSignal = nil
 
         let providerToDisconnect = provider
         provider = nil
 
         Task {
-            chunkBuffer.clear()
             await providerToDisconnect?.disconnect()
         }
 
@@ -142,48 +152,30 @@ class StreamingTranscriptionService {
         }
     }
 
+    /// Consumes audio chunks from the AsyncStream and sends them to the provider.
     private func startSendLoop() {
-        let buffer = chunkBuffer
+        let source = chunkSource
         let provider = provider
 
         sendTask = Task.detached { [weak self] in
-            while !Task.isCancelled {
-                let chunks = buffer.drainAll()
-
-                if !chunks.isEmpty {
-                    // Finish sending the entire batch before checking cancellation
-                    for chunk in chunks {
-                        do {
-                            try await provider?.sendAudioChunk(chunk)
-                        } catch {
-                            let desc = error.localizedDescription
-                            await MainActor.run {
-                                self?.logger.error("Failed to send audio chunk: \(desc)")
-                            }
-                        }
+            for await chunk in source.stream {
+                do {
+                    try await provider?.sendAudioChunk(chunk)
+                } catch {
+                    let desc = error.localizedDescription
+                    await MainActor.run {
+                        self?.logger.error("Failed to send audio chunk: \(desc)")
                     }
                 }
-
-                // Small sleep to batch chunks and avoid excessive sends
-                try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
             }
         }
     }
 
+    /// Finishes the chunk source and waits for the send loop to process all remaining buffered chunks.
     private func drainRemainingChunks() async {
-        sendTask?.cancel()
+        chunkSource.finish()
+        await sendTask?.value
         sendTask = nil
-
-        // Send any chunks that arrived after the send loop's last drain
-        let remaining = chunkBuffer.drainAll()
-
-        for chunk in remaining {
-            do {
-                try await provider?.sendAudioChunk(chunk)
-            } catch {
-                logger.error("Failed to send remaining chunk: \(error.localizedDescription)")
-            }
-        }
     }
 
     /// Consumes transcription events throughout the session, accumulating committed segments.
@@ -197,12 +189,17 @@ class StreamingTranscriptionService {
                 switch event {
                 case .committed(let text):
                     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !trimmed.isEmpty else {
-                        self.logger.notice("Skipping empty committed segment")
-                        break
+                    if !trimmed.isEmpty {
+                        self.committedSegments.append(trimmed)
+                        self.logger.notice("Accumulated committed segment #\(self.committedSegments.count): \(trimmed.prefix(60))…")
+                    } else {
+                        self.logger.notice("Empty committed response — commit acknowledged")
                     }
-                    self.committedSegments.append(trimmed)
-                    self.logger.notice("Accumulated committed segment #\(self.committedSegments.count): \(trimmed.prefix(60))…")
+
+                    // Signal for any committed response (including empty) during committing phase.
+                    if self.state == .committing {
+                        self.commitSignal?.yield()
+                    }
                 case .partial, .sessionStarted:
                     break
                 case .error(let error):
@@ -212,29 +209,40 @@ class StreamingTranscriptionService {
         }
     }
 
-    /// Polls until a new committed segment arrives beyond `afterIndex`, with a 10-second timeout.
-    private func waitForFinalCommit(afterIndex expectedCount: Int) async -> String {
-        let timeoutNs: UInt64 = 10_000_000_000 // 10 seconds
-        let pollIntervalNs: UInt64 = 100_000_000 // 100ms
-        var elapsed: UInt64 = 0
-
-        while elapsed < timeoutNs {
-            if committedSegments.count > expectedCount {
-                logger.notice("Received final committed transcript (total segments: \(self.committedSegments.count))")
-                return committedSegments.joined(separator: " ")
+    /// Waits for the server to acknowledge our explicit commit, with a 10-second timeout.
+    private func waitForFinalCommit(signalStream: AsyncStream<Void>) async -> String {
+        // Race: wait for commit acknowledgment vs timeout
+        let receivedInTime = await withTaskGroup(of: Bool.self) { group in
+            group.addTask { @MainActor in
+                for await _ in signalStream {
+                    return true
+                }
+                return false
             }
-            try? await Task.sleep(nanoseconds: pollIntervalNs)
-            elapsed += pollIntervalNs
+
+            group.addTask {
+                try? await Task.sleep(nanoseconds: 10_000_000_000) // 10 seconds
+                return false
+            }
+
+            let result = await group.next() ?? false
+            group.cancelAll()
+            return result
         }
 
-        // Timeout — return whatever we accumulated
-        if !committedSegments.isEmpty {
-            logger.warning("Timeout waiting for final commit, returning \(self.committedSegments.count) accumulated segment(s)")
-            return committedSegments.joined(separator: " ")
+        // Clean up the signal
+        commitSignal?.finish()
+        commitSignal = nil
+
+        if receivedInTime {
+            logger.notice("Commit acknowledged (total segments: \(self.committedSegments.count))")
+        } else if !committedSegments.isEmpty {
+            logger.warning("Timeout waiting for commit acknowledgment, returning \(self.committedSegments.count) accumulated segment(s)")
+        } else {
+            logger.warning("No transcript received from streaming")
         }
 
-        logger.warning("No transcript received from streaming")
-        return ""
+        return committedSegments.isEmpty ? "" : committedSegments.joined(separator: " ")
     }
 
     private func cleanupStreaming() async {
@@ -242,10 +250,12 @@ class StreamingTranscriptionService {
         eventConsumerTask = nil
         sendTask?.cancel()
         sendTask = nil
+        chunkSource.finish()
+        commitSignal?.finish()
+        commitSignal = nil
         await provider?.disconnect()
         provider = nil
         state = .idle
-        chunkBuffer.clear()
         committedSegments = []
     }
 }
