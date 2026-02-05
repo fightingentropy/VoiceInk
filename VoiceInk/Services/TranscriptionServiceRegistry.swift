@@ -42,7 +42,7 @@ class TranscriptionServiceRegistry {
     /// Creates a streaming or file-based session depending on the model's capabilities.
     func createSession(for model: any TranscriptionModel) -> TranscriptionSession {
         if supportsStreaming(model: model) {
-            let streamingService = StreamingTranscriptionService()
+            let streamingService = StreamingTranscriptionService(parakeetService: parakeetTranscriptionService)
             let fallback = service(for: model.provider)
             return StreamingTranscriptionSession(streamingService: streamingService, fallbackService: fallback)
         } else {
@@ -55,6 +55,8 @@ class TranscriptionServiceRegistry {
         switch model.provider {
         case .elevenLabs:
             return model.name == "scribe_v2"
+        case .parakeet:
+            return true
         default:
             return false
         }

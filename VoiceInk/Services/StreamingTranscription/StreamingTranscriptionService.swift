@@ -43,6 +43,11 @@ class StreamingTranscriptionService {
     private let chunkSource = AudioChunkSource()
     private var state: StreamingState = .idle
     private var committedSegments: [String] = []
+    private let parakeetService: ParakeetTranscriptionService
+
+    init(parakeetService: ParakeetTranscriptionService) {
+        self.parakeetService = parakeetService
+    }
 
     /// Signal used to notify `waitForFinalCommit` when a new committed segment arrives.
     private var commitSignal: AsyncStream<Void>.Continuation?
@@ -147,6 +152,8 @@ class StreamingTranscriptionService {
         switch model.provider {
         case .elevenLabs:
             return ElevenLabsStreamingProvider()
+        case .parakeet:
+            return ParakeetStreamingProvider(parakeetService: parakeetService)
         default:
             fatalError("Unsupported streaming provider: \(model.provider). Check supportsStreaming() before calling startStreaming().")
         }
