@@ -57,6 +57,8 @@ class TranscriptionServiceRegistry {
             return model.name == "scribe_v2"
         case .parakeet:
             return true
+        case .mistral:
+            return model.name == "voxtral-mini-transcribe-realtime-2602"
         default:
             return false
         }

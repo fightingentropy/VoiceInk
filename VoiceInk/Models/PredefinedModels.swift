@@ -259,11 +259,21 @@ import Foundation
        ),
         CloudModel(
             name: "voxtral-mini-latest",
-            displayName: "Voxtral Mini (Mistral)",
-            description: "Mistral's latest SOTA transcription model.",
+            displayName: "Voxtral Transcribe 2 (Mistral)",
+            description: "Mistral's latest transcription model for fast and accurate transcription.",
             provider: .mistral,
             speed: 0.8,
             accuracy: 0.97,
+            isMultilingual: true,
+            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .mistral)
+        ),
+        CloudModel(
+            name: "voxtral-mini-transcribe-realtime-2602",
+            displayName: "Voxtral Realtime (Mistral)",
+            description: "Mistral's Voxtral Realtime model for streaming transcription",
+            provider: .mistral,
+            speed: 0.95,
+            accuracy: 0.95,
             isMultilingual: true,
             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .mistral)
         ),

@@ -154,6 +154,8 @@ class StreamingTranscriptionService {
             return ElevenLabsStreamingProvider()
         case .parakeet:
             return ParakeetStreamingProvider(parakeetService: parakeetService)
+        case .mistral:
+            return MistralStreamingProvider()
         default:
             fatalError("Unsupported streaming provider: \(model.provider). Check supportsStreaming() before calling startStreaming().")
         }
