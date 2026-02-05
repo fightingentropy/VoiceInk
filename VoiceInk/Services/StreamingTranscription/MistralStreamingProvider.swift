@@ -21,6 +21,13 @@ final class MistralStreamingProvider: StreamingTranscriptionProvider {
         eventsContinuation = continuation
     }
 
+    deinit {
+        receiveTask?.cancel()
+        webSocketTask?.cancel(with: .normalClosure, reason: nil)
+        urlSession?.invalidateAndCancel()
+        eventsContinuation?.finish()
+    }
+
     func connect(model: any TranscriptionModel, language: String?) async throws {
         guard let apiKey = APIKeyManager.shared.getAPIKey(forProvider: "Mistral"), !apiKey.isEmpty else {
             throw StreamingTranscriptionError.missingAPIKey

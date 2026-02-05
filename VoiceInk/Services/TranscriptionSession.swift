@@ -68,14 +68,19 @@ final class StreamingTranscriptionSession: TranscriptionSession {
             service?.sendAudioChunk(data)
         }
 
-        Task { [weak self] in
+        Task.detached { [weak self] in
             guard let self = self else { return }
             do {
                 try await self.streamingService.startStreaming(model: model)
-                self.logger.notice("Streaming connected for \(model.displayName)")
+                await MainActor.run {
+                    self.logger.notice("Streaming connected for \(model.displayName)")
+                }
             } catch {
-                self.logger.error("Failed to start streaming, will fall back to batch: \(error.localizedDescription)")
-                self.streamingFailed = true
+                let desc = error.localizedDescription
+                await MainActor.run {
+                    self.logger.error("Failed to start streaming, will fall back to batch: \(desc)")
+                    self.streamingFailed = true
+                }
             }
         }
 

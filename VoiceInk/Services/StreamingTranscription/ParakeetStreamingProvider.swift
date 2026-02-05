@@ -22,6 +22,11 @@ final class ParakeetStreamingProvider: StreamingTranscriptionProvider {
         eventsContinuation = continuation
     }
 
+    deinit {
+        updateConsumerTask?.cancel()
+        eventsContinuation?.finish()
+    }
+
     func connect(model: any TranscriptionModel, language: String?) async throws {
         let version: AsrModelVersion = model.name.lowercased().contains("v2") ? .v2 : .v3
         let models = try await parakeetService.getOrLoadModels(for: version)

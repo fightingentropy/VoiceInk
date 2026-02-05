@@ -12,6 +12,10 @@ private final class AudioChunkSource: @unchecked Sendable {
         self.continuation = continuation
     }
 
+    deinit {
+        continuation.finish()
+    }
+
     func send(_ data: Data) {
         continuation.yield(data)
     }
@@ -47,6 +51,13 @@ class StreamingTranscriptionService {
 
     init(parakeetService: ParakeetTranscriptionService) {
         self.parakeetService = parakeetService
+    }
+
+    deinit {
+        sendTask?.cancel()
+        eventConsumerTask?.cancel()
+        chunkSource.finish()
+        commitSignal?.finish()
     }
 
     /// Signal used to notify `waitForFinalCommit` when a new committed segment arrives.
@@ -192,27 +203,31 @@ class StreamingTranscriptionService {
         guard let provider = provider else { return }
         let events = provider.transcriptionEvents
 
-        eventConsumerTask = Task { [weak self] in
+        eventConsumerTask = Task.detached { [weak self] in
             for await event in events {
                 guard let self = self else { break }
                 switch event {
                 case .committed(let text):
                     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !trimmed.isEmpty {
-                        self.committedSegments.append(trimmed)
-                        self.logger.notice("Accumulated committed segment #\(self.committedSegments.count): \(trimmed.prefix(60))…")
-                    } else {
-                        self.logger.notice("Empty committed response — commit acknowledged")
-                    }
+                    await MainActor.run {
+                        if !trimmed.isEmpty {
+                            self.committedSegments.append(trimmed)
+                            self.logger.notice("Accumulated committed segment #\(self.committedSegments.count): \(trimmed.prefix(60))…")
+                        } else {
+                            self.logger.notice("Empty committed response — commit acknowledged")
+                        }
 
-                    // Signal for any committed response (including empty) during committing phase.
-                    if self.state == .committing {
-                        self.commitSignal?.yield()
+                        // Signal for any committed response (including empty) during committing phase.
+                        if self.state == .committing {
+                            self.commitSignal?.yield()
+                        }
                     }
                 case .partial, .sessionStarted:
                     break
                 case .error(let error):
-                    self.logger.error("Streaming event error: \(error.localizedDescription)")
+                    await MainActor.run {
+                        self.logger.error("Streaming event error: \(error.localizedDescription)")
+                    }
                 }
             }
         }

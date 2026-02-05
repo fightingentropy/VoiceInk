@@ -9,6 +9,7 @@ import os
 // MARK: - Recording State Machine
 enum RecordingState: Equatable {
     case idle
+    case starting
     case recording
     case transcribing
     case enhancing
@@ -27,7 +28,7 @@ class WhisperState: NSObject, ObservableObject {
     @Published var clipboardMessage = ""
     @Published var miniRecorderError: String?
     @Published var shouldCancelRecording = false
-    private var currentSession: TranscriptionSession?
+    var currentSession: TranscriptionSession?
 
 
     @Published var recorderType: String = UserDefaults.standard.string(forKey: "RecorderType") ?? "mini" {

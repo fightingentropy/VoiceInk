@@ -161,7 +161,7 @@ class Recorder: NSObject, ObservableObject {
             audioMeterUpdateTask = Task {
                 while recorder != nil && !Task.isCancelled {
                     updateAudioMeter()
-                    try? await Task.sleep(nanoseconds: 17_000_000)
+                    try? await Task.sleep(nanoseconds: 33_000_000) // ~30Hz
                 }
             }
 
