@@ -5,9 +5,9 @@ struct MiniRecorderView: View {
     @ObservedObject var recorder: Recorder
     @EnvironmentObject var windowManager: MiniWindowManager
     @EnvironmentObject private var enhancementService: AIEnhancementService
-    
+
     @State private var activePopover: ActivePopoverState = .none
-    
+
     private var backgroundView: some View {
         ZStack {
             Color.black.opacity(0.9)
@@ -24,14 +24,14 @@ struct MiniRecorderView: View {
         }
         .clipShape(Capsule())
     }
-    
+
     private var statusView: some View {
         RecorderStatusDisplay(
             currentState: whisperState.recordingState,
             audioMeter: recorder.audioMeter
         )
     }
-    
+
     private var contentLayout: some View {
         HStack(spacing: 0) {
             // Left button zone - always visible
@@ -52,7 +52,7 @@ struct MiniRecorderView: View {
         }
         .padding(.vertical, 9)
     }
-    
+
     private var recorderCapsule: some View {
         Capsule()
             .fill(.clear)
@@ -65,7 +65,7 @@ struct MiniRecorderView: View {
                 contentLayout
             }
     }
-    
+
     var body: some View {
         Group {
             if windowManager.isVisible {

@@ -50,10 +50,12 @@ class StreamingTranscriptionService {
     private var committedSegments: [String] = []
     private let parakeetService: ParakeetTranscriptionService
     private let modelContext: ModelContext
+    private let onPartialTranscript: ((String) -> Void)?
 
-    init(parakeetService: ParakeetTranscriptionService, modelContext: ModelContext) {
+    init(parakeetService: ParakeetTranscriptionService, modelContext: ModelContext, onPartialTranscript: ((String) -> Void)? = nil) {
         self.parakeetService = parakeetService
         self.modelContext = modelContext
+        self.onPartialTranscript = onPartialTranscript
     }
 
     deinit {
@@ -227,7 +229,13 @@ class StreamingTranscriptionService {
                             self.commitSignal?.yield()
                         }
                     }
-                case .partial, .sessionStarted:
+                case .partial(let text):
+                    await MainActor.run {
+                        if self.state == .streaming {
+                            self.onPartialTranscript?(text)
+                        }
+                    }
+                case .sessionStarted:
                     break
                 case .error(let error):
                     await MainActor.run {

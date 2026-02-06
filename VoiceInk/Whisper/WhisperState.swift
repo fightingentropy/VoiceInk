@@ -28,6 +28,7 @@ class WhisperState: NSObject, ObservableObject {
     @Published var clipboardMessage = ""
     @Published var miniRecorderError: String?
     @Published var shouldCancelRecording = false
+    @Published var partialTranscript: String = ""
     var currentSession: TranscriptionSession?
 
 
@@ -146,6 +147,7 @@ class WhisperState: NSObject, ObservableObject {
     func toggleRecord(powerModeId: UUID? = nil) async {
         logger.notice("toggleRecord called – state=\(String(describing: self.recordingState))")
         if recordingState == .recording {
+            partialTranscript = ""
             await recorder.stopRecording()
             if let recordedFile {
                 if !shouldCancelRecording {

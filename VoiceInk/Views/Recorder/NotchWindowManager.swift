@@ -1,17 +1,18 @@
 import SwiftUI
 import AppKit
 
+@MainActor
 class NotchWindowManager: ObservableObject {
     @Published var isVisible = false
     private var windowController: NSWindowController?
      var notchPanel: NotchRecorderPanel?
     private let whisperState: WhisperState
     private let recorder: Recorder
-    
+
     init(whisperState: WhisperState, recorder: Recorder) {
         self.whisperState = whisperState
         self.recorder = recorder
-        
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleHideNotification),
@@ -30,10 +31,9 @@ class NotchWindowManager: ObservableObject {
     
     func show() {
         if isVisible { return }
-        
-        // Get the active screen from the key window or fallback to main screen
+
         let activeScreen = NSApp.keyWindow?.screen ?? NSScreen.main ?? NSScreen.screens[0]
-        
+
         initializeWindow(screen: activeScreen)
         self.isVisible = true
         notchPanel?.show()

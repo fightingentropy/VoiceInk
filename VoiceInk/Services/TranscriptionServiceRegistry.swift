@@ -44,7 +44,10 @@ class TranscriptionServiceRegistry {
         if supportsStreaming(model: model) {
             let streamingService = StreamingTranscriptionService(
                 parakeetService: parakeetTranscriptionService,
-                modelContext: whisperState.modelContext
+                modelContext: whisperState.modelContext,
+                onPartialTranscript: { [weak whisperState] text in
+                    whisperState?.partialTranscript = text
+                }
             )
             let fallback = service(for: model.provider)
             return StreamingTranscriptionSession(streamingService: streamingService, fallbackService: fallback)

@@ -31,7 +31,7 @@ struct NotchRecorderView: View {
     }
     
     private var leftSection: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
             RecorderPromptButton(
                 activePopover: $activePopover,
                 buttonSize: 22,
@@ -48,6 +48,7 @@ struct NotchRecorderView: View {
         }
         .frame(width: 64)
         .padding(.leading, 16)
+        .padding(.leading, 4)
     }
     
     private var centerSection: some View {
@@ -64,6 +65,7 @@ struct NotchRecorderView: View {
         }
         .frame(width: 64)
         .padding(.trailing, 16)
+        .padding(.trailing, 4)
     }
     
     private var statusDisplay: some View {
@@ -75,25 +77,65 @@ struct NotchRecorderView: View {
         .frame(width: 70)
         .padding(.trailing, 8)
     }
-    
+
+    private var hasTranscript: Bool {
+        !whisperState.partialTranscript.isEmpty
+    }
+
+    private var topCornerRadius: CGFloat {
+        6
+    }
+
+    private var bottomCornerRadius: CGFloat {
+        10
+    }
+
+    private var bottomSection: some View {
+        VStack(spacing: 0) {
+            Divider()
+                .background(Color.white.opacity(0.15))
+
+            Text(whisperState.recordingState == .recording ? whisperState.partialTranscript : "")
+                .font(.system(size: 11))
+                .foregroundColor(.white.opacity(0.8))
+                .lineLimit(1)
+                .truncationMode(.head)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 5)
+        }
+    }
+
     var body: some View {
         Group {
             if windowManager.isVisible {
-                HStack(spacing: 0) {
-                    leftSection
-                    centerSection
-                    rightSection
+                VStack(spacing: 0) {
+                    HStack(spacing: 0) {
+                        leftSection
+                        centerSection
+                        rightSection
+                    }
+                    .frame(height: menuBarHeight)
+
+                    if hasTranscript {
+                        bottomSection
+                            .transition(.opacity)
+                    }
                 }
-                .frame(height: menuBarHeight)
                 .background(Color.black)
                 .mask {
-                    NotchShape(cornerRadius: 10)
+                    NotchShape(
+                        topCornerRadius: topCornerRadius,
+                        bottomCornerRadius: bottomCornerRadius
+                    )
                 }
                 .clipped()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .onHover { hovering in
                     isHovering = hovering
                 }
                 .opacity(windowManager.isVisible ? 1 : 0)
+                .animation(.easeInOut(duration: 0.2), value: hasTranscript)
             }
         }
     }
