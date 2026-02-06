@@ -79,7 +79,7 @@ struct NotchRecorderView: View {
     }
 
     private var hasTranscript: Bool {
-        !whisperState.partialTranscript.isEmpty
+        whisperState.recordingState == .recording && !whisperState.partialTranscript.isEmpty
     }
 
     private var topCornerRadius: CGFloat {

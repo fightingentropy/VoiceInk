@@ -50,7 +50,7 @@ class StreamingTranscriptionService {
     private var committedSegments: [String] = []
     private let parakeetService: ParakeetTranscriptionService
     private let modelContext: ModelContext
-    private let onPartialTranscript: ((String) -> Void)?
+    private var onPartialTranscript: ((String) -> Void)?
 
     init(parakeetService: ParakeetTranscriptionService, modelContext: ModelContext, onPartialTranscript: ((String) -> Void)? = nil) {
         self.parakeetService = parakeetService
@@ -59,6 +59,7 @@ class StreamingTranscriptionService {
     }
 
     deinit {
+        onPartialTranscript = nil
         sendTask?.cancel()
         eventConsumerTask?.cancel()
         chunkSource.finish()
@@ -141,6 +142,7 @@ class StreamingTranscriptionService {
     /// Cancels the streaming session without waiting for results.
     func cancel() {
         state = .cancelled
+        onPartialTranscript = nil
         eventConsumerTask?.cancel()
         eventConsumerTask = nil
         sendTask?.cancel()
@@ -283,6 +285,7 @@ class StreamingTranscriptionService {
     }
 
     private func cleanupStreaming() async {
+        onPartialTranscript = nil
         eventConsumerTask?.cancel()
         eventConsumerTask = nil
         sendTask?.cancel()

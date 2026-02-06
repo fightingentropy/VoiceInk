@@ -148,6 +148,7 @@ class WhisperState: NSObject, ObservableObject {
         logger.notice("toggleRecord called – state=\(String(describing: self.recordingState))")
         if recordingState == .recording {
             partialTranscript = ""
+            recordingState = .transcribing
             await recorder.stopRecording()
             if let recordedFile {
                 if !shouldCancelRecording {
@@ -194,6 +195,7 @@ class WhisperState: NSObject, ObservableObject {
                 return
             }
             shouldCancelRecording = false
+            partialTranscript = ""
             requestRecordPermission { [self] granted in
                 if granted {
                     Task {
