@@ -11,7 +11,6 @@ final class ParakeetStreamingProvider: StreamingTranscriptionProvider {
     private let parakeetService: ParakeetTranscriptionService
     private var streamingManager: StreamingAsrManager?
     private var eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation?
-    private var updateConsumerTask: Task<Void, Never>?
 
     private(set) var transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
 
@@ -23,7 +22,6 @@ final class ParakeetStreamingProvider: StreamingTranscriptionProvider {
     }
 
     deinit {
-        updateConsumerTask?.cancel()
         eventsContinuation?.finish()
     }
 
@@ -34,8 +32,6 @@ final class ParakeetStreamingProvider: StreamingTranscriptionProvider {
         let manager = StreamingAsrManager(config: .streaming)
         try await manager.start(models: models)
         self.streamingManager = manager
-
-        startUpdateConsumer()
 
         eventsContinuation?.yield(.sessionStarted)
         logger.notice("Parakeet streaming started for \(model.displayName)")
@@ -61,9 +57,6 @@ final class ParakeetStreamingProvider: StreamingTranscriptionProvider {
     }
 
     func disconnect() async {
-        updateConsumerTask?.cancel()
-        updateConsumerTask = nil
-
         if let manager = streamingManager {
             await manager.cancel()
         }
@@ -74,19 +67,6 @@ final class ParakeetStreamingProvider: StreamingTranscriptionProvider {
     }
 
     // MARK: - Private
-
-    private func startUpdateConsumer() {
-        guard let manager = streamingManager else { return }
-
-        updateConsumerTask = Task { [weak self] in
-            for await update in await manager.transcriptionUpdates {
-                guard let self = self else { break }
-                if !update.text.isEmpty {
-                    self.eventsContinuation?.yield(.partial(text: update.text))
-                }
-            }
-        }
-    }
 
     /// Converts raw PCM Int16 16kHz mono Data to a Float32 AVAudioPCMBuffer
     /// that FluidAudio's AudioConverter can process.
