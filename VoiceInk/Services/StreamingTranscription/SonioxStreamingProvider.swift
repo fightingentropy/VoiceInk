@@ -116,10 +116,13 @@ final class SonioxStreamingProvider: StreamingTranscriptionProvider {
             "num_channels": 1
         ]
 
-        // Add language hints if specified
         let selectedLanguage = language ?? UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "auto"
         if selectedLanguage != "auto" && !selectedLanguage.isEmpty {
             config["language_hints"] = [selectedLanguage]
+            config["language_hints_strict"] = true
+            config["enable_language_identification"] = true
+        } else {
+            config["enable_language_identification"] = true
         }
 
         // Add custom vocabulary context
