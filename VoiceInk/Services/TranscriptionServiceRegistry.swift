@@ -42,7 +42,10 @@ class TranscriptionServiceRegistry {
     /// Creates a streaming or file-based session depending on the model's capabilities.
     func createSession(for model: any TranscriptionModel) -> TranscriptionSession {
         if supportsStreaming(model: model) {
-            let streamingService = StreamingTranscriptionService(parakeetService: parakeetTranscriptionService)
+            let streamingService = StreamingTranscriptionService(
+                parakeetService: parakeetTranscriptionService,
+                modelContext: whisperState.modelContext
+            )
             let fallback = service(for: model.provider)
             return StreamingTranscriptionSession(streamingService: streamingService, fallbackService: fallback)
         } else {
@@ -59,6 +62,8 @@ class TranscriptionServiceRegistry {
             return true
         case .mistral:
             return model.name == "voxtral-mini-transcribe-realtime-2602"
+        case .soniox:
+            return model.name == "stt-rt-v4"
         default:
             return false
         }

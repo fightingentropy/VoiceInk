@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import os
 
 /// Sendable source that bridges audio chunks from any thread into an AsyncStream.
@@ -48,9 +49,11 @@ class StreamingTranscriptionService {
     private var state: StreamingState = .idle
     private var committedSegments: [String] = []
     private let parakeetService: ParakeetTranscriptionService
+    private let modelContext: ModelContext
 
-    init(parakeetService: ParakeetTranscriptionService) {
+    init(parakeetService: ParakeetTranscriptionService, modelContext: ModelContext) {
         self.parakeetService = parakeetService
+        self.modelContext = modelContext
     }
 
     deinit {
@@ -167,6 +170,8 @@ class StreamingTranscriptionService {
             return ParakeetStreamingProvider(parakeetService: parakeetService)
         case .mistral:
             return MistralStreamingProvider()
+        case .soniox:
+            return SonioxStreamingProvider(modelContext: modelContext)
         default:
             fatalError("Unsupported streaming provider: \(model.provider). Check supportsStreaming() before calling startStreaming().")
         }

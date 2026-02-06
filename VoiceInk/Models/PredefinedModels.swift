@@ -322,11 +322,21 @@ import Foundation
         ,
         CloudModel(
             name: "stt-async-v4",
-            displayName: "Soniox (stt-async-v4)",
+            displayName: "Soniox V4",
             description: "Soniox asynchronous transcription model v4 with human-parity accuracy across 60+ languages.",
             provider: .soniox,
             speed: 0.8,
             accuracy: 0.97,
+            isMultilingual: true,
+            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .soniox)
+        ),
+        CloudModel(
+            name: "stt-rt-v4",
+            displayName: "Soniox Realtime V4",
+            description: "Soniox real-time streaming model v4 for low-latency voice interactions with 60+ language support.",
+            provider: .soniox,
+            speed: 0.95,
+            accuracy: 0.96,
             isMultilingual: true,
             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .soniox)
         )
