@@ -182,7 +182,7 @@ struct AudioTranscribeView: View {
                 .padding(.horizontal)
             }
             
-            Text("Supported formats: WAV, MP3, M4A, AIFF, MP4, MOV")
+            Text("Supported formats: WAV, MP3, M4A, AIFF, MP4, MOV, AAC, FLAC, CAF, AMR, OGG, OPUS, 3GP")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
