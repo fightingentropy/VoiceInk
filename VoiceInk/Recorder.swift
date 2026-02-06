@@ -18,6 +18,8 @@ class Recorder: NSObject, ObservableObject {
     private var audioMeterUpdateTask: Task<Void, Never>?
     private var audioRestorationTask: Task<Void, Never>?
     private var hasDetectedAudioInCurrentSession = false
+    private var smoothedAverage: Float = 0
+    private var smoothedPeak: Float = 0
 
     /// Audio chunk callback for streaming. Can be updated while recording;
     /// changes are forwarded to the live CoreAudioRecorder.
@@ -200,6 +202,8 @@ class Recorder: NSObject, ObservableObject {
         recorder?.stopRecording()
         recorder = nil
         onAudioChunk = nil
+        smoothedAverage = 0
+        smoothedPeak = 0
         audioMeter = AudioMeter(averagePower: 0, peakPower: 0)
 
         audioRestorationTask = Task {
@@ -251,7 +255,10 @@ class Recorder: NSObject, ObservableObject {
             normalizedPeak = (peakPower - minVisibleDb) / (maxVisibleDb - minVisibleDb)
         }
 
-        let newAudioMeter = AudioMeter(averagePower: Double(normalizedAverage), peakPower: Double(normalizedPeak))
+        smoothedAverage = smoothedAverage * 0.6 + normalizedAverage * 0.4
+        smoothedPeak = smoothedPeak * 0.6 + normalizedPeak * 0.4
+
+        let newAudioMeter = AudioMeter(averagePower: Double(smoothedAverage), peakPower: Double(smoothedPeak))
 
         if !hasDetectedAudioInCurrentSession && newAudioMeter.averagePower > 0.01 {
             hasDetectedAudioInCurrentSession = true
