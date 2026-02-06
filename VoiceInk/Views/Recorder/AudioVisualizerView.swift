@@ -37,7 +37,9 @@ struct AudioVisualizer: View {
             updateWave(level: isActive ? newValue.averagePower : 0)
         }
         .onChange(of: isActive) { _, active in
-            if !active { resetWave() }
+            if !active {
+                resetWave()
+            }
         }
     }
 
