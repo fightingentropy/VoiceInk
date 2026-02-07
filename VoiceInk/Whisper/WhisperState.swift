@@ -28,7 +28,7 @@ class WhisperState: NSObject, ObservableObject {
     @Published var clipboardMessage = ""
     @Published var miniRecorderError: String?
     @Published var shouldCancelRecording = false
-    @Published var partialTranscript: String = ""
+    var partialTranscript: String = ""
     var currentSession: TranscriptionSession?
 
 
@@ -224,7 +224,11 @@ class WhisperState: NSObject, ObservableObject {
 
                             // Create session with the resolved model (skip if user already stopped)
                             if self.recordingState == .recording, let model = self.currentTranscriptionModel {
-                                let session = self.serviceRegistry.createSession(for: model)
+                                let session = self.serviceRegistry.createSession(for: model, onPartialTranscript: { [weak self] partial in
+                                    Task { @MainActor in
+                                        self?.partialTranscript = partial
+                                    }
+                                })
                                 self.currentSession = session
                                 let realCallback = try await session.prepare(model: model)
 

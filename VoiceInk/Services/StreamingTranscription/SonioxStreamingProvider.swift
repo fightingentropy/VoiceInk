@@ -12,8 +12,6 @@ final class SonioxStreamingProvider: StreamingTranscriptionProvider {
     private var receiveTask: Task<Void, Never>?
     private let modelContext: ModelContext
 
-    /// Accumulated non-final tokens for partial transcription.
-    private var partialText = ""
     /// Accumulated final tokens for committed transcription.
     private var finalText = ""
 
@@ -96,7 +94,6 @@ final class SonioxStreamingProvider: StreamingTranscriptionProvider {
         urlSession?.invalidateAndCancel()
         urlSession = nil
         eventsContinuation?.finish()
-        partialText = ""
         finalText = ""
         logger.notice("WebSocket disconnected")
     }
@@ -261,7 +258,6 @@ final class SonioxStreamingProvider: StreamingTranscriptionProvider {
         // Accumulate final text from this batch
         if !newFinalText.isEmpty {
             finalText += newFinalText
-            logger.debug("Accumulated final text: +\(newFinalText.count) chars, total: \(self.finalText.count) chars")
         }
 
         // If we saw <fin> marker, yield ALL accumulated final text (including tokens from this batch)
@@ -269,14 +265,10 @@ final class SonioxStreamingProvider: StreamingTranscriptionProvider {
             logger.notice("Finalization complete, total final text: \(self.finalText.count) chars")
             eventsContinuation?.yield(.committed(text: finalText))
             finalText = ""
-        }
-
-        // Update partial text (replace, not accumulate, since it's provisional)
-        if !newPartialText.isEmpty {
-            partialText = newPartialText
-            let fullPartial = finalText + partialText
-            logger.debug("Partial: \(fullPartial.suffix(60))")
-            eventsContinuation?.yield(.partial(text: fullPartial))
+        } else if !newPartialText.isEmpty {
+            // Show live partial: final text so far + current non-final tokens
+            let currentPartial = finalText + newPartialText
+            eventsContinuation?.yield(.partial(text: currentPartial))
         }
     }
 }

@@ -78,8 +78,29 @@ struct NotchRecorderView: View {
         .padding(.trailing, 8)
     }
 
-    private var hasTranscript: Bool {
-        whisperState.recordingState == .recording && !whisperState.partialTranscript.isEmpty
+    private var bottomSection: some View {
+        // TimelineView polls transcript at 10Hz and controls visibility
+        // Same pattern as AudioVisualizer - no forced re-renders
+        TimelineView(.animation(minimumInterval: 0.1)) { context in
+            let hasText = whisperState.recordingState == .recording && !whisperState.partialTranscript.isEmpty
+
+            VStack(spacing: 0) {
+                Divider()
+                    .background(Color.white.opacity(0.15))
+
+                Text(whisperState.partialTranscript)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.8))
+                    .lineLimit(1)
+                    .truncationMode(.head)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 5)
+            }
+            .opacity(hasText ? 1 : 0)
+            .frame(height: hasText ? nil : 0)
+            .clipped()
+        }
     }
 
     private var topCornerRadius: CGFloat {
@@ -88,22 +109,6 @@ struct NotchRecorderView: View {
 
     private var bottomCornerRadius: CGFloat {
         10
-    }
-
-    private var bottomSection: some View {
-        VStack(spacing: 0) {
-            Divider()
-                .background(Color.white.opacity(0.15))
-
-            Text(whisperState.recordingState == .recording ? whisperState.partialTranscript : "")
-                .font(.system(size: 11))
-                .foregroundColor(.white.opacity(0.8))
-                .lineLimit(1)
-                .truncationMode(.head)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 5)
-        }
     }
 
     var body: some View {
@@ -117,10 +122,7 @@ struct NotchRecorderView: View {
                     }
                     .frame(height: menuBarHeight)
 
-                    if hasTranscript {
-                        bottomSection
-                            .transition(.opacity)
-                    }
+                    bottomSection
                 }
                 .background(Color.black)
                 .mask {
@@ -135,7 +137,6 @@ struct NotchRecorderView: View {
                     isHovering = hovering
                 }
                 .opacity(windowManager.isVisible ? 1 : 0)
-                .animation(.easeInOut(duration: 0.2), value: hasTranscript)
             }
         }
     }

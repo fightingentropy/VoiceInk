@@ -191,7 +191,6 @@ final class MistralStreamingProvider: StreamingTranscriptionProvider {
         case "transcription.text.delta":
             if let deltaText = json["text"] as? String {
                 accumulatedText += deltaText
-                logger.debug("Delta: \(deltaText)")
                 eventsContinuation?.yield(.partial(text: accumulatedText))
             }
 

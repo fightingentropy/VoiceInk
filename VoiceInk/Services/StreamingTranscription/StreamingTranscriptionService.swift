@@ -244,7 +244,7 @@ class StreamingTranscriptionService {
                         self.logger.error("Streaming event error: \(error.localizedDescription)")
                     }
                 }
-            }
+            }  
         }
     }
 

@@ -177,7 +177,6 @@ final class ElevenLabsStreamingProvider: StreamingTranscriptionProvider {
         switch messageType {
         case "partial_transcript":
             if let transcript = json["text"] as? String {
-                logger.debug("Partial: \(transcript)")
                 eventsContinuation?.yield(.partial(text: transcript))
             }
 

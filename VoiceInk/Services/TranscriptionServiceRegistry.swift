@@ -40,14 +40,12 @@ class TranscriptionServiceRegistry {
     }
 
     /// Creates a streaming or file-based session depending on the model's capabilities.
-    func createSession(for model: any TranscriptionModel) -> TranscriptionSession {
+    func createSession(for model: any TranscriptionModel, onPartialTranscript: ((String) -> Void)? = nil) -> TranscriptionSession {
         if supportsStreaming(model: model) {
             let streamingService = StreamingTranscriptionService(
                 parakeetService: parakeetTranscriptionService,
                 modelContext: whisperState.modelContext,
-                onPartialTranscript: { [weak whisperState] text in
-                    whisperState?.partialTranscript = text
-                }
+                onPartialTranscript: onPartialTranscript
             )
             let fallback = service(for: model.provider)
             return StreamingTranscriptionSession(streamingService: streamingService, fallbackService: fallback)
