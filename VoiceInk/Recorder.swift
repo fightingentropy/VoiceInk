@@ -232,7 +232,7 @@ class Recorder: NSObject, ObservableObject {
 
     private func startAudioMeterTimer() {
         let timer = DispatchSource.makeTimerSource(queue: audioMeterQueue)
-        timer.schedule(deadline: .now(), repeating: .milliseconds(33)) // ~30Hz
+        timer.schedule(deadline: .now(), repeating: .milliseconds(17)) 
         timer.setEventHandler { [weak self] in
             self?.updateAudioMeter()
         }
