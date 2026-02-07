@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-/// ElevenLabs Scribe v2 realtime streaming provider using WebSocket.
+/// ElevenLabs Scribe V2 Real-Time streaming provider using WebSocket.
 final class ElevenLabsStreamingProvider: StreamingTranscriptionProvider {
 
     private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "ElevenLabsStreaming")

@@ -229,8 +229,8 @@ import Foundation
        ),
        CloudModel(
            name: "scribe_v2",
-           displayName: "Scribe v2 (ElevenLabs)",
-           description: "ElevenLabs' Scribe v2 model for the most accurate transcription.",
+           displayName: "Scribe V2 Real-Time (ElevenLabs)",
+           description: "ElevenLabs' Scribe V2 Real-Time model for the most accurate transcription.",
            provider: .elevenLabs,
            speed: 0.75,
            accuracy: 0.99,
