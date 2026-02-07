@@ -170,6 +170,8 @@ class StreamingTranscriptionService {
         switch model.provider {
         case .elevenLabs:
             return ElevenLabsStreamingProvider()
+        case .deepgram:
+            return DeepgramStreamingProvider(modelContext: modelContext)
         case .parakeet:
             return ParakeetStreamingProvider(parakeetService: parakeetService)
         case .mistral:
@@ -221,9 +223,6 @@ class StreamingTranscriptionService {
                     await MainActor.run {
                         if !trimmed.isEmpty {
                             self.committedSegments.append(trimmed)
-                            self.logger.notice("Accumulated committed segment #\(self.committedSegments.count): \(trimmed.prefix(60))…")
-                        } else {
-                            self.logger.notice("Empty committed response — commit acknowledged")
                         }
 
                         // Signal for any committed response (including empty) during committing phase.
@@ -273,11 +272,7 @@ class StreamingTranscriptionService {
         commitSignal?.finish()
         commitSignal = nil
 
-        if receivedInTime {
-            logger.notice("Commit acknowledged (total segments: \(self.committedSegments.count))")
-        } else if !committedSegments.isEmpty {
-            logger.warning("Timeout waiting for commit acknowledgment, returning \(self.committedSegments.count) accumulated segment(s)")
-        } else {
+        if !receivedInTime && committedSegments.isEmpty {
             logger.warning("No transcript received from streaming")
         }
 

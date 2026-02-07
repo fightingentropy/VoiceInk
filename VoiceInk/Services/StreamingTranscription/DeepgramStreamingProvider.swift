@@ -1,7 +1,8 @@
 import Foundation
+import SwiftData
 import os
 
-/// Deepgram Nova-3 Real-Time streaming provider using WebSocket.
+/// Deepgram Nova-3 streaming provider using WebSocket
 final class DeepgramStreamingProvider: StreamingTranscriptionProvider {
 
     private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "DeepgramStreaming")
@@ -10,10 +11,13 @@ final class DeepgramStreamingProvider: StreamingTranscriptionProvider {
     private var eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation?
     private var receiveTask: Task<Void, Never>?
     private var keepaliveTask: Task<Void, Never>?
+    private let modelContext: ModelContext
+    private var accumulatedFinalText = ""
 
     private(set) var transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
 
-    init() {
+    init(modelContext: ModelContext) {
+        self.modelContext = modelContext
         var continuation: AsyncStream<StreamingTranscriptionEvent>.Continuation!
         transcriptionEvents = AsyncStream { continuation = $0 }
         eventsContinuation = continuation
@@ -32,7 +36,6 @@ final class DeepgramStreamingProvider: StreamingTranscriptionProvider {
             throw StreamingTranscriptionError.missingAPIKey
         }
 
-        // Build the WebSocket URL with query parameters
         var components = URLComponents(string: "wss://api.deepgram.com/v1/listen")!
         var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "model", value: model.name),
@@ -40,12 +43,18 @@ final class DeepgramStreamingProvider: StreamingTranscriptionProvider {
             URLQueryItem(name: "sample_rate", value: "16000"),
             URLQueryItem(name: "channels", value: "1"),
             URLQueryItem(name: "smart_format", value: "true"),
-            URLQueryItem(name: "punctuate", value: "true"),
+            URLQueryItem(name: "numerals", value: "true"),
             URLQueryItem(name: "interim_results", value: "true")
         ]
 
         if let language = language, language != "auto", !language.isEmpty {
             queryItems.append(URLQueryItem(name: "language", value: language))
+        }
+
+        // Add custom vocabulary as keyterm parameters
+        let vocabularyTerms = getCustomVocabularyTerms()
+        for term in vocabularyTerms {
+            queryItems.append(URLQueryItem(name: "keyterm", value: term))
         }
 
         components.queryItems = queryItems
@@ -67,16 +76,13 @@ final class DeepgramStreamingProvider: StreamingTranscriptionProvider {
 
         logger.notice("WebSocket connecting to \(url.absoluteString)")
 
-        // Deepgram doesn't send a session_started message, connection is established when resume() succeeds
         eventsContinuation?.yield(.sessionStarted)
         logger.notice("Streaming session started")
 
-        // Start the background receive loop
         receiveTask = Task { [weak self] in
             await self?.receiveLoop()
         }
 
-        // Start keepalive timer (send keepalive every 5 seconds)
         keepaliveTask = Task { [weak self] in
             await self?.keepaliveLoop()
         }
@@ -87,7 +93,6 @@ final class DeepgramStreamingProvider: StreamingTranscriptionProvider {
             throw StreamingTranscriptionError.notConnected
         }
 
-        // Deepgram expects raw binary PCM data (NOT base64 encoded)
         try await task.send(.data(data))
     }
 
@@ -96,21 +101,17 @@ final class DeepgramStreamingProvider: StreamingTranscriptionProvider {
             throw StreamingTranscriptionError.notConnected
         }
 
-        // Send Finalize message to commit remaining audio
         let finalizeMessage: [String: Any] = ["type": "Finalize"]
         let jsonData = try JSONSerialization.data(withJSONObject: finalizeMessage)
         let jsonString = String(data: jsonData, encoding: .utf8)!
 
-        logger.notice("Sending finalize message")
         try await task.send(.string(jsonString))
     }
 
     func disconnect() async {
-        // Stop keepalive first
         keepaliveTask?.cancel()
         keepaliveTask = nil
 
-        // Send CloseStream message if still connected
         if let task = webSocketTask {
             do {
                 let closeMessage: [String: Any] = ["type": "CloseStream"]
@@ -118,7 +119,7 @@ final class DeepgramStreamingProvider: StreamingTranscriptionProvider {
                 let jsonString = String(data: jsonData, encoding: .utf8)!
                 try await task.send(.string(jsonString))
             } catch {
-                logger.warning("Failed to send CloseStream message: \(error.localizedDescription)")
+                // Ignore errors during disconnect
             }
         }
 
@@ -129,25 +130,25 @@ final class DeepgramStreamingProvider: StreamingTranscriptionProvider {
         urlSession?.invalidateAndCancel()
         urlSession = nil
         eventsContinuation?.finish()
+        accumulatedFinalText = ""
         logger.notice("WebSocket disconnected")
     }
 
     // MARK: - Private
 
     private func keepaliveLoop() async {
+        do { try await Task.sleep(nanoseconds: 5_000_000_000) } catch { return }
+
         while !Task.isCancelled {
+            guard let task = webSocketTask else { break }
+
             do {
-                // Wait 5 seconds between keepalives
-                try await Task.sleep(nanoseconds: 5_000_000_000)
-
-                guard let task = webSocketTask, !Task.isCancelled else { break }
-
                 let keepaliveMessage: [String: Any] = ["type": "KeepAlive"]
                 let jsonData = try JSONSerialization.data(withJSONObject: keepaliveMessage)
                 let jsonString = String(data: jsonData, encoding: .utf8)!
 
                 try await task.send(.string(jsonString))
-                logger.debug("Sent keepalive")
+                try await Task.sleep(nanoseconds: 5_000_000_000)
             } catch {
                 if !Task.isCancelled {
                     logger.warning("Keepalive error: \(error.localizedDescription)")
@@ -186,43 +187,80 @@ final class DeepgramStreamingProvider: StreamingTranscriptionProvider {
     private func handleMessage(_ text: String) {
         guard let data = text.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            logger.warning("Received unparseable message")
+            logger.warning("Failed to parse JSON message")
             return
         }
 
-        // Check for error messages
-        if let errorMessage = json["error"] as? String {
-            logger.error("Server error: \(errorMessage)")
-            eventsContinuation?.yield(.error(StreamingTranscriptionError.serverError(errorMessage)))
-            return
-        }
-
-        // Check for type field (control messages)
+        // Skip control messages
         if let type = json["type"] as? String {
-            logger.debug("Received control message: \(type)")
+            if type == "Metadata" || type == "SpeechStarted" || type == "UtteranceEnd" {
+                return
+            }
+        }
+
+        if let error = json["error"] as? String {
+            logger.error("Deepgram error: \(error)")
+            eventsContinuation?.yield(.error(StreamingTranscriptionError.serverError(error)))
             return
         }
 
-        // Parse transcription results
         guard let channel = json["channel"] as? [String: Any],
               let alternatives = channel["alternatives"] as? [[String: Any]],
+              !alternatives.isEmpty,
               let firstAlternative = alternatives.first,
-              let transcript = firstAlternative["transcript"] as? String,
-              !transcript.isEmpty else {
+              let transcript = firstAlternative["transcript"] as? String else {
             return
         }
 
-        // Check if this is a final result
         let isFinal = json["is_final"] as? Bool ?? false
         let speechFinal = json["speech_final"] as? Bool ?? false
 
         if isFinal || speechFinal {
-            // Final transcript
-            logger.notice("Final: \(transcript)")
-            eventsContinuation?.yield(.committed(text: transcript))
+            if !transcript.isEmpty {
+                if !accumulatedFinalText.isEmpty {
+                    accumulatedFinalText += " "
+                }
+                accumulatedFinalText += transcript
+                eventsContinuation?.yield(.committed(text: transcript))
+            } else {
+                eventsContinuation?.yield(.committed(text: ""))
+            }
         } else {
-            // Partial transcript
-            eventsContinuation?.yield(.partial(text: transcript))
+            // Show accumulated finals + current partial
+            if !transcript.isEmpty {
+                let fullPartial: String
+                if !accumulatedFinalText.isEmpty {
+                    fullPartial = accumulatedFinalText + " " + transcript
+                } else {
+                    fullPartial = transcript
+                }
+                eventsContinuation?.yield(.partial(text: fullPartial))
+            }
         }
+    }
+
+    private func getCustomVocabularyTerms() -> [String] {
+        let descriptor = FetchDescriptor<VocabularyWord>(sortBy: [SortDescriptor(\.word)])
+        guard let vocabularyWords = try? modelContext.fetch(descriptor) else {
+            return []
+        }
+
+        let words = vocabularyWords
+            .map { $0.word.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        // Deduplicate
+        var seen = Set<String>()
+        var unique: [String] = []
+        for w in words {
+            let key = w.lowercased()
+            if !seen.contains(key) {
+                seen.insert(key)
+                unique.append(w)
+            }
+        }
+
+        // Limit to 50 terms
+        return Array(unique.prefix(50))
     }
 }

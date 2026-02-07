@@ -229,8 +229,8 @@ import Foundation
        ),
        CloudModel(
            name: "scribe_v2",
-           displayName: "Scribe V2 Real-Time (ElevenLabs)",
-           description: "ElevenLabs' Scribe V2 Real-Time model for the most accurate transcription.",
+           displayName: "Scribe V2 Realtime (ElevenLabs)",
+           description: "ElevenLabs' Scribe V2 Realtime model for the most accurate transcription.",
            provider: .elevenLabs,
            speed: 0.75,
            accuracy: 0.99,
@@ -238,18 +238,18 @@ import Foundation
            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .elevenLabs)
        ),
        CloudModel(
-           name: "nova-2",
-           displayName: "Nova (Deepgram)",
-           description: "Deepgram's Nova model for fast, accurate, and cost-effective transcription.",
+           name: "nova-3",
+           displayName: "Nova 3 Realtime (Deepgram)",
+           description: "Deepgram's latest Nova 3 model with 54% lower WER and support for 40+ languages.",
            provider: .deepgram,
-           speed: 0.9,
-           accuracy: 0.95,
+           speed: 0.95,
+           accuracy: 0.97,
            isMultilingual: true,
            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .deepgram)
        ),
        CloudModel(
            name: "nova-3-medical",
-           displayName: "Nova-3 Medical (Deepgram)",
+           displayName: "Nova 3 Medical Realtime (Deepgram)",
            description: "Specialized medical transcription model optimized for clinical environments.",
            provider: .deepgram,
            speed: 0.9,

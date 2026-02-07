@@ -53,9 +53,8 @@ class DeepgramTranscriptionService {
         // Add language parameter if not auto-detect
         let selectedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "auto"
         
-        // Choose model based on language
-        let modelName = selectedLanguage == "en" ? "nova-3" : "nova-2"
-        queryItems.append(URLQueryItem(name: "model", value: modelName))
+        // Use the model name from the TranscriptionModel (nova-3 or nova-3-medical)
+        queryItems.append(URLQueryItem(name: "model", value: model.name))
         
         queryItems.append(contentsOf: [
             URLQueryItem(name: "smart_format", value: "true"),

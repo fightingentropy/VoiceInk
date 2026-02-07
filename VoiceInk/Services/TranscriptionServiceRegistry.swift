@@ -59,6 +59,8 @@ class TranscriptionServiceRegistry {
         switch model.provider {
         case .elevenLabs:
             return model.name == "scribe_v2"
+        case .deepgram:
+            return model.name == "nova-3" || model.name == "nova-3-medical"
         case .parakeet:
             return true
         case .mistral:
