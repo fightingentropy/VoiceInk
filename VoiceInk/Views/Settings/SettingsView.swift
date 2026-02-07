@@ -165,6 +165,8 @@ struct SettingsView: View {
                     label: "Restore Clipboard After Paste"
                 ) {
                     Picker("Restore Delay", selection: $clipboardRestoreDelay) {
+                        Text("250ms").tag(0.25)
+                        Text("500ms").tag(0.5)
                         Text("1s").tag(1.0)
                         Text("2s").tag(2.0)
                         Text("3s").tag(3.0)

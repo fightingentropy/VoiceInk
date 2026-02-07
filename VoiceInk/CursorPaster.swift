@@ -33,7 +33,7 @@ class CursorPaster {
 
         if shouldRestoreClipboard {
             let restoreDelay = UserDefaults.standard.double(forKey: "clipboardRestoreDelay")
-            let delay = restoreDelay > 0 ? restoreDelay : 2.0
+            let delay = max(restoreDelay, 0.25)
 
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                 if !savedContents.isEmpty {
