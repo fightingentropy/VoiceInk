@@ -52,7 +52,6 @@ final class ParakeetStreamingProvider: StreamingTranscriptionProvider {
         }
 
         let finalText = try await manager.finish()
-        logger.notice("Parakeet streaming finished: \(finalText.count) characters")
         eventsContinuation?.yield(.committed(text: finalText))
     }
 

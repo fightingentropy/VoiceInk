@@ -182,7 +182,6 @@ final class ElevenLabsStreamingProvider: StreamingTranscriptionProvider {
 
         case "committed_transcript", "committed_transcript_with_timestamps":
             if let transcript = json["text"] as? String {
-                logger.notice("Committed: \(transcript)")
                 eventsContinuation?.yield(.committed(text: transcript))
             }
 

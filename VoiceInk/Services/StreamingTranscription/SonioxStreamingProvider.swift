@@ -208,7 +208,6 @@ final class SonioxStreamingProvider: StreamingTranscriptionProvider {
             logger.notice("Received finished signal - session complete")
             // Yield any remaining accumulated final text
             if !finalText.isEmpty {
-                logger.notice("Session finished, yielding final text: \(self.finalText.count) chars")
                 eventsContinuation?.yield(.committed(text: finalText))
                 finalText = ""
             } else {
@@ -262,7 +261,6 @@ final class SonioxStreamingProvider: StreamingTranscriptionProvider {
 
         // If we saw <fin> marker, yield ALL accumulated final text (including tokens from this batch)
         if sawFinMarker {
-            logger.notice("Finalization complete, total final text: \(self.finalText.count) chars")
             eventsContinuation?.yield(.committed(text: finalText))
             finalText = ""
         } else if !newPartialText.isEmpty {

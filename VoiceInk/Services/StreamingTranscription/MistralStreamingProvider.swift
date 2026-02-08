@@ -196,14 +196,12 @@ final class MistralStreamingProvider: StreamingTranscriptionProvider {
 
         case "transcription.done":
             let finalText = accumulatedText
-            logger.notice("Transcription done, accumulated text: \(finalText.prefix(80))…")
             eventsContinuation?.yield(.committed(text: finalText))
             accumulatedText = ""
 
         case "transcription.segment":
-            // Segment events may contain finalized segment text; log for now
+            // Segment events may contain finalized segment text
             if let segmentText = json["text"] as? String {
-                logger.debug("Segment: \(segmentText.prefix(60))")
             }
 
         case "transcription.language":
