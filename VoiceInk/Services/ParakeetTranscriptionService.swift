@@ -57,10 +57,16 @@ class ParakeetTranscriptionService: TranscriptionService {
         do {
             let models = try await task.value
             self.cachedModels = models
-            self.loadingTask = nil
+            // Only clear if we're still the current loading task
+            if loadingTask?.version == version {
+                self.loadingTask = nil
+            }
             return models
         } catch {
-            self.loadingTask = nil
+            // Only clear if we're still the current loading task
+            if loadingTask?.version == version {
+                self.loadingTask = nil
+            }
             throw error
         }
     }
