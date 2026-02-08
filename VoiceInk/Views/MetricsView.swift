@@ -5,7 +5,6 @@ import KeyboardShortcuts
 
 struct MetricsView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Transcription.timestamp) private var transcriptions: [Transcription]
     @EnvironmentObject private var whisperState: WhisperState
     @EnvironmentObject private var hotkeyManager: HotkeyManager
     @StateObject private var licenseViewModel = LicenseViewModel()
@@ -44,7 +43,7 @@ struct MetricsView: View {
             }
 
             MetricsContent(
-                transcriptions: Array(transcriptions),
+                modelContext: modelContext,
                 licenseState: licenseViewModel.licenseState
             )
         }

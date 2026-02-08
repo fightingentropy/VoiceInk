@@ -82,6 +82,7 @@ class TranscriptionAutoCleanupService {
 
         do {
             try modelContext.save()
+            NotificationCenter.default.post(name: .transcriptionDeleted, object: nil)
         } catch {
             logger.error("Failed to save after transcription deletion: \(error.localizedDescription)")
         }
@@ -97,25 +98,33 @@ class TranscriptionAutoCleanupService {
 
         let cutoffDate = Date().addingTimeInterval(TimeInterval(-effectiveMinutes * 60))
 
+        let modelContainer = await MainActor.run { modelContext.container }
+
         do {
-            try await MainActor.run {
-                let descriptor = FetchDescriptor<Transcription>(
-                    predicate: #Predicate<Transcription> { transcription in
-                        transcription.timestamp < cutoffDate
-                    }
-                )
-                let items = try modelContext.fetch(descriptor)
-                var deletedCount = 0
-                for transcription in items {
-                    if let urlString = transcription.audioFileURL,
-                       let url = URL(string: urlString),
-                       FileManager.default.fileExists(atPath: url.path) {
-                        try? FileManager.default.removeItem(at: url)
-                    }
-                    modelContext.delete(transcription)
-                    deletedCount += 1
+            let backgroundContext = ModelContext(modelContainer)
+
+            let descriptor = FetchDescriptor<Transcription>(
+                predicate: #Predicate<Transcription> { transcription in
+                    transcription.timestamp < cutoffDate
                 }
-                if deletedCount > 0 { try modelContext.save() }
+            )
+            let items = try backgroundContext.fetch(descriptor)
+            var deletedCount = 0
+            for transcription in items {
+                if let urlString = transcription.audioFileURL,
+                   let url = URL(string: urlString),
+                   FileManager.default.fileExists(atPath: url.path) {
+                    try? FileManager.default.removeItem(at: url)
+                }
+                backgroundContext.delete(transcription)
+                deletedCount += 1
+            }
+            if deletedCount > 0 {
+                try backgroundContext.save()
+                logger.notice("Cleaned up \(deletedCount) old transcription(s)")
+                await MainActor.run {
+                    NotificationCenter.default.post(name: .transcriptionDeleted, object: nil)
+                }
             }
         } catch {
             logger.error("Failed during transcription cleanup: \(error.localizedDescription)")
@@ -128,34 +137,38 @@ class TranscriptionAutoCleanupService {
             return
         }
 
+        let modelContainer = await MainActor.run { modelContext.container }
+
         do {
-            try await MainActor.run {
-                let descriptor = FetchDescriptor<Transcription>()
-                let transcriptions = try modelContext.fetch(descriptor)
-                let referencedFiles = Set(transcriptions.compactMap { transcription -> String? in
-                    guard let urlString = transcription.audioFileURL,
-                          let url = URL(string: urlString) else { return nil }
-                    return url.lastPathComponent
-                })
+            let backgroundContext = ModelContext(modelContainer)
 
-                guard FileManager.default.fileExists(atPath: recordingsDirectory.path) else { return }
-                let filesInDirectory = try FileManager.default.contentsOfDirectory(
-                    at: recordingsDirectory,
-                    includingPropertiesForKeys: nil
-                )
+            var descriptor = FetchDescriptor<Transcription>()
+            descriptor.propertiesToFetch = [\.audioFileURL]
 
-                var deletedCount = 0
-                for fileURL in filesInDirectory {
-                    let fileName = fileURL.lastPathComponent
-                    if !referencedFiles.contains(fileName) {
-                        try? FileManager.default.removeItem(at: fileURL)
-                        deletedCount += 1
-                    }
+            let transcriptions = try backgroundContext.fetch(descriptor)
+            let referencedFiles = Set(transcriptions.compactMap { transcription -> String? in
+                guard let urlString = transcription.audioFileURL,
+                      let url = URL(string: urlString) else { return nil }
+                return url.lastPathComponent
+            })
+
+            guard FileManager.default.fileExists(atPath: recordingsDirectory.path) else { return }
+            let filesInDirectory = try FileManager.default.contentsOfDirectory(
+                at: recordingsDirectory,
+                includingPropertiesForKeys: nil
+            )
+
+            var deletedCount = 0
+            for fileURL in filesInDirectory {
+                let fileName = fileURL.lastPathComponent
+                if !referencedFiles.contains(fileName) {
+                    try? FileManager.default.removeItem(at: fileURL)
+                    deletedCount += 1
                 }
+            }
 
-                if deletedCount > 0 {
-                    logger.notice("Cleaned up \(deletedCount) orphan audio file(s)")
-                }
+            if deletedCount > 0 {
+                logger.notice("Cleaned up \(deletedCount) orphan audio file(s)")
             }
         } catch {
             logger.error("Failed during orphan audio cleanup: \(error.localizedDescription)")

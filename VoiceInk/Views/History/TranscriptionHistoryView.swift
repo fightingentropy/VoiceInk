@@ -401,6 +401,7 @@ struct TranscriptionHistoryView: View {
     private func saveAndReload() async {
         do {
             try modelContext.save()
+            NotificationCenter.default.post(name: .transcriptionDeleted, object: nil)
             await loadInitialContent()
         } catch {
             print("Error saving deletion: \(error.localizedDescription)")

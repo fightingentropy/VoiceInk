@@ -430,9 +430,8 @@ class WhisperState: NSObject, ObservableObject {
             transcription.transcriptionStatus = TranscriptionStatus.failed.rawValue
         }
 
-        // --- Finalize and save ---
         try? modelContext.save()
-        
+
         if transcription.transcriptionStatus == TranscriptionStatus.completed.rawValue {
             NotificationCenter.default.post(name: .transcriptionCompleted, object: transcription)
         }
