@@ -8,7 +8,6 @@ class Recorder: NSObject, ObservableObject {
     private var recorder: CoreAudioRecorder?
     private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "Recorder")
     private let deviceManager = AudioDeviceManager.shared
-    private var deviceObserver: NSObjectProtocol?
     private var deviceSwitchObserver: NSObjectProtocol?
     private var isReconfiguring = false
     private let mediaController = MediaController.shared
@@ -35,16 +34,7 @@ class Recorder: NSObject, ObservableObject {
     
     override init() {
         super.init()
-        setupDeviceChangeObserver()
         setupDeviceSwitchObserver()
-    }
-
-    private func setupDeviceChangeObserver() {
-        deviceObserver = AudioDeviceConfiguration.createDeviceChangeObserver { [weak self] in
-            Task {
-                await self?.handleDeviceChange()
-            }
-        }
     }
 
     private func setupDeviceSwitchObserver() {
@@ -57,29 +47,6 @@ class Recorder: NSObject, ObservableObject {
                 await self?.handleDeviceSwitchRequired(notification)
             }
         }
-    }
-
-    private func handleDeviceChange() async {
-        logger.notice("handleDeviceChange called")
-        guard !isReconfiguring else {
-            logger.notice("handleDeviceChange: skipped, already reconfiguring")
-            return
-        }
-        guard recorder != nil else {
-            logger.notice("handleDeviceChange: skipped, no active recorder")
-            return
-        }
-
-        isReconfiguring = true
-
-        try? await Task.sleep(nanoseconds: 200_000_000)
-
-        logger.notice("handleDeviceChange: posting .toggleMiniRecorder notification")
-        await MainActor.run {
-            NotificationCenter.default.post(name: .toggleMiniRecorder, object: nil)
-        }
-
-        isReconfiguring = false
     }
 
     private func handleDeviceSwitchRequired(_ notification: Notification) async {
@@ -292,9 +259,6 @@ class Recorder: NSObject, ObservableObject {
         audioLevelCheckTask?.cancel()
         audioMeterUpdateTimer?.cancel()
         audioRestorationTask?.cancel()
-        if let observer = deviceObserver {
-            NotificationCenter.default.removeObserver(observer)
-        }
         if let observer = deviceSwitchObserver {
             NotificationCenter.default.removeObserver(observer)
         }
