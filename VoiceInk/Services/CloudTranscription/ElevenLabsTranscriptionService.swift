@@ -24,12 +24,7 @@ class ElevenLabsTranscriptionService {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw CloudTranscriptionError.networkError(URLError(.badServerResponse))
         }
-        
-        logger.notice("ElevenLabs API Response Status: \(httpResponse.statusCode)")
-        if let responseBody = String(data: data, encoding: .utf8) {
-            logger.notice("ElevenLabs API Response Body: \(responseBody)")
-        }
-        
+
         if !(200...299).contains(httpResponse.statusCode) {
             let errorMessage = String(data: data, encoding: .utf8) ?? "No error message"
             throw CloudTranscriptionError.apiRequestFailed(statusCode: httpResponse.statusCode, message: errorMessage)
