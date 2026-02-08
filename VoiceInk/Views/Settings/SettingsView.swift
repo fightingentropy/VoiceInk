@@ -242,48 +242,6 @@ struct SettingsView: View {
                 Text("Control how VoiceInk handles your transcription data and audio recordings.")
             }
 
-            // MARK: - Data Management
-            Section {
-                LabeledContent {
-                    Button("Import") {
-                        ImportExportService.shared.importSettings(
-                            enhancementService: enhancementService,
-                            whisperPrompt: whisperState.whisperPrompt,
-                            hotkeyManager: hotkeyManager,
-                            menuBarManager: menuBarManager,
-                            mediaController: MediaController.shared,
-                            playbackController: PlaybackController.shared,
-                            soundManager: SoundManager.shared,
-                            whisperState: whisperState
-                        )
-                    }
-                } label: {
-                    Text("Import Settings")
-                }
-
-                LabeledContent {
-                    Button("Export") {
-                        ImportExportService.shared.exportSettings(
-                            enhancementService: enhancementService,
-                            whisperPrompt: whisperState.whisperPrompt,
-                            hotkeyManager: hotkeyManager,
-                            menuBarManager: menuBarManager,
-                            mediaController: MediaController.shared,
-                            playbackController: PlaybackController.shared,
-                            soundManager: SoundManager.shared,
-                            whisperState: whisperState
-                        )
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Text("Export Settings")
-                        InfoTip("Export prompts, power modes, word replacements, shortcuts, and preferences. API keys are never included.")
-                    }
-                }
-            } header: {
-                Text("Data Management")
-            }
-
             // MARK: - Diagnostics
             Section("Diagnostics") {
                 DiagnosticsSettingsView()
