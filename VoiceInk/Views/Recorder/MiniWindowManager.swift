@@ -36,7 +36,7 @@ class MiniWindowManager: ObservableObject {
         let activeScreen = NSApp.keyWindow?.screen ?? NSScreen.main ?? NSScreen.screens[0]
 
         initializeWindow(screen: activeScreen)
-        self.isVisible = true
+        self.isVisible = true 
         miniPanel?.show()
     }
 

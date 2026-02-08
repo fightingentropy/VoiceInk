@@ -61,11 +61,15 @@ extension WhisperState {
         }
 
         let wasRecording = recordingState == .recording
- 
+
         await MainActor.run {
             self.recordingState = .busy
         }
-        
+
+        // Cancel and release any active streaming session to prevent resource leaks.
+        currentSession?.cancel()
+        currentSession = nil
+
         if wasRecording {
             await recorder.stopRecording()
         }

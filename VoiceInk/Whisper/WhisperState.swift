@@ -9,6 +9,7 @@ import os
 // MARK: - Recording State Machine
 enum RecordingState: Equatable {
     case idle
+    case starting
     case recording
     case transcribing
     case enhancing
@@ -27,6 +28,8 @@ class WhisperState: NSObject, ObservableObject {
     @Published var clipboardMessage = ""
     @Published var miniRecorderError: String?
     @Published var shouldCancelRecording = false
+    var partialTranscript: String = ""
+    var currentSession: TranscriptionSession?
 
 
     @Published var recorderType: String = UserDefaults.standard.string(forKey: "RecorderType") ?? "mini" {
@@ -144,6 +147,8 @@ class WhisperState: NSObject, ObservableObject {
     func toggleRecord(powerModeId: UUID? = nil) async {
         logger.notice("toggleRecord called – state=\(String(describing: self.recordingState))")
         if recordingState == .recording {
+            partialTranscript = ""
+            recordingState = .transcribing
             await recorder.stopRecording()
             if let recordedFile {
                 if !shouldCancelRecording {
@@ -162,6 +167,8 @@ class WhisperState: NSObject, ObservableObject {
 
                     await transcribeAudio(on: transcription)
                 } else {
+                    currentSession?.cancel()
+                    currentSession = nil
                     try? FileManager.default.removeItem(at: recordedFile)
                     await MainActor.run {
                         recordingState = .idle
@@ -170,6 +177,8 @@ class WhisperState: NSObject, ObservableObject {
                 }
             } else {
                 logger.error("❌ No recorded file found after stopping recording")
+                currentSession?.cancel()
+                currentSession = nil
                 await MainActor.run {
                     recordingState = .idle
                 }
@@ -186,6 +195,7 @@ class WhisperState: NSObject, ObservableObject {
                 return
             }
             shouldCancelRecording = false
+            partialTranscript = ""
             requestRecordPermission { [self] granted in
                 if granted {
                     Task {
@@ -195,6 +205,13 @@ class WhisperState: NSObject, ObservableObject {
                             let permanentURL = self.recordingsDirectory.appendingPathComponent(fileName)
                             self.recordedFile = permanentURL
 
+                            // Buffer chunks from the start; session created after Power Mode resolves
+                            let pendingChunks = OSAllocatedUnfairLock(initialState: [Data]())
+                            self.recorder.onAudioChunk = { data in
+                                pendingChunks.withLock { $0.append(data) }
+                            }
+
+                            // Start recording immediately — no waiting for network
                             try await self.recorder.startRecording(toOutputFile: permanentURL)
 
                             await MainActor.run {
@@ -202,9 +219,33 @@ class WhisperState: NSObject, ObservableObject {
                             }
                             self.logger.notice("toggleRecord: recording started successfully, state=recording")
 
-                            // Detect and apply Power Mode for current app/website in background
-                            Task {
-                                await ActiveWindowService.shared.applyConfiguration(powerModeId: powerModeId)
+                            // Power Mode resolves while recording runs (~50-200ms)
+                            await ActiveWindowService.shared.applyConfiguration(powerModeId: powerModeId)
+
+                            // Create session with the resolved model (skip if user already stopped)
+                            if self.recordingState == .recording, let model = self.currentTranscriptionModel {
+                                let session = self.serviceRegistry.createSession(for: model, onPartialTranscript: { [weak self] partial in
+                                    Task { @MainActor in
+                                        self?.partialTranscript = partial
+                                    }
+                                })
+                                self.currentSession = session
+                                let realCallback = try await session.prepare(model: model)
+
+                                if let realCallback = realCallback {
+                                    // Swap callback first so new chunks go straight to the session
+                                    self.recorder.onAudioChunk = realCallback
+                                    // Then flush anything that was buffered before the swap
+                                    let buffered = pendingChunks.withLock { chunks -> [Data] in
+                                        let result = chunks
+                                        chunks.removeAll()
+                                        return result
+                                    }
+                                    for chunk in buffered { realCallback(chunk) }
+                                } else {
+                                    self.recorder.onAudioChunk = nil
+                                    pendingChunks.withLock { $0.removeAll() }
+                                }
                             }
 
                             // Load model and capture context in background without blocking
@@ -307,8 +348,14 @@ class WhisperState: NSObject, ObservableObject {
             }
 
             let transcriptionStart = Date()
-            var text = try await serviceRegistry.transcribe(audioURL: url, model: model)
-            logger.notice("📝 Raw transcript: \(text, privacy: .public)")
+            var text: String
+            if let session = currentSession {
+                text = try await session.transcribe(audioURL: url)
+                currentSession = nil
+            } else {
+                text = try await serviceRegistry.transcribe(audioURL: url, model: model)
+            }
+            logger.notice("📝 Transcript: \(text, privacy: .public)")
             text = TranscriptionOutputFilter.filter(text)
             logger.notice("📝 Output filter result: \(text, privacy: .public)")
             let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)

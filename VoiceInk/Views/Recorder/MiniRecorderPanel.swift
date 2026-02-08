@@ -32,11 +32,12 @@ class MiniRecorderPanel: NSPanel {
     
     static func calculateWindowMetrics() -> NSRect {
         guard let screen = NSScreen.main else {
-            return NSRect(x: 0, y: 0, width: 184, height: 40)
+            return NSRect(x: 0, y: 0, width: 300, height: 80)
         }
 
-        let width: CGFloat = 184
-        let height: CGFloat = 40
+        // Fixed window size - content animates within
+        let width: CGFloat = 300
+        let height: CGFloat = 80
         let padding: CGFloat = 24
 
         let visibleFrame = screen.visibleFrame
@@ -51,7 +52,7 @@ class MiniRecorderPanel: NSPanel {
             height: height
         )
     }
-    
+
     func show() {
         let metrics = MiniRecorderPanel.calculateWindowMetrics()
         setFrame(metrics, display: true)

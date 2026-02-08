@@ -4,21 +4,12 @@ import AVFoundation
 import FluidAudio
 import os.log
 
-enum ParakeetTranscriptionError: LocalizedError {
-    case modelValidationFailed(String)
-
-    var errorDescription: String? {
-        switch self {
-        case .modelValidationFailed(let message):
-            return message
-        }
-    }
-}
-
 class ParakeetTranscriptionService: TranscriptionService {
     private var asrManager: AsrManager?
     private var vadManager: VadManager?
     private var activeVersion: AsrModelVersion?
+    private var cachedModels: AsrModels?
+    private var loadingTask: (version: AsrModelVersion, task: Task<AsrModels, Error>)?
     private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink.parakeet", category: "ParakeetTranscriptionService")
 
     private func version(for model: any TranscriptionModel) -> AsrModelVersion {
@@ -26,28 +17,58 @@ class ParakeetTranscriptionService: TranscriptionService {
     }
 
     private func ensureModelsLoaded(for version: AsrModelVersion) async throws {
-        if let manager = asrManager, activeVersion == version {
+        if asrManager != nil, activeVersion == version {
             return
         }
 
-        cleanup()
+        // Clean up existing manager but preserve cachedModels for reuse
+        asrManager?.cleanup()
+        asrManager = nil
+        vadManager = nil
+        activeVersion = nil
 
-        // Validate models before loading
-        let isValid = try await AsrModels.isModelValid(version: version)
-
-        if !isValid {
-            logger.error("Model validation failed for \(version == .v2 ? "v2" : "v3"). Models are corrupted.")
-            throw ParakeetTranscriptionError.modelValidationFailed("Parakeet models are corrupted. Please delete and re-download the model.")
-        }
+        let models = try await getOrLoadModels(for: version)
 
         let manager = AsrManager(config: .default)
-        let models = try await AsrModels.loadFromCache(
-            configuration: nil,
-            version: version
-        )
         try await manager.initialize(models: models)
         self.asrManager = manager
         self.activeVersion = version
+    }
+
+    // Returns cached models or loads from disk; deduplicates concurrent loads
+    func getOrLoadModels(for version: AsrModelVersion) async throws -> AsrModels {
+        if let cached = cachedModels, cached.version == version {
+            return cached
+        }
+
+        // Deduplicate concurrent loads for the same version
+        if let (existingVersion, existingTask) = loadingTask, existingVersion == version {
+            return try await existingTask.value
+        }
+
+        let task = Task {
+            try await AsrModels.loadFromCache(
+                configuration: nil,
+                version: version
+            )
+        }
+        loadingTask = (version, task)
+
+        do {
+            let models = try await task.value
+            self.cachedModels = models
+            // Only clear if we're still the current loading task
+            if loadingTask?.version == version {
+                self.loadingTask = nil
+            }
+            return models
+        } catch {
+            // Only clear if we're still the current loading task
+            if loadingTask?.version == version {
+                self.loadingTask = nil
+            }
+            throw error
+        }
     }
 
     func loadModel(for model: ParakeetModel) async throws {
@@ -115,10 +136,12 @@ class ParakeetTranscriptionService: TranscriptionService {
         }
     }
 
+    // Releases ASR/VAD resources but preserves cached models for reuse
     func cleanup() {
         asrManager?.cleanup()
         asrManager = nil
         vadManager = nil
         activeVersion = nil
     }
+
 }

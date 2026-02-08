@@ -77,9 +77,14 @@ class SonioxTranscriptionService {
                 "terms": dictionaryTerms
             ]
         }
+
         let selectedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "auto"
         if selectedLanguage != "auto" && !selectedLanguage.isEmpty {
             payload["language_hints"] = [selectedLanguage]
+            payload["language_hints_strict"] = true
+            payload["enable_language_identification"] = true
+        } else {
+            payload["enable_language_identification"] = true
         }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
         let (data, response) = try await URLSession.shared.data(for: request)
