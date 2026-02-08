@@ -9,7 +9,7 @@ class ParakeetTranscriptionService: TranscriptionService {
     private var vadManager: VadManager?
     private var activeVersion: AsrModelVersion?
     private var cachedModels: AsrModels?
-    private var loadingTask: Task<AsrModels, Error>?
+    private var loadingTask: (version: AsrModelVersion, task: Task<AsrModels, Error>)?
     private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink.parakeet", category: "ParakeetTranscriptionService")
 
     private func version(for model: any TranscriptionModel) -> AsrModelVersion {
@@ -41,9 +41,9 @@ class ParakeetTranscriptionService: TranscriptionService {
             return cached
         }
 
-        // Deduplicate concurrent loads
-        if let existing = loadingTask {
-            return try await existing.value
+        // Deduplicate concurrent loads for the same version
+        if let (existingVersion, existingTask) = loadingTask, existingVersion == version {
+            return try await existingTask.value
         }
 
         let task = Task {
@@ -52,7 +52,7 @@ class ParakeetTranscriptionService: TranscriptionService {
                 version: version
             )
         }
-        loadingTask = task
+        loadingTask = (version, task)
 
         do {
             let models = try await task.value
