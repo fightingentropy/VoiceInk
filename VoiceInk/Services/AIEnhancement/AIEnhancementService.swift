@@ -172,7 +172,14 @@ class AIEnhancementService: ObservableObject {
         let allContextSections = selectedTextContext + clipboardContext + screenCaptureContext
 
         let customVocabularySection = if !customVocabulary.isEmpty {
-            "\n\n<CUSTOM_VOCABULARY>\(customVocabulary)\n</CUSTOM_VOCABULARY>"
+            """
+
+
+            The following are important vocabulary words, proper nouns, and technical terms. When these words or similar-sounding words appear in the <TRANSCRIPT>, ensure they are spelled EXACTLY as shown below:
+            <CUSTOM_VOCABULARY>
+            \(customVocabulary)
+            </CUSTOM_VOCABULARY>
+            """
         } else {
             ""
         }
