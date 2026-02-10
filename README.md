@@ -56,7 +56,7 @@ As an open-source project, you can build VoiceInk yourself by following the inst
 
 ## Requirements
 
-- macOS 14.0 or later
+- macOS 14.4 or later
 
 ## Documentation
 
