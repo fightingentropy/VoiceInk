@@ -29,13 +29,17 @@ class OllamaService: ObservableObject {
         self.selectedModel = UserDefaults.standard.string(forKey: "ollamaSelectedModel") ?? "llama2"
     }
 
-    private var baseURLValue: URL {
-        URL(string: baseURL) ?? OllamaClient.defaultBaseURL
+    private var baseURLValue: URL? {
+        URL(string: baseURL)
     }
 
     @MainActor
     func checkConnection() async {
-        isConnected = await OllamaClient.checkConnection(baseURL: baseURLValue)
+        guard let url = baseURLValue else {
+            isConnected = false
+            return
+        }
+        isConnected = await OllamaClient.checkConnection(baseURL: url)
     }
 
     @MainActor
@@ -43,8 +47,14 @@ class OllamaService: ObservableObject {
         isLoadingModels = true
         defer { isLoadingModels = false }
 
+        guard let url = baseURLValue else {
+            print("Invalid Ollama base URL")
+            availableModels = []
+            return
+        }
+
         do {
-            let models = try await OllamaClient.fetchModels(baseURL: baseURLValue)
+            let models = try await OllamaClient.fetchModels(baseURL: url)
             availableModels = models
 
             if !models.contains(where: { $0.name == selectedModel }) && !models.isEmpty {
@@ -61,9 +71,13 @@ class OllamaService: ObservableObject {
             throw LocalAIError.invalidRequest
         }
 
+        guard let url = baseURLValue else {
+            throw LocalAIError.invalidURL
+        }
+
         do {
             return try await OllamaClient.generate(
-                baseURL: baseURLValue,
+                baseURL: url,
                 model: selectedModel,
                 prompt: text,
                 systemPrompt: systemPrompt,

@@ -331,8 +331,14 @@ class AIService: ObservableObject {
             case .gemini:
                 result = await GeminiTranscriptionClient.verifyAPIKey(key)
             default:
+                guard let baseURL = URL(string: selectedProvider.baseURL) else {
+                    DispatchQueue.main.async {
+                        completion(false, "Invalid or missing base URL configuration")
+                    }
+                    return
+                }
                 result = await OpenAILLMClient.verifyAPIKey(
-                    baseURL: URL(string: selectedProvider.baseURL)!,
+                    baseURL: baseURL,
                     apiKey: key,
                     model: currentModel
                 )

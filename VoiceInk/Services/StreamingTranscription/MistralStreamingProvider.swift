@@ -26,11 +26,16 @@ final class MistralStreamingProvider: StreamingTranscriptionProvider {
             throw StreamingTranscriptionError.missingAPIKey
         }
 
+        // Cancel any existing forwarding task before starting a new one
+        forwardingTask?.cancel()
         startEventForwarding()
 
         do {
             try await client.connect(apiKey: apiKey, model: "voxtral-mini-transcribe-realtime-2602", language: language)
         } catch {
+            // Clean up forwarding task on connection failure
+            forwardingTask?.cancel()
+            forwardingTask = nil
             throw mapError(error)
         }
     }

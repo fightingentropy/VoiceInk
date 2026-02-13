@@ -30,11 +30,17 @@ final class DeepgramStreamingProvider: StreamingTranscriptionProvider {
         }
 
         let vocabulary = getCustomVocabularyTerms()
+
+        // Cancel any existing forwarding task before starting a new one
+        forwardingTask?.cancel()
         startEventForwarding()
 
         do {
             try await client.connect(apiKey: apiKey, model: model.name, language: language, customVocabulary: vocabulary)
         } catch {
+            // Clean up forwarding task on connection failure
+            forwardingTask?.cancel()
+            forwardingTask = nil
             throw mapError(error)
         }
     }

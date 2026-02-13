@@ -26,11 +26,16 @@ final class ElevenLabsStreamingProvider: StreamingTranscriptionProvider {
             throw StreamingTranscriptionError.missingAPIKey
         }
 
+        // Cancel any existing forwarding task before starting a new one
+        forwardingTask?.cancel()
         startEventForwarding()
 
         do {
             try await client.connect(apiKey: apiKey, model: "scribe_v2_realtime", language: language)
         } catch {
+            // Clean up forwarding task on connection failure
+            forwardingTask?.cancel()
+            forwardingTask = nil
             throw mapError(error)
         }
     }
