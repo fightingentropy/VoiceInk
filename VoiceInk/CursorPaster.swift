@@ -57,7 +57,7 @@ class CursorPaster {
             return
         }
 
-        let currentSource = TISCopyCurrentKeyboardInputSource().takeUnretainedValue()
+        let currentSource = TISCopyCurrentKeyboardInputSource().takeRetainedValue()
         let currentID = sourceID(for: currentSource) ?? "unknown"
         let switched = switchToQWERTYInputSource()
         logger.notice("Pasting: inputSource=\(currentID, privacy: .public), switched=\(switched)")
@@ -92,7 +92,7 @@ class CursorPaster {
 
     /// Try to switch to ABC or US QWERTY. Returns true if the switch was made.
     private static func switchToQWERTYInputSource() -> Bool {
-        let currentSourceRef = TISCopyCurrentKeyboardInputSource().takeUnretainedValue()
+        let currentSourceRef = TISCopyCurrentKeyboardInputSource().takeRetainedValue()
         if let currentID = sourceID(for: currentSourceRef), isQWERTY(currentID) {
             return false // already QWERTY, nothing to do
         }
