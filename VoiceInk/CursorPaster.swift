@@ -57,42 +57,51 @@ class CursorPaster {
             return
         }
 
-        let currentSource = TISCopyCurrentKeyboardInputSource().takeRetainedValue()
+        guard let currentSource = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue() else {
+            logger.error("TISCopyCurrentKeyboardInputSource returned nil")
+            return
+        }
         let currentID = sourceID(for: currentSource) ?? "unknown"
         let switched = switchToQWERTYInputSource()
         logger.notice("Pasting: inputSource=\(currentID, privacy: .public), switched=\(switched)")
 
-        let source = CGEventSource(stateID: .privateState)
+        // If we switched input sources, wait 30 ms for the system to apply it
+        // before posting the CGEvents. Use asyncAfter instead of usleep so the
+        // main thread is not blocked.
+        let eventDelay: TimeInterval = switched ? 0.03 : 0.0
+        DispatchQueue.main.asyncAfter(deadline: .now() + eventDelay) {
+            let source = CGEventSource(stateID: .privateState)
 
-        let cmdDown = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: true)
-        let vDown   = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: true)
-        let vUp     = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false)
-        let cmdUp   = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: false)
+            let cmdDown = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: true)
+            let vDown   = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: true)
+            let vUp     = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false)
+            let cmdUp   = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: false)
 
-        cmdDown?.flags = .maskCommand
-        vDown?.flags   = .maskCommand
-        vUp?.flags     = .maskCommand
+            cmdDown?.flags = .maskCommand
+            vDown?.flags   = .maskCommand
+            vUp?.flags     = .maskCommand
 
-        cmdDown?.post(tap: .cghidEventTap)
-        vDown?.post(tap: .cghidEventTap)
-        vUp?.post(tap: .cghidEventTap)
-        cmdUp?.post(tap: .cghidEventTap)
+            cmdDown?.post(tap: .cghidEventTap)
+            vDown?.post(tap: .cghidEventTap)
+            vUp?.post(tap: .cghidEventTap)
+            cmdUp?.post(tap: .cghidEventTap)
 
-        logger.notice("CGEvents posted for Cmd+V")
+            logger.notice("CGEvents posted for Cmd+V")
 
-        if switched {
-            // Restore the original input source after a short delay so the
-            // posted events are processed under ABC/US first.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                TISSelectInputSource(currentSource)
-                logger.notice("Restored input source to \(currentID, privacy: .public)")
+            if switched {
+                // Restore the original input source after a short delay so the
+                // posted events are processed under ABC/US first.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    TISSelectInputSource(currentSource)
+                    logger.notice("Restored input source to \(currentID, privacy: .public)")
+                }
             }
         }
     }
 
     /// Try to switch to ABC or US QWERTY. Returns true if the switch was made.
     private static func switchToQWERTYInputSource() -> Bool {
-        let currentSourceRef = TISCopyCurrentKeyboardInputSource().takeRetainedValue()
+        guard let currentSourceRef = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue() else { return false }
         if let currentID = sourceID(for: currentSourceRef), isQWERTY(currentID) {
             return false // already QWERTY, nothing to do
         }
@@ -109,8 +118,6 @@ class CursorPaster {
             if let match = list.first(where: { sourceID(for: $0) == targetID }) {
                 let status = TISSelectInputSource(match)
                 if status == noErr {
-                    // Give the system a moment to apply the switch.
-                    usleep(30_000) // 30 ms
                     logger.notice("Switched input source to \(targetID, privacy: .public)")
                     return true
                 } else {
