@@ -43,7 +43,6 @@ class TranscriptionServiceRegistry {
     func createSession(for model: any TranscriptionModel, onPartialTranscript: ((String) -> Void)? = nil) -> TranscriptionSession {
         if supportsStreaming(model: model) {
             let streamingService = StreamingTranscriptionService(
-                parakeetService: parakeetTranscriptionService,
                 modelContext: whisperState.modelContext,
                 onPartialTranscript: onPartialTranscript
             )
@@ -74,8 +73,6 @@ class TranscriptionServiceRegistry {
             return model.name == "scribe_v2"
         case .deepgram:
             return model.name == "nova-3" || model.name == "nova-3-medical"
-        case .parakeet:
-            return true
         case .mistral:
             return model.name == "voxtral-mini-transcribe-realtime-2602"
         case .soniox:
