@@ -48,9 +48,22 @@ class TranscriptionServiceRegistry {
                 onPartialTranscript: onPartialTranscript
             )
             let fallback = service(for: model.provider)
-            return StreamingTranscriptionSession(streamingService: streamingService, fallbackService: fallback)
+            let fallbackModel = batchFallbackModel(for: model)
+            return StreamingTranscriptionSession(streamingService: streamingService, fallbackService: fallback, fallbackModel: fallbackModel)
         } else {
             return FileTranscriptionSession(service: service(for: model.provider))
+        }
+    }
+
+    // Maps streaming-only models to a batch-compatible equivalent for fallback.
+    private func batchFallbackModel(for model: any TranscriptionModel) -> (any TranscriptionModel)? {
+        switch (model.provider, model.name) {
+        case (.mistral, "voxtral-mini-transcribe-realtime-2602"):
+            return PredefinedModels.models.first { $0.name == "voxtral-mini-latest" }
+        case (.soniox, "stt-rt-v4"):
+            return PredefinedModels.models.first { $0.name == "stt-async-v4" }
+        default:
+            return nil
         }
     }
 
