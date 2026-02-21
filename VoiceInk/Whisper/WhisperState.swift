@@ -447,7 +447,8 @@ class WhisperState: NSObject, ObservableObject {
             }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                CursorPaster.pasteAtCursor(textToPaste + " ")
+                let appendSpace = UserDefaults.standard.bool(forKey: "AppendTrailingSpace")
+                CursorPaster.pasteAtCursor(textToPaste + (appendSpace ? " " : ""))
 
                 let powerMode = PowerModeManager.shared
                 if let activeConfig = powerMode.currentActiveConfiguration, activeConfig.isAutoSendEnabled {
