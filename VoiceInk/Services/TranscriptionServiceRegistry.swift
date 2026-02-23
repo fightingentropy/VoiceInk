@@ -34,9 +34,10 @@ class TranscriptionServiceRegistry {
     }
 
     func transcribe(audioURL: URL, model: any TranscriptionModel) async throws -> String {
-        let service = service(for: model.provider)
-        logger.debug("Transcribing with \(model.displayName) using \(String(describing: type(of: service)))")
-        return try await service.transcribe(audioURL: audioURL, model: model)
+        let effectiveModel = batchFallbackModel(for: model) ?? model
+        let service = service(for: effectiveModel.provider)
+        logger.debug("Transcribing with \(effectiveModel.displayName) using \(String(describing: type(of: service)))")
+        return try await service.transcribe(audioURL: audioURL, model: effectiveModel)
     }
 
     /// Creates a streaming or file-based session depending on the model's capabilities.
