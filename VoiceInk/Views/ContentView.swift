@@ -56,7 +56,9 @@ struct VisualEffectView: NSViewRepresentable {
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
-    @EnvironmentObject private var whisperState: WhisperState
+    @EnvironmentObject private var engine: VoiceInkEngine
+    @EnvironmentObject private var whisperModelManager: WhisperModelManager
+    @EnvironmentObject private var transcriptionModelManager: TranscriptionModelManager
     @EnvironmentObject private var hotkeyManager: HotkeyManager
     @AppStorage("powerModeUIFlag") private var powerModeUIFlag = false
     @State private var selectedView: ViewType? = .metrics
@@ -110,7 +112,7 @@ struct ContentView: View {
                             Button(action: {
                                 HistoryWindowController.shared.showHistoryWindow(
                                     modelContainer: modelContext.container,
-                                    whisperState: whisperState
+                                    engine: engine
                                 )
                             }) {
                                 SidebarItemView(viewType: viewType)
@@ -156,7 +158,7 @@ struct ContentView: View {
                 case "History":
                     HistoryWindowController.shared.showHistoryWindow(
                         modelContainer: modelContext.container,
-                        whisperState: whisperState
+                        engine: engine
                     )
                 case "Permissions":
                     selectedView = .permissions
@@ -179,7 +181,7 @@ struct ContentView: View {
         case .metrics:
             MetricsView()
         case .models:
-            ModelManagementView(whisperState: whisperState)
+            ModelManagementView()
         case .enhancement:
             EnhancementSettingsView()
         case .transcribeAudio:
@@ -190,12 +192,11 @@ struct ContentView: View {
         case .audioInput:
             AudioInputSettingsView()
         case .dictionary:
-            DictionarySettingsView(whisperPrompt: whisperState.whisperPrompt)
+            DictionarySettingsView(whisperPrompt: whisperModelManager.whisperPrompt)
         case .powerMode:
             PowerModeView()
         case .settings:
             SettingsView()
-                .environmentObject(whisperState)
         case .license:
             LicenseManagementView()
         case .permissions:
