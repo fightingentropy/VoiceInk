@@ -98,7 +98,7 @@ class LastTranscriptionService: ObservableObject {
         }
     }
     
-    static func retryLastTranscription(from modelContext: ModelContext, transcriptionModelManager: TranscriptionModelManager, whisperModelManager: WhisperModelManager, enhancementService: AIEnhancementService?) {
+    static func retryLastTranscription(from modelContext: ModelContext, transcriptionModelManager: TranscriptionModelManager, serviceRegistry: TranscriptionServiceRegistry, enhancementService: AIEnhancementService?) {
         Task { @MainActor in
             guard let lastTranscription = getLastTranscription(from: modelContext),
                   let audioURLString = lastTranscription.audioFileURL,
@@ -119,11 +119,6 @@ class LastTranscriptionService: ObservableObject {
                 return
             }
 
-            let serviceRegistry = TranscriptionServiceRegistry(
-                modelProvider: whisperModelManager,
-                modelsDirectory: whisperModelManager.modelsDirectory,
-                modelContext: modelContext
-            )
             let transcriptionService = AudioTranscriptionService(
                 modelContext: modelContext,
                 serviceRegistry: serviceRegistry,

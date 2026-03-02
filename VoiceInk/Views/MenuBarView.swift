@@ -196,7 +196,7 @@ struct MenuBarView: View {
                 LastTranscriptionService.retryLastTranscription(
                     from: engine.modelContext,
                     transcriptionModelManager: transcriptionModelManager,
-                    whisperModelManager: whisperModelManager,
+                    serviceRegistry: engine.serviceRegistry,
                     enhancementService: enhancementService
                 )
             }

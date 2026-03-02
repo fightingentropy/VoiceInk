@@ -154,7 +154,7 @@ class HotkeyManager: ObservableObject {
                 LastTranscriptionService.retryLastTranscription(
                     from: self.engine.modelContext,
                     transcriptionModelManager: self.engine.transcriptionModelManager,
-                    whisperModelManager: self.engine.whisperModelManager,
+                    serviceRegistry: self.engine.serviceRegistry,
                     enhancementService: self.engine.enhancementService
                 )
             }
