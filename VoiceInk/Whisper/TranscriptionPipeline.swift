@@ -62,12 +62,6 @@ class TranscriptionPipeline {
         var finalPastedText: String?
         var promptDetectionResult: PromptDetectionService.PromptDetectionResult?
 
-        defer {
-            if shouldCancel() {
-                Task { await onCleanup() }
-            }
-        }
-
         do {
             let transcriptionStart = Date()
             var text: String

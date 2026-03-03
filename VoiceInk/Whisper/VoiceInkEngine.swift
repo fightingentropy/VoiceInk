@@ -114,6 +114,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
                 currentSession?.cancel()
                 currentSession = nil
                 recordingState = .idle
+                await cleanupResources()
             }
         } else {
             logger.notice("toggleRecord: entering start-recording branch")

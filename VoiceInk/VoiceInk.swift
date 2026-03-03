@@ -125,10 +125,11 @@ struct VoiceInkApp: App {
         engine.recorderUIManager = recorderUIManager
 
         // 6. Initialize model state
+        // refreshAllAvailableModels must run before loadCurrentTranscriptionModel so imported models are present when restoring the saved selection.
         whisperModelManager.createModelsDirectoryIfNeeded()
         whisperModelManager.loadAvailableModels()
-        transcriptionModelManager.loadCurrentTranscriptionModel()
         transcriptionModelManager.refreshAllAvailableModels()
+        transcriptionModelManager.loadCurrentTranscriptionModel()
 
         _whisperModelManager = StateObject(wrappedValue: whisperModelManager)
         _parakeetModelManager = StateObject(wrappedValue: parakeetModelManager)
