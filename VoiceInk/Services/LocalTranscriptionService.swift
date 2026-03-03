@@ -33,7 +33,7 @@ class LocalTranscriptionService: TranscriptionService {
             // Resolve the on-disk URL using the provider's availableModels (covers imports)
             let resolvedURL: URL? = await modelProvider?.availableModels.first(where: { $0.name == model.name })?.url
             guard let modelURL = resolvedURL, FileManager.default.fileExists(atPath: modelURL.path) else {
-                logger.error("Model file not found for: \(model.name, privacy: .public)")
+                logger.error("❌ Model file not found for: \(model.name, privacy: .public)")
                 throw VoiceInkEngineError.modelLoadFailed
             }
 
@@ -41,13 +41,13 @@ class LocalTranscriptionService: TranscriptionService {
             do {
                 whisperContext = try await WhisperContext.createContext(path: modelURL.path)
             } catch {
-                logger.error("Failed to load model: \(model.name, privacy: .public) - \(error.localizedDescription, privacy: .public)")
+                logger.error("❌ Failed to load model: \(model.name, privacy: .public) - \(error.localizedDescription, privacy: .public)")
                 throw VoiceInkEngineError.modelLoadFailed
             }
         }
 
         guard let whisperContext = whisperContext else {
-            logger.error("Cannot transcribe: Model could not be loaded")
+            logger.error("❌ Cannot transcribe: Model could not be loaded")
             throw VoiceInkEngineError.modelLoadFailed
         }
 
@@ -62,7 +62,7 @@ class LocalTranscriptionService: TranscriptionService {
         let success = await whisperContext.fullTranscribe(samples: data)
 
         guard success else {
-            logger.error("Core transcription engine failed (whisper_full).")
+            logger.error("❌ Core transcription engine failed (whisper_full).")
             throw VoiceInkEngineError.whisperCoreFailed
         }
 

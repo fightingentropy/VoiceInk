@@ -62,6 +62,8 @@ class TranscriptionPipeline {
         var finalPastedText: String?
         var promptDetectionResult: PromptDetectionService.PromptDetectionResult?
 
+        logger.notice("🔄 Starting transcription...")
+
         do {
             let transcriptionStart = Date()
             var text: String
@@ -70,9 +72,9 @@ class TranscriptionPipeline {
             } else {
                 text = try await serviceRegistry.transcribe(audioURL: audioURL, model: model)
             }
-            logger.notice("Transcript: \(text, privacy: .public)")
+            logger.notice("📝 Transcript: \(text, privacy: .public)")
             text = TranscriptionOutputFilter.filter(text)
-            logger.notice("Output filter result: \(text, privacy: .public)")
+            logger.notice("📝 Output filter result: \(text, privacy: .public)")
             let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
 
             let powerModeManager = PowerModeManager.shared
@@ -86,11 +88,11 @@ class TranscriptionPipeline {
 
             if UserDefaults.standard.bool(forKey: "IsTextFormattingEnabled") {
                 text = WhisperTextFormatter.format(text)
-                logger.notice("Formatted transcript: \(text, privacy: .public)")
+                logger.notice("📝 Formatted transcript: \(text, privacy: .public)")
             }
 
             text = WordReplacementService.shared.applyReplacements(to: text, using: modelContext)
-            logger.notice("WordReplacement: \(text, privacy: .public)")
+            logger.notice("📝 WordReplacement: \(text, privacy: .public)")
 
             let audioAsset = AVURLAsset(url: audioURL)
             let actualDuration = (try? CMTimeGetSeconds(await audioAsset.load(.duration))) ?? 0.0
@@ -119,7 +121,7 @@ class TranscriptionPipeline {
 
                 do {
                     let (enhancedText, enhancementDuration, promptName) = try await enhancementService.enhance(textForAI)
-                    logger.notice("AI enhancement: \(enhancedText, privacy: .public)")
+                    logger.notice("📝 AI enhancement: \(enhancedText, privacy: .public)")
                     transcription.enhancedText = enhancedText
                     transcription.aiEnhancementModelName = enhancementService.getAIService()?.currentModel
                     transcription.promptName = promptName

@@ -81,7 +81,7 @@ final class StreamingTranscriptionSession: TranscriptionSession {
             } catch {
                 let desc = error.localizedDescription
                 await MainActor.run {
-                    self.logger.error("Failed to start streaming, will fall back to batch: \(desc, privacy: .public)")
+                    self.logger.error("❌ Failed to start streaming, will fall back to batch: \(desc, privacy: .public)")
                     self.streamingFailed = true
                 }
             }
@@ -101,7 +101,7 @@ final class StreamingTranscriptionSession: TranscriptionSession {
                 logger.notice("Streaming transcript received")
                 return text
             } catch {
-                logger.error("Streaming failed, falling back to batch: \(error.localizedDescription, privacy: .public)")
+                logger.error("❌ Streaming failed, falling back to batch: \(error.localizedDescription, privacy: .public)")
                 streamingService.cancel()
             }
         } else {

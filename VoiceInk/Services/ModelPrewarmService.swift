@@ -67,7 +67,7 @@ final class ModelPrewarmService: ObservableObject {
         guard shouldPrewarm() else { return }
 
         guard let audioURL = prewarmAudioURL else {
-            logger.error("Prewarm audio file (esc.wav) not found")
+            logger.error("❌ Prewarm audio file (esc.wav) not found")
             return
         }
 
@@ -86,7 +86,7 @@ final class ModelPrewarmService: ObservableObject {
             logger.notice("Prewarm completed in \(String(format: "%.2f", duration), privacy: .public)s")
 
         } catch {
-            logger.error("Prewarm failed: \(error.localizedDescription, privacy: .public)")
+            logger.error("❌ Prewarm failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 

@@ -68,7 +68,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
         do {
             try FileManager.default.createDirectory(at: recordingsDirectory, withIntermediateDirectories: true, attributes: nil)
         } catch {
-            logger.error("Error creating recordings directory: \(error.localizedDescription, privacy: .public)")
+            logger.error("❌ Error creating recordings directory: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -110,7 +110,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
                     await cleanupResources()
                 }
             } else {
-                logger.error("No recorded file found after stopping recording")
+                logger.error("❌ No recorded file found after stopping recording")
                 currentSession?.cancel()
                 currentSession = nil
                 recordingState = .idle
@@ -188,7 +188,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
                                         do {
                                             try await self.whisperModelManager.loadModel(localWhisperModel)
                                         } catch {
-                                            await self.logger.error("Model loading failed: \(error.localizedDescription, privacy: .public)")
+                                            await self.logger.error("❌ Model loading failed: \(error.localizedDescription, privacy: .public)")
                                         }
                                     }
                                 } else if let parakeetModel = await self.transcriptionModelManager.currentTranscriptionModel as? ParakeetModel {
@@ -204,7 +204,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
                             }
 
                         } catch {
-                            self.logger.error("Failed to start recording: \(error.localizedDescription, privacy: .public)")
+                            self.logger.error("❌ Failed to start recording: \(error.localizedDescription, privacy: .public)")
                             await NotificationManager.shared.showNotification(title: "Recording failed to start", type: .error)
                             self.logger.notice("toggleRecord: calling dismissMiniRecorder from error handler")
                             await self.recorderUIManager?.dismissMiniRecorder()
@@ -212,7 +212,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
                         }
                     }
                 } else {
-                    logger.error("Recording permission denied.")
+                    logger.error("❌ Recording permission denied.")
                 }
             }
         }
