@@ -212,7 +212,7 @@ class WhisperModelManager: ObservableObject {
             onModelsChanged?()
 
             if shouldWarmup(model) {
-                LocalModelWarmupCoordinator.shared.scheduleWarmup(for: model, whisperModelManager: self)
+                WhisperModelWarmupCoordinator.shared.scheduleWarmup(for: model, whisperModelManager: self)
             }
         } catch {
             handleModelDownloadError(model, error)
