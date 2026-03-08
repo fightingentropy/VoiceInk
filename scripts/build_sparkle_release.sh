@@ -74,6 +74,7 @@ xcodebuild_args=(
     OTHER_CODE_SIGN_FLAGS="--keychain $keychain_path"
     SPARKLE_FEED_URL="$sparkle_feed_url"
     SPARKLE_PUBLIC_ED_KEY="$sparkle_public_key"
+    'SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) OPEN_SOURCE_DISTRIBUTION'
     archive
 )
 

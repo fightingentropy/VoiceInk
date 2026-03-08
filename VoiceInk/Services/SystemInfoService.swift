@@ -206,7 +206,7 @@ class SystemInfoService {
     }
 
     private func getLicenseStatus() -> String {
-        #if LOCAL_BUILD
+        #if LOCAL_BUILD || OPEN_SOURCE_DISTRIBUTION
         return "Open Source Build"
         #else
         let licenseManager = LicenseManager.shared

@@ -15,7 +15,7 @@ class LicenseViewModel: ObservableObject {
     @Published var validationMessage: String?
     @Published private(set) var activationsLimit: Int = 0
 
-    #if !LOCAL_BUILD
+    #if !LOCAL_BUILD && !OPEN_SOURCE_DISTRIBUTION
     private let trialPeriodDays = 7
     private let polarService = PolarService()
     private let userDefaults = UserDefaults.standard
@@ -23,7 +23,7 @@ class LicenseViewModel: ObservableObject {
     #endif
 
     init() {
-        #if LOCAL_BUILD
+        #if LOCAL_BUILD || OPEN_SOURCE_DISTRIBUTION
         licenseState = .licensed
         #else
         loadLicenseState()
@@ -31,7 +31,7 @@ class LicenseViewModel: ObservableObject {
     }
 
     func startTrial() {
-        #if !LOCAL_BUILD
+        #if !LOCAL_BUILD && !OPEN_SOURCE_DISTRIBUTION
         // Only set trial start date if it hasn't been set before
         if licenseManager.trialStartDate == nil {
             licenseManager.trialStartDate = Date()
@@ -41,7 +41,7 @@ class LicenseViewModel: ObservableObject {
         #endif
     }
 
-    #if !LOCAL_BUILD
+    #if !LOCAL_BUILD && !OPEN_SOURCE_DISTRIBUTION
     private func loadLicenseState() {
         // Check for existing license key
         if let storedLicenseKey = licenseManager.licenseKey {
@@ -91,7 +91,7 @@ class LicenseViewModel: ObservableObject {
     }
     
     func openPurchaseLink() {
-        #if !LOCAL_BUILD
+        #if !LOCAL_BUILD && !OPEN_SOURCE_DISTRIBUTION
         if let url = URL(string: "https://github.com/fightingentropy/VoiceInk/releases") {
             NSWorkspace.shared.open(url)
         }
@@ -99,7 +99,7 @@ class LicenseViewModel: ObservableObject {
     }
     
     func validateLicense() async {
-        #if LOCAL_BUILD
+        #if LOCAL_BUILD || OPEN_SOURCE_DISTRIBUTION
         licenseState = .licensed
         validationMessage = nil
         isValidating = false
@@ -190,7 +190,7 @@ class LicenseViewModel: ObservableObject {
     }
     
     func removeLicense() {
-        #if LOCAL_BUILD
+        #if LOCAL_BUILD || OPEN_SOURCE_DISTRIBUTION
         licenseState = .licensed
         licenseKey = ""
         validationMessage = nil
