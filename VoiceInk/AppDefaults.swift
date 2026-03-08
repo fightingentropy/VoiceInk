@@ -45,6 +45,7 @@ enum AppDefaults {
 
             // Model
             "PrewarmModelOnWake": true,
+            "LocalModelWarmRetentionSeconds": LocalModelWarmRetention.fifteenMinutes.rawValue,
         ])
     }
 }

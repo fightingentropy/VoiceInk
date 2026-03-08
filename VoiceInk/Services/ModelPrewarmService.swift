@@ -1,26 +1,52 @@
 import Foundation
-import SwiftData
 import os
 import AppKit
 
+enum LocalModelWarmRetention: Int, CaseIterable, Identifiable {
+    case fiveMinutes = 300
+    case fifteenMinutes = 900
+    case thirtyMinutes = 1800
+    case oneHour = 3600
+    case never = -1
+
+    var id: Int { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .fiveMinutes:
+            return "5 minutes"
+        case .fifteenMinutes:
+            return "15 minutes"
+        case .thirtyMinutes:
+            return "30 minutes"
+        case .oneHour:
+            return "1 hour"
+        case .never:
+            return "Until quit"
+        }
+    }
+
+    var interval: TimeInterval? {
+        switch self {
+        case .never:
+            return nil
+        default:
+            return TimeInterval(rawValue)
+        }
+    }
+}
+
 @MainActor
 final class ModelPrewarmService: ObservableObject {
-    private let transcriptionModelManager: TranscriptionModelManager
-    private let whisperModelManager: WhisperModelManager
-    private let modelContext: ModelContext
+    private let engine: VoiceInkEngine
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "ModelPrewarm")
-    private lazy var serviceRegistry = TranscriptionServiceRegistry(
-        modelProvider: whisperModelManager,
-        modelsDirectory: whisperModelManager.modelsDirectory,
-        modelContext: modelContext
-    )
     private let prewarmAudioURL = Bundle.main.url(forResource: "esc", withExtension: "wav")
     private let prewarmEnabledKey = "PrewarmModelOnWake"
+    private let warmRetentionKey = "LocalModelWarmRetentionSeconds"
+    private var unloadTask: Task<Void, Never>?
 
-    init(transcriptionModelManager: TranscriptionModelManager, whisperModelManager: WhisperModelManager, modelContext: ModelContext) {
-        self.transcriptionModelManager = transcriptionModelManager
-        self.whisperModelManager = whisperModelManager
-        self.modelContext = modelContext
+    init(engine: VoiceInkEngine) {
+        self.engine = engine
         setupNotifications()
         schedulePrewarmOnAppLaunch()
     }
@@ -35,6 +61,20 @@ final class ModelPrewarmService: ObservableObject {
             self,
             selector: #selector(schedulePrewarm),
             name: NSWorkspace.didWakeNotification,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleLocalModelDidUse),
+            name: .localModelDidUse,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleSettingsDidChange),
+            name: .AppSettingsDidChange,
             object: nil
         )
 
@@ -61,17 +101,26 @@ final class ModelPrewarmService: ObservableObject {
         }
     }
 
+    @objc private func handleLocalModelDidUse() {
+        rescheduleIdleUnload()
+    }
+
+    @objc private func handleSettingsDidChange() {
+        rescheduleIdleUnload()
+    }
+
     // MARK: - Core Prewarming Logic
 
     private func performPrewarm() async {
         guard shouldPrewarm() else { return }
+        unloadTask?.cancel()
 
         guard let audioURL = prewarmAudioURL else {
             logger.error("❌ Prewarm audio file (esc.wav) not found")
             return
         }
 
-        guard let currentModel = transcriptionModelManager.currentTranscriptionModel else {
+        guard let currentModel = engine.transcriptionModelManager.currentTranscriptionModel else {
             logger.notice("No model selected, skipping prewarm")
             return
         }
@@ -80,10 +129,11 @@ final class ModelPrewarmService: ObservableObject {
         let startTime = Date()
 
         do {
-            let _ = try await serviceRegistry.transcribe(audioURL: audioURL, model: currentModel)
+            try await engine.prewarmCurrentLocalModel(using: audioURL)
             let duration = Date().timeIntervalSince(startTime)
 
             logger.notice("Prewarm completed in \(String(format: "%.2f", duration), privacy: .public)s")
+            rescheduleIdleUnload()
 
         } catch {
             logger.error("❌ Prewarm failed: \(error.localizedDescription, privacy: .public)")
@@ -101,7 +151,7 @@ final class ModelPrewarmService: ObservableObject {
         }
 
         // Only prewarm local models (Parakeet and Whisper need ANE compilation)
-        guard let model = transcriptionModelManager.currentTranscriptionModel else {
+        guard let model = engine.transcriptionModelManager.currentTranscriptionModel else {
             return false
         }
 
@@ -114,8 +164,61 @@ final class ModelPrewarmService: ObservableObject {
         }
     }
 
+    func handleWindowDidDisappear() {
+        rescheduleIdleUnload()
+    }
+
+    private func currentWarmRetention() -> LocalModelWarmRetention {
+        let storedValue = UserDefaults.standard.integer(forKey: warmRetentionKey)
+        return LocalModelWarmRetention(rawValue: storedValue) ?? .fifteenMinutes
+    }
+
+    private func rescheduleIdleUnload() {
+        unloadTask?.cancel()
+
+        guard let model = engine.transcriptionModelManager.currentTranscriptionModel else {
+            return
+        }
+
+        guard model.provider == .local || model.provider == .parakeet else {
+            return
+        }
+
+        guard let interval = currentWarmRetention().interval else {
+            logger.notice("Local model retention set to until quit")
+            return
+        }
+
+        unloadTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(interval))
+                await MainActor.run {
+                    guard let self else { return }
+                    if self.engine.recordingState != .idle {
+                        self.logger.notice("Skipping local model unload while recording is active")
+                        self.rescheduleIdleUnload()
+                        return
+                    }
+
+                    self.logger.notice("Unloading local model after \(interval, privacy: .public)s of inactivity")
+                }
+
+                guard let self else { return }
+                if await self.engine.recordingState == .idle {
+                    await self.engine.cleanupResources()
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                return
+            }
+        }
+    }
+
     deinit {
+        unloadTask?.cancel()
         NSWorkspace.shared.notificationCenter.removeObserver(self)
+        NotificationCenter.default.removeObserver(self)
         logger.notice("ModelPrewarmService deinitialized")
     }
 }

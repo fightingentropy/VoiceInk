@@ -31,6 +31,7 @@ This repository is set up for self-hosted development and distribution. If you p
 
 - 🎙️ **Accurate Transcription**: Local AI models that transcribe your voice to text with 99% accuracy, almost instantly
 - 🔒 **Privacy First**: 100% offline processing ensures your data never leaves your device
+- 🔥 **Model Prewarm & Warm Retention**: Prewarm local models on launch and wake, then keep them resident for a configurable idle window
 - ⚡ **Power Mode**: Intelligent app detection automatically applies your perfect pre-configured settings based on the app/ URL you're on
 - 🧠 **Context Aware**: Smart AI that understands your screen content and adapts to the context
 - 🎯 **Global Shortcuts**: Configurable keyboard shortcuts for quick recording and push-to-talk functionality
@@ -51,7 +52,7 @@ brew install --cask voiceink
 ```
 
 ### Build from Source
-Build VoiceInk locally by following [BUILDING.md](BUILDING.md). The project includes a `LocalBuild.xcconfig` path for ad-hoc development builds and a normal Xcode configuration for signed distribution builds.
+Build VoiceInk locally by following [BUILDING.md](BUILDING.md). The project includes a `LocalBuild.xcconfig` path for stable `/Applications` installs signed with a local `VoiceInk` identity, plus the normal Xcode configuration for shipped distribution builds.
 
 ## Requirements
 
@@ -68,6 +69,7 @@ Build VoiceInk locally by following [BUILDING.md](BUILDING.md). The project incl
 
 - This repository is configured for `fightingentropy/VoiceInk`.
 - Local builds still disable Sparkle update checks with `LOCAL_BUILD`.
+- Local installs are rebuilt into `/Applications/VoiceInk.app` and signed with the self-signed local `VoiceInk` identity for better macOS permission continuity.
 - Announcements are read from `announcements.json` in this repository.
 
 ## Contributing

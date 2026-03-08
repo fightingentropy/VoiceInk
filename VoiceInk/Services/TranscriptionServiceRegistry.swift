@@ -41,7 +41,13 @@ class TranscriptionServiceRegistry {
         let effectiveModel = batchFallbackModel(for: model) ?? model
         let service = service(for: effectiveModel.provider)
         logger.debug("Transcribing with \(effectiveModel.displayName, privacy: .public) using \(String(describing: type(of: service)), privacy: .public)")
-        return try await service.transcribe(audioURL: audioURL, model: effectiveModel)
+        let text = try await service.transcribe(audioURL: audioURL, model: effectiveModel)
+
+        if effectiveModel.provider == .local || effectiveModel.provider == .parakeet {
+            NotificationCenter.default.post(name: .localModelDidUse, object: nil)
+        }
+
+        return text
     }
 
     /// Creates a streaming or file-based session depending on the model's capabilities.

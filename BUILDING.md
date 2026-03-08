@@ -65,9 +65,9 @@ make local
 open /Applications/VoiceInk.app
 ```
 
-This builds VoiceInk with ad-hoc signing using a separate build configuration (`LocalBuild.xcconfig`) that requires no Apple Developer account, bumps the app version, and installs a clean copy to `/Applications/VoiceInk.app`.
+This builds VoiceInk with a self-signed local `VoiceInk` identity using a separate build configuration (`LocalBuild.xcconfig`), bumps the app version, and installs a clean copy to `/Applications/VoiceInk.app`.
 
-If you want a named local signing identity for release-style testing instead of ad-hoc signing, run:
+If you do not already have the local signing identity, create it with:
 
 ```bash
 scripts/create_local_codesigning_identity.sh
@@ -81,6 +81,19 @@ The `make local` command uses:
 - `LocalBuild.xcconfig` to override signing and entitlements settings
 - `VoiceInk.local.entitlements` (stripped-down, no CloudKit/keychain groups)
 - `LOCAL_BUILD` Swift compilation flag for conditional code paths
+- the `VoiceInk` local signing identity so rebuilt `/Applications/VoiceInk.app` installs keep a stable macOS app identity
+
+### Local Signing Reference
+
+Use this pattern when you want stable local installs on your own Mac without introducing Apple Developer distribution certificates:
+
+1. Create a self-signed code-signing identity in your login keychain, for example `VoiceInk`.
+2. Keep the installed app path stable, for example `/Applications/VoiceInk.app`.
+3. Keep the bundle identifier stable.
+4. Point your local build configuration at that identity instead of `-` ad-hoc signing.
+5. Reinstall by replacing the app in place instead of launching from a new timestamped build folder.
+
+That combination gives macOS the best chance of preserving Accessibility, Microphone, and Automation permissions across rebuilds.
 
 Your normal `make all` / `make build` commands are completely unaffected.
 

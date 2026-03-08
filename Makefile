@@ -6,6 +6,7 @@ LOCAL_BUILD_ROOT := $(CURDIR)/.codex-build/local-install
 LOCAL_DERIVED_DATA := $(LOCAL_BUILD_ROOT)/deriveddata
 LOCAL_SPM_DIR := $(LOCAL_BUILD_ROOT)/spm
 INSTALL_APP_PATH := /Applications/VoiceInk.app
+LOCAL_CODESIGN_IDENTITY ?= VoiceInk
 
 .PHONY: all clean whisper setup build local install-local bump-version check healthcheck help dev run
 
@@ -53,13 +54,19 @@ build: setup
 # Build for local use without Apple Developer certificate
 install-local: bump-version check setup
 	@echo "Building VoiceInk for local use and installing to $(INSTALL_APP_PATH)..."
+	@security find-identity -v -p codesigning | grep -F '"$(LOCAL_CODESIGN_IDENTITY)"' >/dev/null || { \
+		echo "Missing local code signing identity: $(LOCAL_CODESIGN_IDENTITY)"; \
+		echo "Available identities:"; \
+		security find-identity -v -p codesigning; \
+		exit 1; \
+	}
 	@rm -rf "$(LOCAL_BUILD_ROOT)"
 	@mkdir -p "$(LOCAL_BUILD_ROOT)"
 	xcodebuild -project VoiceInk.xcodeproj -scheme VoiceInk -configuration Debug \
 		-xcconfig LocalBuild.xcconfig \
 		-derivedDataPath "$(LOCAL_DERIVED_DATA)" \
 		-clonedSourcePackagesDirPath "$(LOCAL_SPM_DIR)" \
-		CODE_SIGN_IDENTITY="-" \
+		CODE_SIGN_IDENTITY="$(LOCAL_CODESIGN_IDENTITY)" \
 		CODE_SIGNING_REQUIRED=NO \
 		CODE_SIGNING_ALLOWED=YES \
 		DEVELOPMENT_TEAM="" \
