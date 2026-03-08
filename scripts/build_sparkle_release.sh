@@ -32,8 +32,14 @@ release_entitlements="${VOICEINK_RELEASE_ENTITLEMENTS:-$project_root/VoiceInk/Vo
 release_notes_path="$dist_path/VoiceInk.${release_version}.txt"
 archive_name="VoiceInk.${release_version}.zip"
 archive_output_path="$dist_path/$archive_name"
-sparkle_key_account="${SPARKLE_KEY_ACCOUNT:-$repo_name}"
-codesign_identity="${APPLE_CODESIGN_IDENTITY:-Developer ID Application}"
+sparkle_key_account="${SPARKLE_KEY_ACCOUNT:-${repo_name}-sparkle}"
+if [[ -n "${APPLE_CODESIGN_IDENTITY:-}" ]]; then
+    codesign_identity="${APPLE_CODESIGN_IDENTITY}"
+elif security find-identity -v -p codesigning 2>/dev/null | grep -q '"VoiceInk"'; then
+    codesign_identity="VoiceInk"
+else
+    codesign_identity="Developer ID Application"
+fi
 
 rm -rf "$build_root"
 mkdir -p "$dist_path" "$pages_path"

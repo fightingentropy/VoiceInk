@@ -67,6 +67,14 @@ open /Applications/VoiceInk.app
 
 This builds VoiceInk with ad-hoc signing using a separate build configuration (`LocalBuild.xcconfig`) that requires no Apple Developer account, bumps the app version, and installs a clean copy to `/Applications/VoiceInk.app`.
 
+If you want a named local signing identity for release-style testing instead of ad-hoc signing, run:
+
+```bash
+scripts/create_local_codesigning_identity.sh
+```
+
+That creates a self-signed local code-signing identity named `VoiceInk` in your login keychain.
+
 ### How It Works
 
 The `make local` command uses:
