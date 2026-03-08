@@ -1,10 +1,12 @@
 import SwiftUI
 import SwiftData
-import Sparkle
 import AppKit
 import OSLog
 import AppIntents
 import FluidAudio
+#if !LOCAL_BUILD
+import Sparkle
+#endif
 
 @main
 struct VoiceInkApp: App {
@@ -44,7 +46,7 @@ struct VoiceInkApp: App {
             UserDefaults.standard.set(hasEnabledPowerModes, forKey: "powerModeUIFlag")
         }
 
-        let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "Initialization")
+        let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "Initialization")
         let schema = Schema([
             Transcription.self,
             VocabularyWord.self,
@@ -98,7 +100,7 @@ struct VoiceInkApp: App {
 
         // 1. Create modelsDirectory URL
         let appSupportDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("com.prakashjoshipax.VoiceInk")
+            .appendingPathComponent("com.fightingentropy.VoiceInk")
         let modelsDirectory = appSupportDirectory.appendingPathComponent("WhisperModels")
 
         // 2. Create model managers
@@ -175,7 +177,7 @@ struct VoiceInkApp: App {
         do {
             // Create app-specific Application Support directory URL
             let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("com.prakashjoshipax.VoiceInk", isDirectory: true)
+                .appendingPathComponent("com.fightingentropy.VoiceInk", isDirectory: true)
 
             // Create the directory if it doesn't exist
             try? FileManager.default.createDirectory(at: appSupportURL, withIntermediateDirectories: true)
@@ -198,7 +200,7 @@ struct VoiceInkApp: App {
             #if LOCAL_BUILD
             let dictionaryCloudKit: ModelConfiguration.CloudKitDatabase = .none
             #else
-            let dictionaryCloudKit: ModelConfiguration.CloudKitDatabase = .private("iCloud.com.prakashjoshipax.VoiceInk")
+            let dictionaryCloudKit: ModelConfiguration.CloudKitDatabase = .private("iCloud.com.fightingentropy.VoiceInk")
             #endif
             let dictionaryConfig = ModelConfiguration(
                 "dictionary",
@@ -316,7 +318,7 @@ struct VoiceInkApp: App {
                     .environmentObject(enhancementService)
                     .frame(minWidth: 880, minHeight: 780)
                     .background(WindowAccessor { window in
-                        if window.identifier == nil || window.identifier != NSUserInterfaceItemIdentifier("com.prakashjoshipax.voiceink.onboardingWindow") {
+                        if window.identifier == nil || window.identifier != NSUserInterfaceItemIdentifier("com.fightingentropy.voiceink.onboardingWindow") {
                             WindowManager.shared.configureOnboardingPanel(window)
                         }
                     })
@@ -328,9 +330,11 @@ struct VoiceInkApp: App {
         .commands {
             CommandGroup(replacing: .newItem) { }
 
+            #if !LOCAL_BUILD
             CommandGroup(after: .appInfo) {
                 CheckForUpdatesView(updaterViewModel: updaterViewModel)
             }
+            #endif
         }
 
         MenuBarExtra(isInserted: $showMenuBarIcon) {
@@ -368,6 +372,17 @@ struct VoiceInkApp: App {
 }
 
 class UpdaterViewModel: ObservableObject {
+    #if LOCAL_BUILD
+    @Published var canCheckForUpdates = false
+
+    init() { }
+
+    func toggleAutoUpdates(_ value: Bool) { }
+
+    func checkForUpdates() { }
+
+    func silentlyCheckForUpdates() { }
+    #else
     @AppStorage("autoUpdateCheck") private var autoUpdateCheck = true
 
     private let updaterController: SPUStandardUpdaterController
@@ -398,6 +413,7 @@ class UpdaterViewModel: ObservableObject {
         // This checks for updates in the background without showing UI unless an update is found
         updaterController.updater.checkForUpdatesInBackground()
     }
+    #endif
 }
 
 struct CheckForUpdatesView: View {

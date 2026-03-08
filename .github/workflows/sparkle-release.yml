@@ -1,0 +1,185 @@
+name: Publish Sparkle Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to publish, like v1.70.2
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: sparkle-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-14
+    outputs:
+      page_url: ${{ steps.metadata.outputs.page_url }}
+      sparkle_public_key: ${{ steps.release.outputs.sparkle_public_key }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/configure-pages@v5
+
+      - name: Resolve release metadata
+        id: metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            tag_name="${{ inputs.tag }}"
+          else
+            tag_name="${GITHUB_REF_NAME}"
+          fi
+
+          if [[ -z "$tag_name" ]]; then
+            echo "Could not determine tag name" >&2
+            exit 1
+          fi
+
+          repo_name="${GITHUB_REPOSITORY#*/}"
+          page_url="https://${GITHUB_REPOSITORY_OWNER}.github.io/${repo_name}/appcast.xml"
+
+          echo "tag_name=$tag_name" >> "$GITHUB_OUTPUT"
+          echo "repo_name=$repo_name" >> "$GITHUB_OUTPUT"
+          echo "page_url=$page_url" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure GitHub release exists
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag_name="${{ steps.metadata.outputs.tag_name }}"
+
+          if gh release view "$tag_name" >/dev/null 2>&1; then
+            exit 0
+          fi
+
+          gh release create "$tag_name" \
+            --title "$tag_name" \
+            --generate-notes
+
+      - name: Read release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag_name="${{ steps.metadata.outputs.tag_name }}"
+          gh release view "$tag_name" --json body --jq '.body' > "$RUNNER_TEMP/release-notes.txt"
+
+      - name: Import signing certificate
+        env:
+          APPLE_DEVELOPER_ID_APPLICATION_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION_P12_BASE64 }}
+          APPLE_DEVELOPER_ID_APPLICATION_P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION_P12_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${APPLE_DEVELOPER_ID_APPLICATION_P12_BASE64}" || -z "${APPLE_DEVELOPER_ID_APPLICATION_P12_PASSWORD}" ]]; then
+            echo "Missing signing certificate secrets" >&2
+            exit 1
+          fi
+
+          cert_path="$RUNNER_TEMP/voiceink-developer-id.p12"
+          keychain_path="$RUNNER_TEMP/voiceink-signing.keychain-db"
+          keychain_password="$(uuidgen)"
+
+          echo "$APPLE_DEVELOPER_ID_APPLICATION_P12_BASE64" | base64 --decode > "$cert_path"
+
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security import "$cert_path" -P "$APPLE_DEVELOPER_ID_APPLICATION_P12_PASSWORD" -A -t cert -f pkcs12 -k "$keychain_path"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain_path"
+          security list-keychains -d user -s "$keychain_path" login.keychain-db
+
+          echo "KEYCHAIN_PATH=$keychain_path" >> "$GITHUB_ENV"
+
+      - name: Build release archive and appcast
+        id: release
+        env:
+          TAG_NAME: ${{ steps.metadata.outputs.tag_name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          SPARKLE_FEED_URL: ${{ steps.metadata.outputs.page_url }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+          APPLE_NOTARY_API_PRIVATE_KEY_BASE64: ${{ secrets.APPLE_NOTARY_API_PRIVATE_KEY_BASE64 }}
+          KEYCHAIN_PATH: ${{ env.KEYCHAIN_PATH }}
+          RELEASE_NOTES_FILE: ${{ runner.temp }}/release-notes.txt
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${SPARKLE_PRIVATE_KEY}" ]]; then
+            echo "Missing Sparkle signing key secret" >&2
+            exit 1
+          fi
+
+          output="$(zsh "$GITHUB_WORKSPACE/scripts/build_sparkle_release.sh")"
+          echo "$output"
+
+          archive_path="$(echo "$output" | sed -n 's/^ARCHIVE_PATH=//p')"
+          appcast_path="$(echo "$output" | sed -n 's/^APPCAST_PATH=//p')"
+          dist_path="$(echo "$output" | sed -n 's/^DIST_PATH=//p')"
+          sparkle_public_key="$(echo "$output" | sed -n 's/^SPARKLE_PUBLIC_ED_KEY=//p')"
+
+          echo "archive_path=$archive_path" >> "$GITHUB_OUTPUT"
+          echo "appcast_path=$appcast_path" >> "$GITHUB_OUTPUT"
+          echo "dist_path=$dist_path" >> "$GITHUB_OUTPUT"
+          echo "sparkle_public_key=$sparkle_public_key" >> "$GITHUB_OUTPUT"
+
+      - name: Upload release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          shopt -s nullglob
+          for asset in "${{ steps.release.outputs.dist_path }}"/*; do
+            case "$asset" in
+              *.txt|*/appcast.xml)
+                continue
+                ;;
+            esac
+            gh release upload "${{ steps.metadata.outputs.tag_name }}" "$asset" --clobber
+          done
+
+      - name: Prepare Pages artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          pages_dir="$RUNNER_TEMP/pages"
+          mkdir -p "$pages_dir"
+          cp "${{ steps.release.outputs.appcast_path }}" "$pages_dir/appcast.xml"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ runner.temp }}/pages
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

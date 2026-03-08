@@ -1,32 +1,31 @@
 <div align="center">
   <img src="VoiceInk/Assets.xcassets/AppIcon.appiconset/256-mac.png" width="180" height="180" />
   <h1>VoiceInk</h1>
-  <p>Voice to text app for macOS to transcribe what you say to text almost instantly</p>
+  <p>Fast voice-to-text for macOS with local transcription, personal vocabulary, and configurable recording workflows.</p>
 
   [![License](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
   ![Platform](https://img.shields.io/badge/platform-macOS%2014.0%2B-brightgreen)
-  [![GitHub release (latest by date)](https://img.shields.io/github/v/release/Beingpax/VoiceInk)](https://github.com/Beingpax/VoiceInk/releases)
-  ![GitHub all releases](https://img.shields.io/github/downloads/Beingpax/VoiceInk/total)
-  ![GitHub stars](https://img.shields.io/github/stars/Beingpax/VoiceInk?style=social)
+  [![GitHub release (latest by date)](https://img.shields.io/github/v/release/fightingentropy/VoiceInk)](https://github.com/fightingentropy/VoiceInk/releases)
+  ![GitHub all releases](https://img.shields.io/github/downloads/fightingentropy/VoiceInk/total)
+  ![GitHub stars](https://img.shields.io/github/stars/fightingentropy/VoiceInk?style=social)
   <p>
-    <a href="https://tryvoiceink.com">Website</a> •
-    <a href="https://www.youtube.com/@tryvoiceink">YouTube</a>
+    <a href="https://github.com/fightingentropy/VoiceInk">Repository</a> •
+    <a href="https://github.com/fightingentropy/VoiceInk/releases">Releases</a> •
+    <a href="https://github.com/fightingentropy/VoiceInk/issues">Issues</a>
   </p>
 
-  <a href="https://tryvoiceink.com">
-    <img src="https://img.shields.io/badge/Download%20Now-Latest%20Version-blue?style=for-the-badge&logo=apple" alt="Download VoiceInk" width="250"/>
+  <a href="https://github.com/fightingentropy/VoiceInk">
+    <img src="https://img.shields.io/badge/View%20Repository-GitHub-blue?style=for-the-badge&logo=github" alt="View VoiceInk repository" width="250"/>
   </a>
 </div>
 
 ---
 
-VoiceInk is a native macOS application that transcribes what you say to text almost instantly. You can find all the information and download the app from [here](https://tryvoiceink.com). 
+VoiceInk is a native macOS application that transcribes speech to text with a focus on speed, privacy, and local-first workflows.
 
 ![VoiceInk Mac App](https://github.com/user-attachments/assets/12367379-83e7-48a6-b52c-4488a6a04bba)
 
-After dedicating the past 5 months to developing this app, I've decided to open source it for the greater good. 
-
-My goal is to make it **the most efficient and privacy-focused voice-to-text solution for macOS** that is a joy to use. While the source code is now open for experienced developers to build and contribute, purchasing a license helps support continued development and gives you access to automatic updates, priority support, and upcoming features.
+This repository is set up for self-hosted development and distribution. If you plan to ship signed builds or Sparkle updates, use your own Apple Developer team, bundle identifiers, signing keys, and release infrastructure.
 
 ## Features
 
@@ -42,7 +41,7 @@ My goal is to make it **the most efficient and privacy-focused voice-to-text sol
 ## Get Started
 
 ### Download
-Get the latest version with a free trial from [tryvoiceink.com](https://tryvoiceink.com). Your purchase helps me work on VoiceInk full-time and continuously improve it with new features and updates.
+Download the latest signed build from [GitHub Releases](https://github.com/fightingentropy/VoiceInk/releases), or build locally from source using the instructions in [BUILDING.md](BUILDING.md).
 
 #### Homebrew
 Alternatively, you can install VoiceInk via `brew`:
@@ -52,7 +51,7 @@ brew install --cask voiceink
 ```
 
 ### Build from Source
-As an open-source project, you can build VoiceInk yourself by following the instructions in [BUILDING.md](BUILDING.md). However, the compiled version includes additional benefits like automatic updates, priority support via Discord and email, and helps fund ongoing development.
+Build VoiceInk locally by following [BUILDING.md](BUILDING.md). The project includes a `LocalBuild.xcconfig` path for ad-hoc development builds and a normal Xcode configuration for signed distribution builds.
 
 ## Requirements
 
@@ -61,8 +60,15 @@ As an open-source project, you can build VoiceInk yourself by following the inst
 ## Documentation
 
 - [Building from Source](BUILDING.md) - Detailed instructions for building the project
+- [Releasing](RELEASING.md) - Signing, Sparkle, and GitHub release automation
 - [Contributing Guidelines](CONTRIBUTING.md) - How to contribute to VoiceInk
 - [Code of Conduct](CODE_OF_CONDUCT.md) - Our community standards
+
+## Ownership Notes
+
+- This repository is configured for `fightingentropy/VoiceInk`.
+- Local builds still disable Sparkle update checks with `LOCAL_BUILD`.
+- Announcements are read from `announcements.json` in this repository.
 
 ## Contributing
 
@@ -99,8 +105,3 @@ If you encounter any issues or have questions, please:
 - [Zip](https://github.com/marmelroy/Zip) - File compression and decompression utilities
 - [SelectedTextKit](https://github.com/tisfeng/SelectedTextKit) - A modern macOS library for getting selected text
 - [Swift Atomics](https://github.com/apple/swift-atomics) - Low-level atomic operations for thread-safe concurrent programming
-
-
----
-
-Made with ❤️ by Pax

@@ -206,6 +206,9 @@ class SystemInfoService {
     }
 
     private func getLicenseStatus() -> String {
+        #if LOCAL_BUILD
+        return "Open Source Build"
+        #else
         let licenseManager = LicenseManager.shared
 
         // Check for existing license key and activation
@@ -216,6 +219,7 @@ class SystemInfoService {
         }
 
         return "Not Licensed"
+        #endif
     }
 
     private func getCurrentLanguage() -> String {

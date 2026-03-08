@@ -1,5 +1,6 @@
 import Foundation
 import os
+#if !LOCAL_BUILD
 
 /// Manages license data using secure Keychain storage (non-syncable, device-local).
 final class LicenseManager {
@@ -7,7 +8,7 @@ final class LicenseManager {
 
     private let keychain = KeychainService.shared
     private let userDefaults = UserDefaults.standard
-    private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "LicenseManager")
+    private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "LicenseManager")
 
     private let licenseKeyIdentifier = "voiceink.license.key"
     private let trialStartDateIdentifier = "voiceink.license.trialStartDate"
@@ -123,3 +124,4 @@ final class LicenseManager {
         activationId = nil
     }
 }
+#endif

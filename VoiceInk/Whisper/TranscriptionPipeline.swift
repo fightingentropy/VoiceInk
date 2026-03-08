@@ -11,7 +11,7 @@ class TranscriptionPipeline {
     private let serviceRegistry: TranscriptionServiceRegistry
     private let enhancementService: AIEnhancementService?
     private let promptDetectionService = PromptDetectionService()
-    private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "TranscriptionPipeline")
+    private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "TranscriptionPipeline")
 
     var licenseViewModel: LicenseViewModel
 
@@ -153,12 +153,14 @@ class TranscriptionPipeline {
 
         if var textToPaste = finalPastedText,
            transcription.transcriptionStatus == TranscriptionStatus.completed.rawValue {
+            #if !LOCAL_BUILD
             if case .trialExpired = licenseViewModel.licenseState {
                 textToPaste = """
-                    Your trial has expired. Upgrade to VoiceInk Pro at tryvoiceink.com/buy
+                    Your trial has expired. Get the latest VoiceInk release from github.com/fightingentropy/VoiceInk/releases
                     \n\(textToPaste)
                     """
             }
+            #endif
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 let appendSpace = UserDefaults.standard.bool(forKey: "AppendTrailingSpace")

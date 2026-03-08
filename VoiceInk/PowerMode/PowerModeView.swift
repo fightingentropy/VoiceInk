@@ -81,7 +81,7 @@ struct PowerModeView: View {
                                 
                                 InfoTip(
                                     "Automatically apply custom configurations based on the app/website you are using.",
-                                    learnMoreURL: "https://tryvoiceink.com/docs/power-mode"
+                                    learnMoreURL: "https://github.com/fightingentropy/VoiceInk#readme"
                                 )
                             }
                             
