@@ -153,7 +153,7 @@ class TranscriptionPipeline {
 
         if var textToPaste = finalPastedText,
            transcription.transcriptionStatus == TranscriptionStatus.completed.rawValue {
-            #if !LOCAL_BUILD
+            #if !LOCAL_BUILD && !OPEN_SOURCE_DISTRIBUTION
             if case .trialExpired = licenseViewModel.licenseState {
                 textToPaste = """
                     Your trial has expired. Get the latest VoiceInk release from github.com/fightingentropy/VoiceInk/releases

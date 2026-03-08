@@ -197,7 +197,7 @@ struct VoiceInkApp: App {
 
             // Dictionary configuration
             let dictionarySchema = Schema([VocabularyWord.self, WordReplacement.self])
-            #if LOCAL_BUILD
+            #if LOCAL_BUILD || OPEN_SOURCE_DISTRIBUTION
             let dictionaryCloudKit: ModelConfiguration.CloudKitDatabase = .none
             #else
             let dictionaryCloudKit: ModelConfiguration.CloudKitDatabase = .private("iCloud.com.fightingentropy.VoiceInk")

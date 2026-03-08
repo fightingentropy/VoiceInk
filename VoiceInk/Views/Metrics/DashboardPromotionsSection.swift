@@ -24,7 +24,7 @@ struct DashboardPromotionsSection: View {
     }
     
     private var shouldShowPromotions: Bool {
-        #if LOCAL_BUILD
+        #if LOCAL_BUILD || OPEN_SOURCE_DISTRIBUTION
         false
         #else
         shouldShowUpgradePromotion || shouldShowAffiliatePromotion
