@@ -3,6 +3,19 @@
     <channel>
         <title>VoiceInk</title>
         <item>
+            <title>1.70.6</title>
+            <pubDate>Sun, 08 Mar 2026 18:33:37 +0000</pubDate>
+            <link>https://github.com/fightingentropy/VoiceInk</link>
+            <sparkle:version>176</sparkle:version>
+            <sparkle:shortVersionString>1.70.6</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.4</sparkle:minimumSystemVersion>
+            <description sparkle:format="plain-text"><![CDATA[VoiceInk 1.70.6
+
+Build 176
+]]></description>
+            <enclosure url="https://github.com/fightingentropy/VoiceInk/releases/download/v1.70.6/VoiceInk.1.70.6.zip" length="11109443" type="application/octet-stream" sparkle:edSignature="0ebepK7eh69s9yK4T8odl/SOtsnaiclooG9w9m189KMk/f0nBoG6xRIkYUw/WiL4j84AP5LU/82CanhEvIkWBw=="/>
+        </item>
+        <item>
             <title>1.70.5</title>
             <pubDate>Sun, 08 Mar 2026 11:49:13 +0000</pubDate>
             <link>https://github.com/fightingentropy/VoiceInk</link>
