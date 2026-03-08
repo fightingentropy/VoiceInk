@@ -151,11 +151,7 @@ struct VoiceInkApp: App {
         activeWindowService.configure(with: enhancementService)
         _activeWindowService = StateObject(wrappedValue: activeWindowService)
 
-        let prewarmService = ModelPrewarmService(
-            transcriptionModelManager: transcriptionModelManager,
-            whisperModelManager: whisperModelManager,
-            modelContext: container.mainContext
-        )
+        let prewarmService = ModelPrewarmService(engine: engine)
         _prewarmService = StateObject(wrappedValue: prewarmService)
 
         appDelegate.menuBarManager = menuBarManager
@@ -301,7 +297,7 @@ struct VoiceInkApp: App {
                     })
                     .onDisappear {
                         AnnouncementsService.shared.stop()
-                        whisperModelManager.unloadModel()
+                        prewarmService.handleWindowDidDisappear()
 
                         // Stop the automatic audio cleanup process
                         audioCleanupManager.stopAutomaticCleanup()

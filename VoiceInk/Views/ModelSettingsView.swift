@@ -7,6 +7,7 @@ struct ModelSettingsView: View {
     @AppStorage("IsVADEnabled") private var isVADEnabled = true
     @AppStorage("AppendTrailingSpace") private var appendTrailingSpace = true
     @AppStorage("PrewarmModelOnWake") private var prewarmModelOnWake = true
+    @AppStorage("LocalModelWarmRetentionSeconds") private var localModelWarmRetention = LocalModelWarmRetention.fifteenMinutes.rawValue
     @State private var customPrompt: String = ""
     @State private var isEditing: Bool = false
     
@@ -92,12 +93,28 @@ struct ModelSettingsView: View {
 
             HStack {
                 Toggle(isOn: $prewarmModelOnWake) {
-                    Text("Prewarm model (Experimental)")
+                    Text("Prewarm model on launch and wake")
                 }
                 .toggleStyle(.switch)
 
-                InfoTip("Turn this on if transcriptions with local models are taking longer than expected. Runs silent background transcription on app launch and wake to trigger optimization.")
+                InfoTip("Runs a silent local transcription on app launch and wake so the current local model is ready sooner.")
             }
+
+            HStack {
+                Text("Keep local model warm for")
+                Spacer()
+                Picker("Keep local model warm for", selection: $localModelWarmRetention) {
+                    ForEach(LocalModelWarmRetention.allCases) { retention in
+                        Text(retention.displayName).tag(retention.rawValue)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+            }
+
+            Text("The timer resets after each successful local transcription or prewarm.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
             FillerWordsSettingsView()
 

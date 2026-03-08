@@ -262,6 +262,31 @@ class VoiceInkEngine: NSObject, ObservableObject {
         logger.notice("cleanupResources: completed")
     }
 
+    func prewarmCurrentLocalModel(using audioURL: URL) async throws {
+        guard let model = transcriptionModelManager.currentTranscriptionModel else {
+            return
+        }
+
+        switch model.provider {
+        case .local:
+            guard let localWhisperModel = whisperModelManager.availableModels.first(where: { $0.name == model.name }) else {
+                throw VoiceInkEngineError.modelLoadFailed
+            }
+
+            if whisperModelManager.whisperContext == nil
+                || whisperModelManager.loadedLocalModel?.name != localWhisperModel.name {
+                try await whisperModelManager.loadModel(localWhisperModel)
+            }
+        case .parakeet:
+            guard let parakeetModel = model as? ParakeetModel else { return }
+            try await serviceRegistry.parakeetTranscriptionService.loadModel(for: parakeetModel)
+        default:
+            return
+        }
+
+        _ = try await serviceRegistry.transcribe(audioURL: audioURL, model: model)
+    }
+
     // MARK: - Notification Handling
 
     func setupNotifications() {
