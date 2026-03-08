@@ -2,6 +2,16 @@
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
     <channel>
         <title>VoiceInk</title>
-        <description>Publish your signed Sparkle appcast entries here before enabling automatic update checks.</description>
+        <item>
+            <title>1.70.4</title>
+            <pubDate>Sun, 08 Mar 2026 11:42:58 +0000</pubDate>
+            <link>https://github.com/fightingentropy/VoiceInk</link>
+            <sparkle:version>174</sparkle:version>
+            <sparkle:shortVersionString>1.70.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.4</sparkle:minimumSystemVersion>
+            <description sparkle:format="plain-text"><![CDATA[**Full Changelog**: https://github.com/fightingentropy/VoiceInk/commits/v1.70.4
+]]></description>
+            <enclosure url="https://github.com/fightingentropy/VoiceInk/releases/download/v1.70.4/VoiceInk%201.70.4.zip" length="11175931" type="application/octet-stream" sparkle:edSignature="grcl4cytdk1CCCF6q36K5aXrNSk7Z7QCWX2342RnekdeJ9Yj3kFc1R1Q8gqpgrl9N+7rmMDxJ1vBP1mWlbb1AQ=="/>
+        </item>
     </channel>
 </rss>
