@@ -192,7 +192,7 @@ struct ModelManagementView: View {
 
                             InfoTip(
                                 "Add a custom fine-tuned whisper model to use with VoiceInk. Select the downloaded .bin file.",
-                                learnMoreURL: "https://tryvoiceink.com/docs/custom-local-whisper-models"
+                                learnMoreURL: "https://github.com/fightingentropy/VoiceInk#readme"
                             )
                             .help("Read more about custom local models")
                         }

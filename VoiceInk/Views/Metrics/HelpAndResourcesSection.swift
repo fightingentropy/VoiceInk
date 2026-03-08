@@ -11,19 +11,19 @@ struct HelpAndResourcesSection: View {
                 resourceLink(
                     icon: "sparkles",
                     title: "Recommended Models",
-                    url: "https://tryvoiceink.com/recommended-models"
+                    url: "https://github.com/fightingentropy/VoiceInk#readme"
                 )
 
                 resourceLink(
                     icon: "video.fill",
-                    title: "YouTube Videos & Guides",
-                    url: "https://www.youtube.com/@tryvoiceink/videos"
+                    title: "Release Notes",
+                    url: "https://github.com/fightingentropy/VoiceInk/releases"
                 )
 
                 resourceLink(
                     icon: "book.fill",
                     title: "Documentation",
-                    url: "https://tryvoiceink.com/docs"
+                    url: "https://github.com/fightingentropy/VoiceInk#readme"
                 )
                 
                 resourceLink(

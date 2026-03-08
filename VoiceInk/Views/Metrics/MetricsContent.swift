@@ -3,7 +3,7 @@ import SwiftData
 import os
 
 struct MetricsContent: View {
-    private let logger = Logger(subsystem: "com.prakashjoshipax.VoiceInk", category: "MetricsContent")
+    private let logger = Logger(subsystem: "com.fightingentropy.VoiceInk", category: "MetricsContent")
     let modelContext: ModelContext
     let licenseState: LicenseViewModel.LicenseState
 
@@ -24,7 +24,6 @@ struct MetricsContent: View {
                 GeometryReader { geometry in
                     ScrollView {
                         VStack(spacing: 24) {
-                            heroSection
                             metricsSection
                             HStack(alignment: .top, spacing: 18) {
                                 HelpAndResourcesSection()
@@ -147,52 +146,6 @@ struct MetricsContent: View {
     
     // MARK: - Sections
     
-    private var heroSection: some View {
-        VStack(spacing: 10) {
-            HStack {
-                Spacer(minLength: 0)
-                
-                (Text("You have saved ")
-                    .fontWeight(.bold)
-                    .foregroundColor(.white.opacity(0.85))
-                 +
-                 Text(formattedTimeSaved)
-                    .fontWeight(.black)
-                    .font(.system(size: 36, design: .rounded))
-                    .foregroundStyle(.white)
-                 +
-                 Text(" with VoiceInk")
-                    .fontWeight(.bold)
-                    .foregroundColor(.white.opacity(0.85))
-                )
-                .font(.system(size: 30))
-                .multilineTextAlignment(.center)
-                
-                Spacer(minLength: 0)
-            }
-            .lineLimit(1)
-            .minimumScaleFactor(0.5)
-            
-            Text(heroSubtitle)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(.white.opacity(0.85))
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-            
-        }
-        .padding(28)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(heroGradient)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
-        )
-        .shadow(color: Color.black.opacity(0.08), radius: 30, x: 0, y: 16)
-    }
-    
     private var metricsSection: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 16)], spacing: 16) {
             MetricCard(
@@ -235,45 +188,7 @@ struct MetricsContent: View {
         CopySystemInfoButton()
     }
     
-    private var formattedTimeSaved: String {
-        let formatted = Formatters.formattedDuration(timeSaved, style: .full, fallback: "Time savings coming soon")
-        return formatted
-    }
-    
-    private var heroSubtitle: String {
-        guard totalCount > 0 else {
-            return "Your VoiceInk journey starts with your first recording."
-        }
-
-        let wordsText = Formatters.formattedNumber(totalWords)
-        let sessionText = totalCount == 1 ? "session" : "sessions"
-
-        return "Dictated \(wordsText) words across \(totalCount) \(sessionText)."
-    }
-    
-    private var heroGradient: LinearGradient {
-        LinearGradient(
-            gradient: Gradient(colors: [
-                Color(nsColor: .controlAccentColor),
-                Color(nsColor: .controlAccentColor).opacity(0.85),
-                Color(nsColor: .controlAccentColor).opacity(0.7)
-            ]),
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-    
     // MARK: - Computed Metrics
-
-    private var estimatedTypingTime: TimeInterval {
-        let averageTypingSpeed: Double = 35 // words per minute
-        let estimatedTypingTimeInMinutes = Double(totalWords) / averageTypingSpeed
-        return estimatedTypingTimeInMinutes * 60
-    }
-
-    private var timeSaved: TimeInterval {
-        max(estimatedTypingTime - totalDuration, 0)
-    }
 
     private var averageWordsPerMinute: Double {
         guard totalDuration > 0 else { return 0 }
@@ -283,13 +198,6 @@ struct MetricsContent: View {
     private var totalKeystrokesSaved: Int {
         Int(Double(totalWords) * 5.0)
     }
-    
-    private var dateFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter
-    }
 }
 
 private enum Formatters {
@@ -298,22 +206,9 @@ private enum Formatters {
         formatter.numberStyle = .decimal
         return formatter
     }()
-    
-    static let durationFormatter: DateComponentsFormatter = {
-        let formatter = DateComponentsFormatter()
-        formatter.maximumUnitCount = 2
-        return formatter
-    }()
-    
+
     static func formattedNumber(_ value: Int) -> String {
         return numberFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
-    }
-    
-    static func formattedDuration(_ interval: TimeInterval, style: DateComponentsFormatter.UnitsStyle, fallback: String = "–") -> String {
-        guard interval > 0 else { return fallback }
-        durationFormatter.unitsStyle = style
-        durationFormatter.allowedUnits = interval >= 3600 ? [.hour, .minute] : [.minute, .second]
-        return durationFormatter.string(from: interval) ?? fallback
     }
 }
 

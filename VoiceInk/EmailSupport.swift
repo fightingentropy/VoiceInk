@@ -21,7 +21,7 @@ struct EmailSupport {
 
 
         ## 📋 COMMON ISSUES:
-        Check out our Common Issues page before sending an email: https://tryvoiceink.com/common-issues
+        Check out our Common Issues page before sending an email: https://github.com/fightingentropy/VoiceInk/issues
         ------------------------
 
         System Information:
@@ -29,11 +29,9 @@ struct EmailSupport {
 
 
         """
-        
-        let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        
-        return URL(string: "mailto:prakashjoshipax@gmail.com?subject=\(encodedSubject)&body=\(encodedBody)")
+
+        return URL(string: "https://github.com/fightingentropy/VoiceInk/issues/new?title=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&body=\(encodedBody)")
     }
     
     static func openSupportEmail() {
@@ -41,6 +39,4 @@ struct EmailSupport {
             NSWorkspace.shared.open(emailURL)
         }
     }
-    
-    
 }

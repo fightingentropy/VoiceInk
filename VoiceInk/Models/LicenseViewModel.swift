@@ -15,10 +15,12 @@ class LicenseViewModel: ObservableObject {
     @Published var validationMessage: String?
     @Published private(set) var activationsLimit: Int = 0
 
+    #if !LOCAL_BUILD
     private let trialPeriodDays = 7
     private let polarService = PolarService()
     private let userDefaults = UserDefaults.standard
     private let licenseManager = LicenseManager.shared
+    #endif
 
     init() {
         #if LOCAL_BUILD
@@ -29,14 +31,17 @@ class LicenseViewModel: ObservableObject {
     }
 
     func startTrial() {
+        #if !LOCAL_BUILD
         // Only set trial start date if it hasn't been set before
         if licenseManager.trialStartDate == nil {
             licenseManager.trialStartDate = Date()
             licenseState = .trial(daysRemaining: trialPeriodDays)
             NotificationCenter.default.post(name: .licenseStatusChanged, object: nil)
         }
+        #endif
     }
 
+    #if !LOCAL_BUILD
     private func loadLicenseState() {
         // Check for existing license key
         if let storedLicenseKey = licenseManager.licenseKey {
@@ -74,6 +79,7 @@ class LicenseViewModel: ObservableObject {
             startTrial()
         }
     }
+    #endif
     
     var canUseApp: Bool {
         switch licenseState {
@@ -85,12 +91,19 @@ class LicenseViewModel: ObservableObject {
     }
     
     func openPurchaseLink() {
-        if let url = URL(string: "https://tryvoiceink.com/buy") {
+        #if !LOCAL_BUILD
+        if let url = URL(string: "https://github.com/fightingentropy/VoiceInk/releases") {
             NSWorkspace.shared.open(url)
         }
+        #endif
     }
     
     func validateLicense() async {
+        #if LOCAL_BUILD
+        licenseState = .licensed
+        validationMessage = nil
+        isValidating = false
+        #else
         guard !licenseKey.isEmpty else {
             validationMessage = "Please enter a license key"
             return
@@ -173,9 +186,16 @@ class LicenseViewModel: ObservableObject {
         }
         
         isValidating = false
+        #endif
     }
     
     func removeLicense() {
+        #if LOCAL_BUILD
+        licenseState = .licensed
+        licenseKey = ""
+        validationMessage = nil
+        activationsLimit = 0
+        #else
         // Remove all license data from Keychain
         licenseManager.removeAll()
 
@@ -190,6 +210,7 @@ class LicenseViewModel: ObservableObject {
         activationsLimit = 0
         NotificationCenter.default.post(name: .licenseStatusChanged, object: nil)
         loadLicenseState()
+        #endif
     }
 }
 

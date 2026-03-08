@@ -10,6 +10,7 @@ struct MetricsView: View {
     
     var body: some View {
         VStack {
+            #if !LOCAL_BUILD
             // Trial Message
             if case .trial(let daysRemaining) = licenseViewModel.licenseState {
                 TrialMessageView(
@@ -40,6 +41,7 @@ struct MetricsView: View {
                 )
                 .padding()
             }
+            #endif
 
             MetricsContent(
                 modelContext: modelContext,

@@ -209,11 +209,6 @@ struct SettingsView: View {
 
                 LaunchAtLogin.Toggle("Launch at Login")
 
-                Toggle("Auto-check Updates", isOn: $autoUpdateCheck)
-                    .onChange(of: autoUpdateCheck) { _, newValue in
-                        updaterViewModel.toggleAutoUpdates(newValue)
-                    }
-
                 Toggle("Show Announcements", isOn: $enableAnnouncements)
                     .onChange(of: enableAnnouncements) { _, newValue in
                         if newValue {
@@ -221,14 +216,9 @@ struct SettingsView: View {
                         } else {
                             AnnouncementsService.shared.stop()
                         }
-                    }
+                }
 
                 HStack {
-                    Button("Check for Updates") {
-                        updaterViewModel.checkForUpdates()
-                    }
-                    .disabled(!updaterViewModel.canCheckForUpdates)
-
                     Button("Reset Onboarding") {
                         showResetOnboardingAlert = true
                     }
@@ -406,7 +396,7 @@ struct PowerModeSection: View {
                 isEnabled: toggleBinding,
                 label: "Power Mode",
                 infoMessage: "Apply custom settings based on active app or website.",
-                infoURL: "https://tryvoiceink.com/docs/power-mode"
+                infoURL: "https://github.com/fightingentropy/VoiceInk#readme"
             ) {
                 Toggle(isOn: $powerModeAutoRestoreEnabled) {
                     HStack(spacing: 4) {

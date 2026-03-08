@@ -18,7 +18,7 @@ The easiest way to build VoiceInk is using the included Makefile, which automate
 
 ```bash
 # Clone the repository
-git clone https://github.com/Beingpax/VoiceInk.git
+git clone https://github.com/fightingentropy/VoiceInk.git
 cd VoiceInk
 
 # Build everything (recommended for first-time setup)
@@ -59,13 +59,13 @@ This approach ensures consistent builds across different machines and eliminates
 If you don't have an Apple Developer certificate, use `make local`:
 
 ```bash
-git clone https://github.com/Beingpax/VoiceInk.git
+git clone https://github.com/fightingentropy/VoiceInk.git
 cd VoiceInk
 make local
-open ~/Downloads/VoiceInk.app
+open /Applications/VoiceInk.app
 ```
 
-This builds VoiceInk with ad-hoc signing using a separate build configuration (`LocalBuild.xcconfig`) that requires no Apple Developer account.
+This builds VoiceInk with ad-hoc signing using a separate build configuration (`LocalBuild.xcconfig`) that requires no Apple Developer account, bumps the app version, and installs a clean copy to `/Applications/VoiceInk.app`.
 
 ### How It Works
 
@@ -96,7 +96,7 @@ This will create the XCFramework at `build-apple/whisper.xcframework`.
 
 1. Clone the VoiceInk repository:
 ```bash
-git clone https://github.com/Beingpax/VoiceInk.git
+git clone https://github.com/fightingentropy/VoiceInk.git
 cd VoiceInk
 ```
 
@@ -136,4 +136,16 @@ If you encounter any build issues:
 4. Verify all dependencies are properly installed
 5. Make sure whisper.xcframework is properly built and linked
 
-For more help, please check the [issues](https://github.com/Beingpax/VoiceInk/issues) section or create a new issue. 
+For more help, please check the [issues](https://github.com/fightingentropy/VoiceInk/issues) section or create a new issue. 
+
+## Signing And Updates
+
+For a signed distribution build under your own ownership:
+
+1. Open the project in Xcode and select your Apple Developer team in `Signing & Capabilities`.
+2. Keep or change the bundle identifiers now set under `com.fightingentropy.*` if you want a different reverse-DNS namespace.
+3. Create your own Sparkle EdDSA key pair, then add your public key to `VoiceInk/Info.plist`.
+4. Publish your signed DMG and update `appcast.xml` before re-enabling automatic update checks.
+5. Push `announcements.json` from your repo if you want in-app announcement banners.
+
+For the automated GitHub Actions release path, see [RELEASING.md](RELEASING.md).

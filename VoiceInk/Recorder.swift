@@ -6,7 +6,7 @@ import os
 @MainActor
 class Recorder: NSObject, ObservableObject {
     private var recorder: CoreAudioRecorder?
-    private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "Recorder")
+    private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "Recorder")
     private let deviceManager = AudioDeviceManager.shared
     private var deviceSwitchObserver: NSObjectProtocol?
     private var isReconfiguring = false
@@ -15,9 +15,9 @@ class Recorder: NSObject, ObservableObject {
     @Published var audioMeter = AudioMeter(averagePower: 0, peakPower: 0)
     private var audioLevelCheckTask: Task<Void, Never>?
     private var audioMeterUpdateTimer: DispatchSourceTimer?
-    private let audioMeterQueue = DispatchQueue(label: "com.prakashjoshipax.voiceink.audiometer", qos: .userInteractive)
+    private let audioMeterQueue = DispatchQueue(label: "com.fightingentropy.voiceink.audiometer", qos: .userInteractive)
     /// Dedicated serial queue for hardware setup.
-    private let audioSetupQueue = DispatchQueue(label: "com.prakashjoshipax.voiceink.audioSetup", qos: .userInitiated)
+    private let audioSetupQueue = DispatchQueue(label: "com.fightingentropy.voiceink.audioSetup", qos: .userInitiated)
     private var audioRestorationTask: Task<Void, Never>?
     private var hasDetectedAudioInCurrentSession = false
     private let smoothedValuesLock = NSLock()

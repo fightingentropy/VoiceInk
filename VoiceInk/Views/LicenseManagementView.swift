@@ -1,4 +1,5 @@
 import SwiftUI
+#if !LOCAL_BUILD
 
 struct LicenseManagementView: View {
     @StateObject private var licenseViewModel = LicenseViewModel()
@@ -58,7 +59,7 @@ struct LicenseManagementView: View {
                 if case .licensed = licenseViewModel.licenseState {
                     HStack(spacing: 40) {
                         Button {
-                            if let url = URL(string: "https://github.com/Beingpax/VoiceInk/releases") {
+                            if let url = URL(string: "https://github.com/fightingentropy/VoiceInk/releases") {
                                 NSWorkspace.shared.open(url)
                             }
                         } label: {
@@ -67,23 +68,23 @@ struct LicenseManagementView: View {
                         .buttonStyle(.plain)
                         
                         Button {
-                            if let url = URL(string: "https://discord.gg/xryDy57nYD") {
+                            if let url = URL(string: "https://github.com/fightingentropy/VoiceInk/issues") {
                                 NSWorkspace.shared.open(url)
                             }
                         } label: {
-                            featureItem(icon: "bubble.left.and.bubble.right.fill", title: "Discord", color: .purple)
+                            featureItem(icon: "bubble.left.and.bubble.right.fill", title: "Issues", color: .purple)
                         }
                         .buttonStyle(.plain)
                         
                         Button {
                             EmailSupport.openSupportEmail()
                         } label: {
-                            featureItem(icon: "envelope.fill", title: "Email Support", color: .orange)
+                            featureItem(icon: "envelope.fill", title: "Support", color: .orange)
                         }
                         .buttonStyle(.plain)
                         
                         Button {
-                            if let url = URL(string: "https://tryvoiceink.com/docs") {
+                            if let url = URL(string: "https://github.com/fightingentropy/VoiceInk#readme") {
                                 NSWorkspace.shared.open(url)
                             }
                         } label: {
@@ -92,11 +93,11 @@ struct LicenseManagementView: View {
                         .buttonStyle(.plain)
                         
                         Button {
-                            if let url = URL(string: "https://buymeacoffee.com/beingpax") {
+                            if let url = URL(string: "https://github.com/fightingentropy/VoiceInk") {
                                 NSWorkspace.shared.open(url)
                             }
                         } label: {
-                            animatedTipJarItem()
+                            featureItem(icon: "link", title: "Repository", color: .orange)
                         }
                         .buttonStyle(.plain)
                     }
@@ -126,7 +127,7 @@ struct LicenseManagementView: View {
                 
                 // Purchase Button 
                 Button(action: {
-                    if let url = URL(string: "https://tryvoiceink.com/buy") {
+                    if let url = URL(string: "https://github.com/fightingentropy/VoiceInk/releases") {
                         NSWorkspace.shared.open(url)
                     }
                 }) {
@@ -198,11 +199,11 @@ struct LicenseManagementView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     Button(action: {
-                        if let url = URL(string: "https://polar.sh/beingpax/portal/request") {
+                        if let url = URL(string: "https://github.com/fightingentropy/VoiceInk/issues") {
                             NSWorkspace.shared.open(url)
                         }
                     }) {
-                        Text("License Management Portal")
+                        Text("Issue Tracker")
                             .frame(width: 180)
                     }
                     .buttonStyle(.borderedProminent)
@@ -304,5 +305,4 @@ struct LicenseManagementView: View {
         }
     }
 }
-
-
+#endif

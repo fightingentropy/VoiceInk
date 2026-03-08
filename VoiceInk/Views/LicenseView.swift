@@ -1,4 +1,5 @@
 import SwiftUI
+#if !LOCAL_BUILD
 
 struct LicenseView: View {
     @StateObject private var licenseViewModel = LicenseViewModel()
@@ -52,4 +53,5 @@ struct LicenseView_Previews: PreviewProvider {
     static var previews: some View {
         LicenseView()
     }
-} 
+}
+#endif
