@@ -34,6 +34,7 @@ This repository includes a Sparkle release workflow in `.github/workflows/sparkl
 
 - The appcast feed URL is injected at build time, so the release build uses the current repository owner/name automatically.
 - The automated release script defaults to `VoiceInk/VoiceInk.local.entitlements` so open-source builds do not require iCloud or Push Notifications provisioning.
+- For local release testing on a Mac without a real Apple Developer certificate, run `scripts/create_local_codesigning_identity.sh`. The release script will prefer a local `VoiceInk` identity automatically when `APPLE_CODESIGN_IDENTITY` is not set.
 - If you later want a fully provisioned Apple-team build, set `VOICEINK_RELEASE_ENTITLEMENTS` to `VoiceInk/VoiceInk.entitlements` in the workflow environment and provide the matching signing setup.
 - Local `make local` builds still do not participate in Sparkle updates because they compile with `LOCAL_BUILD`.
 - Sparkle update prompts require a shipped build with a higher version than the installed app and a published appcast entry.
