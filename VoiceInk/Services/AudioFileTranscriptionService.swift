@@ -64,14 +64,13 @@ class AudioTranscriptionService: ObservableObject {
 
             let audioAsset = AVURLAsset(url: url)
             let duration = CMTimeGetSeconds(try await audioAsset.load(.duration))
-            let recordingsDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("com.fightingentropy.VoiceInk")
-                .appendingPathComponent("Recordings")
-            
+            let recordingsDirectory = AppStoragePaths.recordingsDirectory
+
             let fileName = "retranscribed_\(UUID().uuidString).wav"
             let permanentURL = recordingsDirectory.appendingPathComponent(fileName)
-            
+
             do {
+                try AppStoragePaths.createDirectoryIfNeeded(at: recordingsDirectory)
                 try FileManager.default.copyItem(at: url, to: permanentURL)
             } catch {
                 logger.error("❌ Failed to create permanent copy of audio: \(error.localizedDescription, privacy: .public)")

@@ -49,29 +49,22 @@ final class CustomSoundManager: ObservableObject, @unchecked Sendable {
         createCustomSoundsDirectoryIfNeeded()
     }
 
-    private func customSoundsDirectory() -> URL? {
-        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            return nil
-        }
-        return appSupport.appendingPathComponent("VoiceInk/CustomSounds")
+    private func customSoundsDirectory() -> URL {
+        AppStoragePaths.customSoundsDirectory
     }
 
     private func createCustomSoundsDirectoryIfNeeded() {
-        guard let directory = customSoundsDirectory() else { return }
-
-        if !FileManager.default.fileExists(atPath: directory.path) {
-            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        }
+        try? AppStoragePaths.createDirectoryIfNeeded(at: customSoundsDirectory())
     }
 
     func getCustomSoundURL(for type: SoundType) -> URL? {
         let isUsing = (type == .start) ? isUsingCustomStartSound : isUsingCustomStopSound
         let filename = (type == .start) ? customStartSoundFilename : customStopSoundFilename
         
-        guard isUsing, let filename = filename, let directory = customSoundsDirectory() else {
+        guard isUsing, let filename = filename else {
             return nil
         }
-        return directory.appendingPathComponent(filename)
+        return customSoundsDirectory().appendingPathComponent(filename)
     }
 
     func setCustomSound(url: URL, for type: SoundType) -> Result<Void, CustomSoundError> {
@@ -101,8 +94,8 @@ final class CustomSoundManager: ObservableObject, @unchecked Sendable {
     func resetSoundToDefault(for type: SoundType) {
         let filename = (type == .start) ? customStartSoundFilename : customStopSoundFilename
         
-        if let filename = filename, let directory = customSoundsDirectory() {
-            let fileURL = directory.appendingPathComponent(filename)
+        if let filename = filename {
+            let fileURL = customSoundsDirectory().appendingPathComponent(filename)
             try? FileManager.default.removeItem(at: fileURL)
         }
         
@@ -125,9 +118,7 @@ final class CustomSoundManager: ObservableObject, @unchecked Sendable {
     }
 
     private func copySoundFile(from sourceURL: URL, standardName: String) -> Result<String, CustomSoundError> {
-        guard let directory = customSoundsDirectory() else {
-            return .failure(.directoryCreationFailed)
-        }
+        let directory = customSoundsDirectory()
 
         let fileExtension = sourceURL.pathExtension
         let newFilename = "\(standardName).\(fileExtension)"

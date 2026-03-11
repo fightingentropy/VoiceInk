@@ -70,14 +70,12 @@ class AudioTranscriptionManager: ObservableObject {
                 let audioAsset = AVURLAsset(url: url)
                 let duration = CMTimeGetSeconds(try await audioAsset.load(.duration))
 
-                let recordingsDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                    .appendingPathComponent("com.fightingentropy.VoiceInk")
-                    .appendingPathComponent("Recordings")
+                let recordingsDirectory = AppStoragePaths.recordingsDirectory
 
                 let fileName = "transcribed_\(UUID().uuidString).wav"
                 let permanentURL = recordingsDirectory.appendingPathComponent(fileName)
 
-                try FileManager.default.createDirectory(at: recordingsDirectory, withIntermediateDirectories: true)
+                try AppStoragePaths.createDirectoryIfNeeded(at: recordingsDirectory)
                 try audioProcessor.saveSamplesAsWav(samples: samples, to: permanentURL)
 
                 processingPhase = .transcribing
