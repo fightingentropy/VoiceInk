@@ -298,12 +298,29 @@ class MiniRecorderShortcutManager: ObservableObject {
     
     deinit {
         visibilityTask?.cancel()
+        escapeTimeoutTask?.cancel()
         NotificationCenter.default.removeObserver(self)
-        Task { @MainActor in
-            deactivateEscapeShortcut()
-            deactivateCancelShortcut()
-            removeEnhancementShortcut()
-            removePowerModeShortcuts()
-        }
+        KeyboardShortcuts.setShortcut(nil, for: .escapeRecorder)
+        KeyboardShortcuts.setShortcut(nil, for: .toggleEnhancement)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPrompt1)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPrompt2)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPrompt3)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPrompt4)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPrompt5)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPrompt6)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPrompt7)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPrompt8)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPrompt9)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPrompt10)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPowerMode1)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPowerMode2)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPowerMode3)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPowerMode4)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPowerMode5)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPowerMode6)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPowerMode7)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPowerMode8)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPowerMode9)
+        KeyboardShortcuts.setShortcut(nil, for: .selectPowerMode10)
     }
-} 
+}

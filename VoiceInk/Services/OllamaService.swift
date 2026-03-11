@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import LLMkit
 
+@MainActor
 class OllamaService: ObservableObject {
     static let defaultBaseURL = "http://localhost:11434"
 
@@ -33,7 +34,6 @@ class OllamaService: ObservableObject {
         URL(string: baseURL)
     }
 
-    @MainActor
     func checkConnection() async {
         guard let url = baseURLValue else {
             isConnected = false
@@ -42,7 +42,6 @@ class OllamaService: ObservableObject {
         isConnected = await OllamaClient.checkConnection(baseURL: url)
     }
 
-    @MainActor
     func refreshModels() async {
         isLoadingModels = true
         defer { isLoadingModels = false }

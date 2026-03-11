@@ -5,6 +5,7 @@ import os
 
 private let logger = Logger(subsystem: "com.VoiceInk", category: "CursorPaster")
 
+@MainActor
 class CursorPaster {
 
     static func pasteAtCursor(_ text: String) {

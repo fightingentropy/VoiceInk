@@ -1,7 +1,7 @@
 import Foundation
 import OSLog
 
-final class LogExporter {
+final class LogExporter: @unchecked Sendable {
     static let shared = LogExporter()
 
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "LogExporter")

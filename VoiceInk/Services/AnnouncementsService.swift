@@ -2,7 +2,7 @@ import Foundation
 import AppKit
 
 /// A minimal pull-based announcements fetcher that shows one-time in-app banners.
-final class AnnouncementsService {
+final class AnnouncementsService: @unchecked Sendable {
     static let shared = AnnouncementsService()
 
     private init() {}
@@ -102,4 +102,3 @@ private struct RemoteAnnouncement: Decodable {
     }
 
 }
-

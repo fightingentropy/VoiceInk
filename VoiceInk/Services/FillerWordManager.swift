@@ -1,6 +1,6 @@
 import Foundation
 
-class FillerWordManager: ObservableObject {
+final class FillerWordManager: ObservableObject, @unchecked Sendable {
     static let shared = FillerWordManager()
 
     static let defaultFillerWords = [

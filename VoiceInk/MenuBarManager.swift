@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import AppKit
 
+@MainActor
 class MenuBarManager: ObservableObject {
     @Published var isMenuBarOnly: Bool {
         didSet {
@@ -63,22 +64,13 @@ class MenuBarManager: ObservableObject {
     }
     
     private func updateAppActivationPolicy() {
-        let applyPolicy = { [weak self] in
-            guard let self else { return }
-            let application = NSApplication.shared
-            if self.isMenuBarOnly {
-                application.setActivationPolicy(.accessory)
-                WindowManager.shared.hideMainWindow()
-            } else {
-                application.setActivationPolicy(.regular)
-                WindowManager.shared.showMainWindow()
-            }
-        }
-
-        if Thread.isMainThread {
-            applyPolicy()
+        let application = NSApplication.shared
+        if isMenuBarOnly {
+            application.setActivationPolicy(.accessory)
+            WindowManager.shared.hideMainWindow()
         } else {
-            DispatchQueue.main.async(execute: applyPolicy)
+            application.setActivationPolicy(.regular)
+            _ = WindowManager.shared.showMainWindow()
         }
     }
     

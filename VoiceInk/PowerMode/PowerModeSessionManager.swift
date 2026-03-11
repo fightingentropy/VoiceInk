@@ -137,7 +137,7 @@ class PowerModeSessionManager {
         }
 
         if let modelName = config.selectedTranscriptionModelName,
-           let selectedModel = await stateProvider.allAvailableModels.first(where: { $0.name == modelName }),
+           let selectedModel = stateProvider.allAvailableModels.first(where: { $0.name == modelName }),
            stateProvider.currentTranscriptionModel?.name != modelName {
             await handleModelChange(to: selectedModel)
         }
@@ -172,7 +172,7 @@ class PowerModeSessionManager {
         }
 
         if let modelName = state.transcriptionModelName,
-           let selectedModel = await stateProvider.allAvailableModels.first(where: { $0.name == modelName }),
+           let selectedModel = stateProvider.allAvailableModels.first(where: { $0.name == modelName }),
            stateProvider.currentTranscriptionModel?.name != modelName {
             await handleModelChange(to: selectedModel)
         }
@@ -181,12 +181,12 @@ class PowerModeSessionManager {
     private func handleModelChange(to newModel: any TranscriptionModel) async {
         guard let stateProvider = stateProvider else { return }
 
-        await stateProvider.setDefaultTranscriptionModel(newModel)
+        stateProvider.setDefaultTranscriptionModel(newModel)
 
         switch newModel.provider {
         case .local:
             await stateProvider.cleanupModelResources()
-            if let localModel = await stateProvider.availableModels.first(where: { $0.name == newModel.name }) {
+            if let localModel = stateProvider.availableModels.first(where: { $0.name == newModel.name }) {
                 do {
                     try await stateProvider.loadModel(localModel)
                 } catch {
@@ -201,9 +201,9 @@ class PowerModeSessionManager {
     }
 
     private func recoverSession() {
-        guard let session = loadSession() else { return }
+        guard loadSession() != nil else { return }
         print("Recovering abandoned Power Mode session.")
-        Task {
+        Task { @MainActor in
             await endSession()
         }
     }

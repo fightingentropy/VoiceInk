@@ -83,7 +83,7 @@ enum BrowserURLError: Error {
     case noActiveTab
 }
 
-class BrowserURLService {
+final class BrowserURLService: @unchecked Sendable {
     static let shared = BrowserURLService()
     
     private let logger = Logger(

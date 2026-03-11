@@ -1,7 +1,7 @@
 import Foundation
 import CoreAudio
 
-final class MediaController: ObservableObject {
+final class MediaController: ObservableObject, @unchecked Sendable {
 
     static let shared = MediaController()
 

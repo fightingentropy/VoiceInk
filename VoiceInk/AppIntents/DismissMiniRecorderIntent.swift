@@ -3,10 +3,10 @@ import Foundation
 import AppKit
 
 struct DismissMiniRecorderIntent: AppIntent {
-    static var title: LocalizedStringResource = "Dismiss VoiceInk Recorder"
-    static var description = IntentDescription("Dismiss the VoiceInk mini recorder and cancel any active recording.")
+    static let title: LocalizedStringResource = "Dismiss VoiceInk Recorder"
+    static let description = IntentDescription("Dismiss the VoiceInk mini recorder and cancel any active recording.")
     
-    static var openAppWhenRun: Bool = false
+    static let openAppWhenRun: Bool = false
     
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {

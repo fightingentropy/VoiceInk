@@ -282,7 +282,7 @@ class AIEnhancementService: ObservableObject {
         case .networkError:
             return .networkError
         case .invalidURL, .decodingError, .encodingError, .timeout:
-            return .customError(error.localizedDescription ?? "An unknown error occurred.")
+            return .customError(error.localizedDescription)
         }
     }
 
@@ -349,10 +349,8 @@ class AIEnhancementService: ObservableObject {
             return
         }
 
-        if let capturedText = await screenCaptureService.captureAndExtractText() {
-            await MainActor.run {
-                self.objectWillChange.send()
-            }
+        if await screenCaptureService.captureAndExtractText() != nil {
+            objectWillChange.send()
         }
     }
 

@@ -33,7 +33,7 @@ enum StreamingTranscriptionError: LocalizedError {
 }
 
 /// Protocol for streaming transcription providers.
-protocol StreamingTranscriptionProvider: AnyObject {
+protocol StreamingTranscriptionProvider: AnyObject, Sendable {
     /// Connect to the streaming transcription endpoint
     func connect(model: any TranscriptionModel, language: String?) async throws
 

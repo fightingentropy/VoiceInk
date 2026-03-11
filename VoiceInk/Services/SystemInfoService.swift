@@ -2,7 +2,7 @@ import Foundation
 import AppKit
 import AVFoundation
 
-class SystemInfoService {
+final class SystemInfoService: @unchecked Sendable {
     static let shared = SystemInfoService()
 
     private init() {}
@@ -89,7 +89,7 @@ class SystemInfoService {
         sysctlbyname("hw.model", nil, &size, nil, 0)
         var machine = [CChar](repeating: 0, count: size)
         sysctlbyname("hw.model", &machine, &size, nil, 0)
-        return String(cString: machine)
+        return String(decoding: machine.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
     }
 
     private func getCPUInfo() -> String {
@@ -97,7 +97,7 @@ class SystemInfoService {
         sysctlbyname("machdep.cpu.brand_string", nil, &size, nil, 0)
         var buffer = [CChar](repeating: 0, count: size)
         sysctlbyname("machdep.cpu.brand_string", &buffer, &size, nil, 0)
-        return String(cString: buffer)
+        return String(decoding: buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
     }
 
     private func getMemoryInfo() -> String {

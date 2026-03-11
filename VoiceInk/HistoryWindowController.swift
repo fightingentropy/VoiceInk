@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import AppKit
 
+@MainActor
 class HistoryWindowController: NSObject, NSWindowDelegate {
     static let shared = HistoryWindowController()
 

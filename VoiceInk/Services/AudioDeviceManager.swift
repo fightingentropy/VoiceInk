@@ -15,7 +15,7 @@ enum AudioInputMode: String, CaseIterable {
     case prioritized = "Prioritized"
 }
 
-class AudioDeviceManager: ObservableObject {
+final class AudioDeviceManager: ObservableObject, @unchecked Sendable {
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "AudioDeviceManager")
     @Published var availableDevices: [(id: AudioDeviceID, uid: String, name: String)] = []
     @Published var selectedDeviceID: AudioDeviceID?
@@ -132,7 +132,7 @@ class AudioDeviceManager: ObservableObject {
         return uid.contains("BuiltIn")
     }
     
-    func loadAvailableDevices(completion: (() -> Void)? = nil) {
+    func loadAvailableDevices(completion: (@Sendable () -> Void)? = nil) {
         var propertySize: UInt32 = 0
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDevices,

@@ -2,7 +2,7 @@ import Foundation
 import LLMkit
 
 /// Mistral streaming provider wrapping `LLMkit.MistralStreamingClient`.
-final class MistralStreamingProvider: StreamingTranscriptionProvider {
+final class MistralStreamingProvider: StreamingTranscriptionProvider, @unchecked Sendable {
 
     private let client = LLMkit.MistralStreamingClient()
     private var eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation?

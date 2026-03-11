@@ -2,7 +2,8 @@ import Foundation
 import AppKit
 import os
 
-class ActiveWindowService: ObservableObject {
+@MainActor
+final class ActiveWindowService: ObservableObject {
     static let shared = ActiveWindowService()
     @Published var currentApplication: NSRunningApplication?
     private var enhancementService: AIEnhancementService?

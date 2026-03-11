@@ -5,6 +5,7 @@ import SwiftData
 
 class VoiceInkCSVExportService {
     
+    @MainActor
     func exportTranscriptionsToCSV(transcriptions: [Transcription]) {
         let csvString = generateCSV(for: transcriptions)
         

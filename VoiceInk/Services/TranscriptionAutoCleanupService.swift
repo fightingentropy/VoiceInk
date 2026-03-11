@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 import OSLog
 
-class TranscriptionAutoCleanupService {
+final class TranscriptionAutoCleanupService: @unchecked Sendable {
     static let shared = TranscriptionAutoCleanupService()
 
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "TranscriptionAutoCleanupService")
@@ -32,7 +32,7 @@ class TranscriptionAutoCleanupService {
         )
 
         if UserDefaults.standard.bool(forKey: keyIsEnabled) {
-            Task { [weak self] in
+            Task { @MainActor [weak self] in
                 guard let self = self, let modelContext = self.modelContext else { return }
                 await self.sweepOldTranscriptions(modelContext: modelContext)
                 await self.cleanupOrphanAudioFiles(modelContext: modelContext)
@@ -44,6 +44,7 @@ class TranscriptionAutoCleanupService {
         NotificationCenter.default.removeObserver(self, name: .transcriptionCompleted, object: nil)
     }
 
+    @MainActor
     func runManualCleanup(modelContext: ModelContext) async {
         await sweepOldTranscriptions(modelContext: modelContext)
     }
@@ -55,7 +56,7 @@ class TranscriptionAutoCleanupService {
         let minutes = UserDefaults.standard.integer(forKey: keyRetentionMinutes)
         if minutes > 0 {
             if let modelContext = self.modelContext {
-                Task { [weak self] in
+                Task { @MainActor [weak self] in
                     guard let self = self else { return }
                     await self.sweepOldTranscriptions(modelContext: modelContext)
                 }
@@ -88,6 +89,7 @@ class TranscriptionAutoCleanupService {
         }
     }
 
+    @MainActor
     private func sweepOldTranscriptions(modelContext: ModelContext) async {
         guard UserDefaults.standard.bool(forKey: keyIsEnabled) else {
             return
@@ -98,7 +100,7 @@ class TranscriptionAutoCleanupService {
 
         let cutoffDate = Date().addingTimeInterval(TimeInterval(-effectiveMinutes * 60))
 
-        let modelContainer = await MainActor.run { modelContext.container }
+        let modelContainer = modelContext.container
 
         do {
             let backgroundContext = ModelContext(modelContainer)
@@ -132,12 +134,13 @@ class TranscriptionAutoCleanupService {
     }
 
     /// Deletes audio files in Recordings directory that have no corresponding Transcription record
+    @MainActor
     private func cleanupOrphanAudioFiles(modelContext: ModelContext) async {
         guard UserDefaults.standard.bool(forKey: keyIsEnabled) else {
             return
         }
 
-        let modelContainer = await MainActor.run { modelContext.container }
+        let modelContainer = modelContext.container
 
         do {
             let backgroundContext = ModelContext(modelContainer)

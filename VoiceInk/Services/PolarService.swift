@@ -3,7 +3,7 @@ import IOKit
 import os
 #if !LOCAL_BUILD
 
-class PolarService {
+final class PolarService: @unchecked Sendable {
     private let organizationId = "Org"
     private let apiToken = "Token"
     private let baseURL = "https://api.polar.sh"

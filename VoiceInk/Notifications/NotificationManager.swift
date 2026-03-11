@@ -1,7 +1,8 @@
 import SwiftUI
 import AppKit
 
-class NotificationManager {
+@MainActor
+final class NotificationManager {
     static let shared = NotificationManager()
 
     private var notificationWindow: NSPanel?
@@ -74,7 +75,9 @@ class NotificationManager {
             withTimeInterval: duration,
             repeats: false
         ) { [weak self] _ in
-            self?.dismissNotification()
+            Task { @MainActor [weak self] in
+                self?.dismissNotification()
+            }
         }
     }
 
@@ -110,8 +113,9 @@ class NotificationManager {
             context.timingFunction = CAMediaTimingFunction(name: .easeIn)
             window.animator().alphaValue = 0
         }, completionHandler: {
-            window.close()
-
+            DispatchQueue.main.async {
+                window.close()
+            }
         })
     }
-} 
+}

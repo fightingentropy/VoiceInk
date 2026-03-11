@@ -4,7 +4,7 @@ import AVFoundation
 import FluidAudio
 import os.log
 
-class ParakeetTranscriptionService: TranscriptionService {
+final class ParakeetTranscriptionService: TranscriptionService, @unchecked Sendable {
     private var asrManager: AsrManager?
     private var vadManager: VadManager?
     private var activeVersion: AsrModelVersion?

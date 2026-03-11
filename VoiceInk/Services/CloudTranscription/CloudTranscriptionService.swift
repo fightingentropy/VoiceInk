@@ -34,7 +34,7 @@ enum CloudTranscriptionError: Error, LocalizedError {
     }
 }
 
-class CloudTranscriptionService: TranscriptionService {
+final class CloudTranscriptionService: TranscriptionService, @unchecked Sendable {
     private let modelContext: ModelContext
     private lazy var openAICompatibleService = OpenAICompatibleTranscriptionService()
 

@@ -171,9 +171,9 @@ private struct ReorderablePromptGrid: View {
     @EnvironmentObject private var enhancementService: AIEnhancementService
     
     let selectedPromptId: UUID?
-    let onPromptSelected: (CustomPrompt) -> Void
-    let onEditPrompt: ((CustomPrompt) -> Void)?
-    let onDeletePrompt: ((CustomPrompt) -> Void)?
+    let onPromptSelected: @MainActor (CustomPrompt) -> Void
+    let onEditPrompt: (@MainActor (CustomPrompt) -> Void)?
+    let onDeletePrompt: (@MainActor (CustomPrompt) -> Void)?
     
     @State private var draggingItem: CustomPrompt?
     

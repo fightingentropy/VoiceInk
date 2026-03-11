@@ -2,7 +2,7 @@ import Foundation
 import AVFoundation
 import os
 
-class LocalTranscriptionService: TranscriptionService {
+final class LocalTranscriptionService: TranscriptionService, @unchecked Sendable {
 
     private var whisperContext: WhisperContext?
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "LocalTranscriptionService")

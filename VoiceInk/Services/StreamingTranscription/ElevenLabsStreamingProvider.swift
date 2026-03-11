@@ -2,7 +2,7 @@ import Foundation
 import LLMkit
 
 /// ElevenLabs streaming provider wrapping `LLMkit.ElevenLabsStreamingClient`.
-final class ElevenLabsStreamingProvider: StreamingTranscriptionProvider {
+final class ElevenLabsStreamingProvider: StreamingTranscriptionProvider, @unchecked Sendable {
 
     private let client = LLMkit.ElevenLabsStreamingClient()
     private var eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation?

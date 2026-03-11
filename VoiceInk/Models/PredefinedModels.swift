@@ -125,66 +125,6 @@ import Foundation
 
          // Local Models
          LocalModel(
-             name: "ggml-tiny",
-             displayName: "Tiny",
-             size: "75 MB",
-             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .local),
-             description: "Tiny model, fastest, least accurate",
-             speed: 0.95,
-             accuracy: 0.6,
-             ramUsage: 0.3
-         ),
-         LocalModel(
-             name: "ggml-tiny.en",
-             displayName: "Tiny (English)",
-             size: "75 MB",
-             supportedLanguages: getLanguageDictionary(isMultilingual: false, provider: .local),
-             description: "Tiny model optimized for English, fastest, least accurate",
-             speed: 0.95,
-             accuracy: 0.65,
-             ramUsage: 0.3
-         ),
-         LocalModel(
-             name: "ggml-base",
-             displayName: "Base",
-             size: "142 MB",
-             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .local),
-             description: "Base model, good balance between speed and accuracy, supports multiple languages",
-             speed: 0.85,
-             accuracy: 0.72,
-             ramUsage: 0.5
-         ),
-         LocalModel(
-             name: "ggml-base.en",
-             displayName: "Base (English)",
-             size: "142 MB",
-             supportedLanguages: getLanguageDictionary(isMultilingual: false, provider: .local),
-             description: "Base model optimized for English, good balance between speed and accuracy",
-             speed: 0.85,
-             accuracy: 0.75,
-             ramUsage: 0.5
-         ),
-         LocalModel(
-             name: "ggml-large-v2",
-             displayName: "Large v2",
-             size: "2.9 GB",
-             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .local),
-             description: "Large model v2, slower than Medium but more accurate",
-             speed: 0.3,
-             accuracy: 0.96,
-             ramUsage: 3.8
-         ),
-         LocalModel(
-             name: "ggml-large-v3",
-             displayName: "Large v3",
-             size: "2.9 GB",
-             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .local),
-             description: "Large model v3, very slow but most accurate",
-             speed: 0.3,
-             accuracy: 0.98,
-             ramUsage: 3.9
-         ),
-         LocalModel(
              name: "ggml-large-v3-turbo",
              displayName: "Large v3 Turbo",
              size: "1.5 GB",
@@ -299,27 +239,6 @@ import Foundation
             isMultilingual: true,
             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .gemini)
         ),
-        CloudModel(
-            name: "gemini-3-pro-preview",
-            displayName: "Gemini 3 Pro",
-            description: "Google's latest model with enhanced transcription capabilities",
-            provider: .gemini,
-            speed: 0.75,
-            accuracy: 0.97,
-            isMultilingual: true,
-            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .gemini)
-        ),
-        CloudModel(
-            name: "gemini-3-flash-preview",
-            displayName: "Gemini 3 Flash",
-            description: "Google's newest fast model combining intelligence with superior speed",
-            provider: .gemini,
-            speed: 0.92,
-            accuracy: 0.95,
-            isMultilingual: true,
-            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .gemini)
-        )
-        ,
         CloudModel(
             name: "stt-async-v4",
             displayName: "Soniox V4",

@@ -15,6 +15,7 @@ extension TimeInterval {
     }
 }
 
+@MainActor
 class WaveformGenerator {
     private static let cache = NSCache<NSString, NSArray>()
 
@@ -65,6 +66,7 @@ class WaveformGenerator {
     }
 }
 
+@MainActor
 class AudioPlayerManager: ObservableObject {
     private var audioPlayer: AVAudioPlayer?
     private var timer: Timer?
@@ -81,12 +83,10 @@ class AudioPlayerManager: ObservableObject {
             duration = audioPlayer?.duration ?? 0
             isLoadingWaveform = true
             
-            Task {
+            Task { @MainActor in
                 let samples = await WaveformGenerator.generateWaveformSamples(from: url)
-                await MainActor.run {
-                    self.waveformSamples = samples
-                    self.isLoadingWaveform = false
-                }
+                self.waveformSamples = samples
+                self.isLoadingWaveform = false
             }
         } catch {
             print("Error loading audio: \(error.localizedDescription)")
@@ -112,11 +112,13 @@ class AudioPlayerManager: ObservableObject {
     
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            self.currentTime = self.audioPlayer?.currentTime ?? 0
-            if self.currentTime >= self.duration {
-                self.pause()
-                self.seek(to: 0)
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                self.currentTime = self.audioPlayer?.currentTime ?? 0
+                if self.currentTime >= self.duration {
+                    self.pause()
+                    self.seek(to: 0)
+                }
             }
         }
     }
@@ -130,10 +132,6 @@ class AudioPlayerManager: ObservableObject {
         stopTimer()
         audioPlayer?.stop()
         audioPlayer = nil
-    }
-
-    deinit {
-        cleanup()
     }
 }
 

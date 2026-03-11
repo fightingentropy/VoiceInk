@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-class WordReplacementService {
+final class WordReplacementService: @unchecked Sendable {
     static let shared = WordReplacementService()
 
     private init() {}

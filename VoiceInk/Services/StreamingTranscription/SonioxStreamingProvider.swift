@@ -3,7 +3,7 @@ import SwiftData
 import LLMkit
 
 /// Soniox streaming provider wrapping `LLMkit.SonioxStreamingClient`.
-final class SonioxStreamingProvider: StreamingTranscriptionProvider {
+final class SonioxStreamingProvider: StreamingTranscriptionProvider, @unchecked Sendable {
 
     private let client = LLMkit.SonioxStreamingClient()
     private var eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation?
@@ -71,18 +71,20 @@ final class SonioxStreamingProvider: StreamingTranscriptionProvider {
     // MARK: - Private
 
     private func startEventForwarding() {
-        forwardingTask = Task { [weak self] in
-            guard let self else { return }
-            for await event in self.client.transcriptionEvents {
+        let client = client
+        let eventsContinuation = eventsContinuation
+
+        forwardingTask = Task {
+            for await event in client.transcriptionEvents {
                 switch event {
                 case .sessionStarted:
-                    self.eventsContinuation?.yield(.sessionStarted)
+                    eventsContinuation?.yield(.sessionStarted)
                 case .partial(let text):
-                    self.eventsContinuation?.yield(.partial(text: text))
+                    eventsContinuation?.yield(.partial(text: text))
                 case .committed(let text):
-                    self.eventsContinuation?.yield(.committed(text: text))
+                    eventsContinuation?.yield(.committed(text: text))
                 case .error(let message):
-                    self.eventsContinuation?.yield(.error(StreamingTranscriptionError.serverError(message)))
+                    eventsContinuation?.yield(.error(StreamingTranscriptionError.serverError(message)))
                 }
             }
         }

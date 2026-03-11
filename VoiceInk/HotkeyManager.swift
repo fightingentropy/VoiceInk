@@ -4,6 +4,10 @@ import Carbon
 import AppKit
 import os
 
+private final class EventMonitorToken: @unchecked Sendable {
+    var value: Any?
+}
+
 extension KeyboardShortcuts.Name {
     static let toggleMiniRecorder = Self("toggleMiniRecorder")
     static let toggleMiniRecorder2 = Self("toggleMiniRecorder2")
@@ -54,11 +58,11 @@ class HotkeyManager: ObservableObject {
     }
     
     // NSEvent monitoring for modifier keys
-    private var globalEventMonitor: Any?
-    private var localEventMonitor: Any?
+    private let globalEventMonitor = EventMonitorToken()
+    private let localEventMonitor = EventMonitorToken()
     
     // Middle-click event monitoring
-    private var middleClickMonitors: [Any?] = []
+    private var middleClickMonitors: [EventMonitorToken] = []
     private var middleClickTask: Task<Void, Never>?
     
     // Key state tracking
@@ -188,14 +192,14 @@ class HotkeyManager: ObservableObject {
         // Only set up if at least one hotkey is a modifier key
         guard (selectedHotkey1.isModifierKey && selectedHotkey1 != .none) || (selectedHotkey2.isModifierKey && selectedHotkey2 != .none) else { return }
 
-        globalEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+        globalEventMonitor.value = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             guard let self = self else { return }
             Task { @MainActor in
                 await self.handleModifierKeyEvent(event)
             }
         }
         
-        localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+        localEventMonitor.value = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             guard let self = self else { return event }
             Task { @MainActor in
                 await self.handleModifierKeyEvent(event)
@@ -208,7 +212,8 @@ class HotkeyManager: ObservableObject {
         guard isMiddleClickToggleEnabled else { return }
 
         // Mouse Down
-        let downMonitor = NSEvent.addGlobalMonitorForEvents(matching: .otherMouseDown) { [weak self] event in
+        let downMonitor = EventMonitorToken()
+        downMonitor.value = NSEvent.addGlobalMonitorForEvents(matching: .otherMouseDown) { [weak self] event in
             guard let self = self, event.buttonNumber == 2 else { return }
 
             self.middleClickTask?.cancel()
@@ -230,7 +235,8 @@ class HotkeyManager: ObservableObject {
         }
 
         // Mouse Up
-        let upMonitor = NSEvent.addGlobalMonitorForEvents(matching: .otherMouseUp) { [weak self] event in
+        let upMonitor = EventMonitorToken()
+        upMonitor.value = NSEvent.addGlobalMonitorForEvents(matching: .otherMouseUp) { [weak self] event in
             guard let self = self, event.buttonNumber == 2 else { return }
             self.middleClickTask?.cancel()
         }
@@ -262,19 +268,19 @@ class HotkeyManager: ObservableObject {
     }
     
     private func removeAllMonitoring() {
-        if let monitor = globalEventMonitor {
+        if let monitor = globalEventMonitor.value {
             NSEvent.removeMonitor(monitor)
-            globalEventMonitor = nil
+            globalEventMonitor.value = nil
         }
         
-        if let monitor = localEventMonitor {
+        if let monitor = localEventMonitor.value {
             NSEvent.removeMonitor(monitor)
-            localEventMonitor = nil
+            localEventMonitor.value = nil
         }
         
         for monitor in middleClickMonitors {
-            if let monitor = monitor {
-                NSEvent.removeMonitor(monitor)
+            if let value = monitor.value {
+                NSEvent.removeMonitor(value)
             }
         }
         middleClickMonitors = []
@@ -435,8 +441,13 @@ class HotkeyManager: ObservableObject {
     }
     
     deinit {
-        Task { @MainActor in
-            removeAllMonitoring()
+        globalEventMonitor.value.map(NSEvent.removeMonitor)
+        localEventMonitor.value.map(NSEvent.removeMonitor)
+        for monitor in middleClickMonitors {
+            monitor.value.map(NSEvent.removeMonitor)
         }
+        middleClickMonitors = []
+        middleClickTask?.cancel()
+        fnDebounceTask?.cancel()
     }
 }

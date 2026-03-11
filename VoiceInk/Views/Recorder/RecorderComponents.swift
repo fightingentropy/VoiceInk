@@ -131,7 +131,7 @@ struct ProgressAnimation: View {
     private let dotSpacing: CGFloat = 2
 
     @State private var currentDot = 0
-    @State private var timer: Timer?
+    @State private var animationTask: Task<Void, Never>?
 
     init(color: Color = .white, animationSpeed: Double = 0.3) {
         self.color = color
@@ -150,17 +150,21 @@ struct ProgressAnimation: View {
             startAnimation()
         }
         .onDisappear {
-            timer?.invalidate()
-            timer = nil
+            animationTask?.cancel()
+            animationTask = nil
         }
     }
 
     private func startAnimation() {
-        timer?.invalidate()
+        animationTask?.cancel()
         currentDot = 0
-        timer = Timer.scheduledTimer(withTimeInterval: animationSpeed, repeats: true) { _ in
-            currentDot = (currentDot + 1) % (dotCount + 2)
-            if currentDot > dotCount { currentDot = -1 }
+        animationTask = Task { @MainActor in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: UInt64(animationSpeed * 1_000_000_000))
+                guard !Task.isCancelled else { break }
+                currentDot = (currentDot + 1) % (dotCount + 2)
+                if currentDot > dotCount { currentDot = -1 }
+            }
         }
     }
 }

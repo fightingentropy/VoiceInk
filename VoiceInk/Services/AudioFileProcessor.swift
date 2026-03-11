@@ -2,7 +2,7 @@ import Foundation
 import AVFoundation
 import os
 
-class AudioProcessor {
+final class AudioProcessor: @unchecked Sendable {
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "AudioProcessor")
     
     struct AudioFormat {
@@ -183,4 +183,3 @@ class AudioProcessor {
         try audioFile.write(from: buffer)
     }
 } 
-

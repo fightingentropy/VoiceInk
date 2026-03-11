@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 
+@MainActor
 class WindowManager: NSObject {
     static let shared = WindowManager()
     
