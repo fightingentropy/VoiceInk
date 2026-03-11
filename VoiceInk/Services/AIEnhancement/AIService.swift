@@ -15,6 +15,13 @@ enum AIProvider: String, CaseIterable {
     case ollama = "Ollama"
     case custom = "Custom"
     
+    static let curatedSettingsProviders: [AIProvider] = [
+        .openAI
+    ]
+    
+    var isShownInModelSettings: Bool {
+        Self.curatedSettingsProviders.contains(self)
+    }
     
     var baseURL: String {
         switch self {
@@ -48,15 +55,15 @@ enum AIProvider: String, CaseIterable {
     var defaultModel: String {
         switch self {
         case .cerebras:
-            return "gpt-oss-120b"
+            return ""
         case .groq:
             return "openai/gpt-oss-120b"
         case .gemini:
-            return "gemini-2.5-flash-lite"
+            return ""
         case .anthropic:
-            return "claude-sonnet-4-6"
+            return ""
         case .openAI:
-            return "gpt-5.2"
+            return "gpt-5.4"
         case .mistral:
             return "mistral-large-latest"
         case .elevenLabs:
@@ -77,61 +84,25 @@ enum AIProvider: String, CaseIterable {
     var availableModels: [String] {
         switch self {
         case .cerebras:
-            return [
-                "gpt-oss-120b",
-                "llama3.1-8b",
-                "qwen-3-235b-a22b-instruct-2507",
-                "zai-glm-4.7"
-            ]
+            return []
         case .groq:
-            return [
-                "llama-3.1-8b-instant",
-                "llama-3.3-70b-versatile",
-                "moonshotai/kimi-k2-instruct-0905",
-                "qwen/qwen3-32b",
-                "meta-llama/llama-4-maverick-17b-128e-instruct",
-                "openai/gpt-oss-120b",
-                "openai/gpt-oss-20b"
-            ]
+            return []
         case .gemini:
-            return [
-                "gemini-3-flash-preview",
-                "gemini-3-pro-preview",
-                "gemini-2.5-pro",
-                "gemini-2.5-flash",
-                "gemini-2.5-flash-lite",
-                "gemini-2.0-flash-001"
-            ]
+            return []
         case .anthropic:
-            return [
-                "claude-opus-4-6",
-                "claude-sonnet-4-6",
-                "claude-opus-4-5",
-                "claude-sonnet-4-5",
-                "claude-haiku-4-5"
-            ]
+            return []
         case .openAI:
             return [
-                "gpt-5.2",
-                "gpt-5.1",
-                "gpt-5-mini",
-                "gpt-5-nano",
-                "gpt-4.1",
-                "gpt-4.1-mini"
+                "gpt-5.4"
             ]
         case .mistral:
-            return [
-                "mistral-large-latest",
-                "mistral-medium-latest",
-                "mistral-small-latest",
-                "mistral-saba-latest"
-            ]
+            return []
         case .elevenLabs:
-            return ["scribe_v1", "scribe_v1_experimental"]
+            return []
         case .deepgram:
-            return ["whisper-1"]
+            return []
         case .soniox:
-            return ["stt-async-v4"]
+            return []
         case .ollama:
             return []
         case .custom:
@@ -151,6 +122,7 @@ enum AIProvider: String, CaseIterable {
     }
 }
 
+@MainActor
 class AIService: ObservableObject {
     @Published var apiKey: String = ""
     @Published var isAPIKeyValid: Bool = false
@@ -179,7 +151,7 @@ class AIService: ObservableObject {
                 self.apiKey = ""
                 self.isAPIKeyValid = true
                 if selectedProvider == .ollama {
-                    Task {
+                    Task { @MainActor in
                         await ollamaService.checkConnection()
                         await ollamaService.refreshModels()
                     }
@@ -197,6 +169,7 @@ class AIService: ObservableObject {
     
     var connectedProviders: [AIProvider] {
         AIProvider.allCases.filter { provider in
+            guard provider.isShownInModelSettings else { return false }
             if provider == .ollama {
                 return ollamaService.isConnected
             } else if provider.requiresAPIKey {
@@ -230,10 +203,11 @@ class AIService: ObservableObject {
         }
 
         if let savedProvider = userDefaults.string(forKey: "selectedAIProvider"),
-           let provider = AIProvider(rawValue: savedProvider) {
+           let provider = AIProvider(rawValue: savedProvider),
+           provider.isShownInModelSettings {
             self.selectedProvider = provider
         } else {
-            self.selectedProvider = .gemini
+            self.selectedProvider = .anthropic
         }
 
         if selectedProvider.requiresAPIKey {
@@ -283,7 +257,7 @@ class AIService: ObservableObject {
         NotificationCenter.default.post(name: .AppSettingsDidChange, object: nil)
     }
     
-    func saveAPIKey(_ key: String, completion: @escaping (Bool, String?) -> Void) {
+    func saveAPIKey(_ key: String, completion: @MainActor @escaping (Bool, String?) -> Void) {
         guard selectedProvider.requiresAPIKey else {
             completion(true, nil)
             return
@@ -291,7 +265,7 @@ class AIService: ObservableObject {
 
         verifyAPIKey(key) { [weak self] isValid, errorMessage in
             guard let self = self else { return }
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 if isValid {
                     self.apiKey = key
                     self.isAPIKeyValid = true
@@ -305,15 +279,17 @@ class AIService: ObservableObject {
         }
     }
     
-    func verifyAPIKey(_ key: String, completion: @escaping (Bool, String?) -> Void) {
+    func verifyAPIKey(_ key: String, completion: @MainActor @escaping (Bool, String?) -> Void) {
         guard selectedProvider.requiresAPIKey else {
             completion(true, nil)
             return
         }
 
+        let provider = selectedProvider
+        let currentModel = self.currentModel
         Task {
             let result: (isValid: Bool, errorMessage: String?)
-            switch selectedProvider {
+            switch provider {
             case .anthropic:
                 result = await AnthropicLLMClient.verifyAPIKey(key)
             case .elevenLabs:
@@ -329,10 +305,8 @@ class AIService: ObservableObject {
             case .gemini:
                 result = await GeminiTranscriptionClient.verifyAPIKey(key)
             default:
-                guard let baseURL = URL(string: selectedProvider.baseURL) else {
-                    DispatchQueue.main.async {
-                        completion(false, "Invalid or missing base URL configuration")
-                    }
+                guard let baseURL = URL(string: provider.baseURL) else {
+                    completion(false, "Invalid or missing base URL configuration")
                     return
                 }
                 result = await OpenAILLMClient.verifyAPIKey(
@@ -341,9 +315,7 @@ class AIService: ObservableObject {
                     model: currentModel
                 )
             }
-            DispatchQueue.main.async {
-                completion(result.isValid, result.errorMessage)
-            }
+            completion(result.isValid, result.errorMessage)
         }
     }
     
@@ -356,13 +328,11 @@ class AIService: ObservableObject {
         NotificationCenter.default.post(name: .aiProviderKeyChanged, object: nil)
     }
     
-    func checkOllamaConnection(completion: @escaping (Bool) -> Void) {
-        Task { [weak self] in
+    func checkOllamaConnection(completion: @MainActor @escaping (Bool) -> Void) {
+        Task { @MainActor [weak self] in
             guard let self = self else { return }
             await self.ollamaService.checkConnection()
-            DispatchQueue.main.async {
-                completion(self.ollamaService.isConnected)
-            }
+            completion(self.ollamaService.isConnected)
         }
     }
     
@@ -393,22 +363,16 @@ class AIService: ObservableObject {
     func fetchOpenRouterModels() async {
         do {
             let models = try await OpenRouterClient.fetchModels()
-            await MainActor.run {
-                self.openRouterModels = models
-                self.saveOpenRouterModels()
-                if self.selectedProvider == .openRouter && self.currentModel == self.selectedProvider.defaultModel && !models.isEmpty {
-                    self.selectModel(models.first!)
-                }
-                self.objectWillChange.send()
+            self.openRouterModels = models
+            self.saveOpenRouterModels()
+            if self.selectedProvider == .openRouter && self.currentModel == self.selectedProvider.defaultModel && !models.isEmpty {
+                self.selectModel(models.first!)
             }
+            self.objectWillChange.send()
         } catch {
-            await MainActor.run {
-                self.openRouterModels = []
-                self.saveOpenRouterModels()
-                self.objectWillChange.send()
-            }
+            self.openRouterModels = []
+            self.saveOpenRouterModels()
+            self.objectWillChange.send()
         }
     }
 }
-
-

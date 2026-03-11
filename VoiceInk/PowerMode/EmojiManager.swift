@@ -1,6 +1,7 @@
 import Foundation
 
-class EmojiManager: ObservableObject {
+@MainActor
+final class EmojiManager: ObservableObject {
     static let shared = EmojiManager()
     
     private let defaultEmojis = ["🏢", "🏠", "💼", "🎮", "📱", "📺", "🎵", "📚", "✏️", "🎨", "🧠", "⚙️", "💻", "🌐", "📝", "📊", "🔍", "💬", "📈", "🔧"]

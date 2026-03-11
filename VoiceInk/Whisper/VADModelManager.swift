@@ -1,7 +1,7 @@
 import Foundation
 import OSLog
 
-class VADModelManager {
+final class VADModelManager: @unchecked Sendable {
     static let shared = VADModelManager()
     private let logger = Logger(subsystem: "VADModelManager", category: "ModelManagement")
     

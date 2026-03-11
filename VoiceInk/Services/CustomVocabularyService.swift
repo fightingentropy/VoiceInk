@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 import SwiftData
 
-class CustomVocabularyService {
+final class CustomVocabularyService: @unchecked Sendable {
     static let shared = CustomVocabularyService()
 
     private init() {}

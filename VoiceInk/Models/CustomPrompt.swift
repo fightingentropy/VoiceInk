@@ -136,7 +136,13 @@ struct CustomPrompt: Identifiable, Codable, Equatable {
 
 // MARK: - UI Extensions
 extension CustomPrompt {
-    func promptIcon(isSelected: Bool, onTap: @escaping () -> Void, onEdit: ((CustomPrompt) -> Void)? = nil, onDelete: ((CustomPrompt) -> Void)? = nil) -> some View {
+    @MainActor
+    func promptIcon(
+        isSelected: Bool,
+        onTap: @escaping () -> Void,
+        onEdit: (@MainActor (CustomPrompt) -> Void)? = nil,
+        onDelete: (@MainActor (CustomPrompt) -> Void)? = nil
+    ) -> some View {
         VStack(spacing: 8) {
             ZStack {
                 // Dynamic background with blur effect

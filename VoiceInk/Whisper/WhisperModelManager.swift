@@ -36,7 +36,7 @@ struct WhisperModel: Identifiable {
 
 // MARK: - Private download task delegate
 
-private class TaskDelegate: NSObject, URLSessionTaskDelegate {
+private final class TaskDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
     private let continuation: CheckedContinuation<Void, Never>
     private let finished = ManagedAtomic(false)
 
@@ -129,8 +129,9 @@ class WhisperModelManager: ObservableObject {
 
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, Error>) in
             let finished = ManagedAtomic(false)
+            var observation: NSKeyValueObservation?
 
-            func finishOnce(_ result: Result<Data, Error>) {
+            let finishOnce: @Sendable (Result<Data, Error>) -> Void = { result in
                 if finished.exchange(true, ordering: .acquiring) == false {
                     continuation.resume(with: result)
                 }
@@ -161,32 +162,10 @@ class WhisperModelManager: ObservableObject {
 
             task.resume()
 
-            var lastUpdateTime = Date()
-            var lastProgressValue: Double = 0
-
-            let observation = task.progress.observe(\.fractionCompleted) { progress, _ in
-                let currentTime = Date()
-                let timeSinceLastUpdate = currentTime.timeIntervalSince(lastUpdateTime)
+            observation = task.progress.observe(\.fractionCompleted) { [weak self] progress, _ in
                 let currentProgress = round(progress.fractionCompleted * 100) / 100
-
-                if timeSinceLastUpdate >= 0.5 && abs(currentProgress - lastProgressValue) >= 0.01 {
-                    lastUpdateTime = currentTime
-                    lastProgressValue = currentProgress
-
-                    DispatchQueue.main.async {
-                        self.downloadProgress[progressKey] = currentProgress
-                    }
-                }
-            }
-
-            Task {
-                await withTaskCancellationHandler {
-                    observation.invalidate()
-                    if finished.exchange(true, ordering: .acquiring) == false {
-                        continuation.resume(throwing: CancellationError())
-                    }
-                } operation: {
-                    await withCheckedContinuation { (_: CheckedContinuation<Void, Never>) in }
+                Task { @MainActor [weak self] in
+                    self?.downloadProgress[progressKey] = currentProgress
                 }
             }
         }
@@ -251,7 +230,7 @@ class WhisperModelManager: ObservableObject {
         let finished = ManagedAtomic(false)
 
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            func finishOnce(_ result: Result<Void, Error>) {
+            let finishOnce: @Sendable (Result<Void, Error>) -> Void = { result in
                 if finished.exchange(true, ordering: .acquiring) == false {
                     continuation.resume(with: result)
                 }

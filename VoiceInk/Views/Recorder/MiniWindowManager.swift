@@ -1,13 +1,14 @@
 import SwiftUI
 import AppKit
 
+@MainActor
 class MiniWindowManager: ObservableObject {
     @Published var isVisible = false
     private var windowController: NSWindowController?
     private var miniPanel: MiniRecorderPanel?
 
     // Type-erased view factory stored as closure
-    private let makeView: (MiniWindowManager) -> AnyView
+    private let makeView: @MainActor (MiniWindowManager) -> AnyView
 
     init(engine: VoiceInkEngine, recorder: Recorder) {
         guard let enhancementService = engine.enhancementService else {

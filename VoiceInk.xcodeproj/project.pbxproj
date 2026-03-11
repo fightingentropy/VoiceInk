@@ -54,6 +54,16 @@
 		};
 /* End PBXCopyFilesBuildPhase section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		E1F8A0012F80000100790A2C /* Exceptions for "VoiceInk" folder in "VoiceInk" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = E11473AF2CBE0F0A00318EE4 /* VoiceInk */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileReference section */
 		E11473B02CBE0F0A00318EE4 /* VoiceInk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VoiceInk.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E11473C32CBE0F0B00318EE4 /* VoiceInkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VoiceInkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -65,6 +75,9 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E11473B22CBE0F0A00318EE4 /* VoiceInk */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E1F8A0012F80000100790A2C /* Exceptions for "VoiceInk" folder in "VoiceInk" target */,
+			);
 			path = VoiceInk;
 			sourceTree = "<group>";
 		};
@@ -495,7 +508,7 @@
 				SPARKLE_PUBLIC_ED_KEY = "";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG ENABLE_NATIVE_SPEECH_ANALYZER $(inherited)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -531,7 +544,7 @@
 				SPARKLE_PUBLIC_ED_KEY = "";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "ENABLE_NATIVE_SPEECH_ANALYZER $(inherited)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
@@ -548,7 +561,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.fightingentropy.VoiceInkTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/VoiceInk.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/VoiceInk";
 			};
 			name = Debug;
@@ -566,7 +579,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.fightingentropy.VoiceInkTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/VoiceInk.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/VoiceInk";
 			};
 			name = Release;
@@ -582,7 +595,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.fightingentropy.VoiceInkUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TEST_TARGET_NAME = VoiceInk;
 			};
 			name = Debug;
@@ -598,7 +611,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.fightingentropy.VoiceInkUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TEST_TARGET_NAME = VoiceInk;
 			};
 			name = Release;

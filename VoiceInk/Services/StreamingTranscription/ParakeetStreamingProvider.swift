@@ -5,7 +5,7 @@ import os
 
 /// On-device streaming transcription provider using FluidAudio's StreamingAsrManager
 /// with Parakeet TDT models (v2/v3).
-final class ParakeetStreamingProvider: StreamingTranscriptionProvider {
+final class ParakeetStreamingProvider: StreamingTranscriptionProvider, @unchecked Sendable {
 
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "ParakeetStreaming")
     private let parakeetService: ParakeetTranscriptionService

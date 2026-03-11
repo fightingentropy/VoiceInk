@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 import OSLog
 
-class DictionaryMigrationService {
+final class DictionaryMigrationService: @unchecked Sendable {
     static let shared = DictionaryMigrationService()
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "DictionaryMigration")
 

@@ -3,12 +3,16 @@ import AVFoundation
 import CoreAudio
 import os
 
+private final class NotificationObserverToken: @unchecked Sendable {
+    var value: NSObjectProtocol?
+}
+
 @MainActor
 class Recorder: NSObject, ObservableObject {
     private var recorder: CoreAudioRecorder?
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "Recorder")
     private let deviceManager = AudioDeviceManager.shared
-    private var deviceSwitchObserver: NSObjectProtocol?
+    private let deviceSwitchObserver = NotificationObserverToken()
     private var isReconfiguring = false
     private let mediaController = MediaController.shared
     private let playbackController = PlaybackController.shared
@@ -40,25 +44,23 @@ class Recorder: NSObject, ObservableObject {
     }
 
     private func setupDeviceSwitchObserver() {
-        deviceSwitchObserver = NotificationCenter.default.addObserver(
+        deviceSwitchObserver.value = NotificationCenter.default.addObserver(
             forName: .audioDeviceSwitchRequired,
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            Task {
-                await self?.handleDeviceSwitchRequired(notification)
+            guard let newDeviceID = notification.userInfo?["newDeviceID"] as? AudioDeviceID else {
+                return
+            }
+            Task { @MainActor [weak self] in
+                await self?.handleDeviceSwitchRequired(newDeviceID)
             }
         }
     }
 
-    private func handleDeviceSwitchRequired(_ notification: Notification) async {
+    private func handleDeviceSwitchRequired(_ newDeviceID: AudioDeviceID) async {
         guard !isReconfiguring else { return }
         guard let recorder = recorder else { return }
-        guard let userInfo = notification.userInfo,
-              let newDeviceID = userInfo["newDeviceID"] as? AudioDeviceID else {
-            logger.error("Device switch notification missing newDeviceID")
-            return
-        }
 
         // Prevent concurrent device switches and handleDeviceChange() interference
         isReconfiguring = true
@@ -285,7 +287,7 @@ class Recorder: NSObject, ObservableObject {
         audioLevelCheckTask?.cancel()
         audioMeterUpdateTimer?.cancel()
         audioRestorationTask?.cancel()
-        if let observer = deviceSwitchObserver {
+        if let observer = deviceSwitchObserver.value {
             NotificationCenter.default.removeObserver(observer)
         }
     }

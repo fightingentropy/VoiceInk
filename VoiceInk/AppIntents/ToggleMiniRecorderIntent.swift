@@ -3,10 +3,10 @@ import Foundation
 import AppKit
 
 struct ToggleMiniRecorderIntent: AppIntent {
-    static var title: LocalizedStringResource = "Toggle VoiceInk Recorder"
-    static var description = IntentDescription("Start or stop the VoiceInk mini recorder for voice transcription.")
+    static let title: LocalizedStringResource = "Toggle VoiceInk Recorder"
+    static let description = IntentDescription("Start or stop the VoiceInk mini recorder for voice transcription.")
     
-    static var openAppWhenRun: Bool = false
+    static let openAppWhenRun: Bool = false
     
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {

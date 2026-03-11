@@ -2,13 +2,11 @@ import Foundation
 
 struct ReasoningConfig {
     static let geminiReasoningModels: Set<String> = [
-        "gemini-2.5-flash",
-        "gemini-2.5-flash-lite"
+        "gemini-2.5-flash"
     ]
 
     static let openAIReasoningModels: Set<String> = [
-        "gpt-5-mini",
-        "gpt-5-nano"
+        "gpt-5.4"
     ]
 
     static let cerebrasReasoningModels: Set<String> = [
@@ -19,11 +17,10 @@ struct ReasoningConfig {
         if geminiReasoningModels.contains(modelName) {
             return "low"
         } else if openAIReasoningModels.contains(modelName) {
-            return "minimal"
+            return "low"
         } else if cerebrasReasoningModels.contains(modelName) {
             return "low"
         }
         return nil
     }
 }
-

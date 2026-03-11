@@ -46,7 +46,8 @@ struct VoiceInkExportedSettings: Codable {
     let customCloudModels: [CustomCloudModel]?
 }
 
-class ImportExportService {
+@MainActor
+final class ImportExportService {
     static let shared = ImportExportService()
     private let currentSettingsVersion: String
     private let dictionaryItemsKey = "CustomVocabularyItems"

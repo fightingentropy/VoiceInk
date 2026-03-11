@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-class CustomModelManager: ObservableObject {
+final class CustomModelManager: ObservableObject, @unchecked Sendable {
     static let shared = CustomModelManager()
     
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "CustomModelManager")

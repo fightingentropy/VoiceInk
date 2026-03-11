@@ -367,6 +367,7 @@ struct VoiceInkApp: App {
     }
 }
 
+@MainActor
 class UpdaterViewModel: ObservableObject {
     #if LOCAL_BUILD
     @Published var canCheckForUpdates = false

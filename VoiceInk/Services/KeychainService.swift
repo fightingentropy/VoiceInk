@@ -5,7 +5,7 @@ import os
 /// Securely stores and retrieves API keys using Keychain with iCloud sync.
 /// For local (unsigned) builds, uses UserDefaults instead since Keychain
 /// requires stable code signing to reliably persist data across rebuilds.
-final class KeychainService {
+final class KeychainService: @unchecked Sendable {
     static let shared = KeychainService()
 
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "KeychainService")

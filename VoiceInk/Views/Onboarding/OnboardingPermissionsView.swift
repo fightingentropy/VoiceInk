@@ -328,20 +328,19 @@ struct OnboardingPermissionsView: View {
             moveToNext()
             
         case .accessibility:
-            let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+            let options = ["AXTrustedCheckOptionPrompt" as CFString: true] as CFDictionary
             AXIsProcessTrustedWithOptions(options)
-            
-            // Start checking for permission status
-            Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
-                if AXIsProcessTrusted() {
-                    timer.invalidate()
-                    permissionStates[currentPermissionIndex] = true
-                    withAnimation {
-                        showAnimation = true
-                    }
+
+            Task { @MainActor in
+                while !AXIsProcessTrusted() {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                }
+                permissionStates[currentPermissionIndex] = true
+                withAnimation {
+                    showAnimation = true
                 }
             }
-            
+
         case .screenRecording:
             // First try to request permission programmatically
             CGRequestScreenCaptureAccess()
@@ -351,17 +350,17 @@ struct OnboardingPermissionsView: View {
                 NSWorkspace.shared.open(prefpaneURL)
             }
             
-            // Start checking for permission status
-            Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
-                if CGPreflightScreenCaptureAccess() {
-                    timer.invalidate()
-                    permissionStates[currentPermissionIndex] = true
-                    withAnimation {
-                        showAnimation = true
-                    }
+
+            Task { @MainActor in
+                while !CGPreflightScreenCaptureAccess() {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                }
+                permissionStates[currentPermissionIndex] = true
+                withAnimation {
+                    showAnimation = true
                 }
             }
-            
+
         case .keyboardShortcut:
             // The keyboard shortcut is handled by the KeyboardShortcuts.Recorder
             break

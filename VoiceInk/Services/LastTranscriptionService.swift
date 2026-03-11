@@ -98,37 +98,39 @@ class LastTranscriptionService: ObservableObject {
         }
     }
     
+    @MainActor
     static func retryLastTranscription(from modelContext: ModelContext, transcriptionModelManager: TranscriptionModelManager, serviceRegistry: TranscriptionServiceRegistry, enhancementService: AIEnhancementService?) {
-        Task { @MainActor in
-            guard let lastTranscription = getLastTranscription(from: modelContext),
-                  let audioURLString = lastTranscription.audioFileURL,
-                  let audioURL = URL(string: audioURLString),
-                  FileManager.default.fileExists(atPath: audioURL.path) else {
-                NotificationManager.shared.showNotification(
-                    title: "Cannot retry: Audio file not found",
-                    type: .error
-                )
-                return
-            }
-
-            guard let currentModel = transcriptionModelManager.currentTranscriptionModel else {
-                NotificationManager.shared.showNotification(
-                    title: "No transcription model selected",
-                    type: .error
-                )
-                return
-            }
-
-            let transcriptionService = AudioTranscriptionService(
-                modelContext: modelContext,
-                serviceRegistry: serviceRegistry,
-                enhancementService: enhancementService
+        guard let lastTranscription = getLastTranscription(from: modelContext),
+              let audioURLString = lastTranscription.audioFileURL,
+              let audioURL = URL(string: audioURLString),
+              FileManager.default.fileExists(atPath: audioURL.path) else {
+            NotificationManager.shared.showNotification(
+                title: "Cannot retry: Audio file not found",
+                type: .error
             )
+            return
+        }
+
+        guard let currentModel = transcriptionModelManager.currentTranscriptionModel else {
+            NotificationManager.shared.showNotification(
+                title: "No transcription model selected",
+                type: .error
+            )
+            return
+        }
+
+        let transcriptionService = AudioTranscriptionService(
+            modelContext: modelContext,
+            serviceRegistry: serviceRegistry,
+            enhancementService: enhancementService
+        )
+
+        Task {
             do {
                 let newTranscription = try await transcriptionService.retranscribeAudio(from: audioURL, using: currentModel)
 
                 let textToCopy = newTranscription.enhancedText?.isEmpty == false ? newTranscription.enhancedText! : newTranscription.text
-                ClipboardManager.copyToClipboard(textToCopy)
+                _ = ClipboardManager.copyToClipboard(textToCopy)
 
                 NotificationManager.shared.showNotification(
                     title: "Copied to clipboard",

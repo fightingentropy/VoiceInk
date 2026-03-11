@@ -3,7 +3,7 @@ import SwiftData
 import LLMkit
 
 /// Deepgram streaming provider wrapping `LLMkit.DeepgramStreamingClient`.
-final class DeepgramStreamingProvider: StreamingTranscriptionProvider {
+final class DeepgramStreamingProvider: StreamingTranscriptionProvider, @unchecked Sendable {
 
     private let client = LLMkit.DeepgramStreamingClient()
     private var eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation?

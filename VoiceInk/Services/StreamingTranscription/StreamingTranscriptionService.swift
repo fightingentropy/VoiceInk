@@ -39,7 +39,7 @@ enum StreamingState {
 
 /// Manages a streaming transcription lifecycle: buffers audio chunks, sends them to the provider, and collects the final text.
 @MainActor
-class StreamingTranscriptionService {
+final class StreamingTranscriptionService {
 
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "StreamingTranscriptionService")
     private var provider: StreamingTranscriptionProvider?
@@ -49,9 +49,9 @@ class StreamingTranscriptionService {
     private var state: StreamingState = .idle
     private var committedSegments: [String] = []
     private let modelContext: ModelContext
-    private var onPartialTranscript: ((String) -> Void)?
+    private var onPartialTranscript: (@Sendable (String) -> Void)?
 
-    init(modelContext: ModelContext, onPartialTranscript: ((String) -> Void)? = nil) {
+    init(modelContext: ModelContext, onPartialTranscript: (@Sendable (String) -> Void)? = nil) {
         self.modelContext = modelContext
         self.onPartialTranscript = onPartialTranscript
     }
@@ -154,7 +154,7 @@ class StreamingTranscriptionService {
         let providerToDisconnect = provider
         provider = nil
 
-        Task {
+        Task { [providerToDisconnect] in
             await providerToDisconnect?.disconnect()
         }
 
@@ -184,15 +184,12 @@ class StreamingTranscriptionService {
         let source = chunkSource
         let provider = provider
 
-        sendTask = Task.detached { [weak self] in
+        sendTask = Task { [weak self, source, provider] in
             for await chunk in source.stream {
                 do {
                     try await provider?.sendAudioChunk(chunk)
                 } catch {
-                    let desc = error.localizedDescription
-                    await MainActor.run {
-                        self?.logger.error("Failed to send audio chunk: \(desc, privacy: .public)")
-                    }
+                    self?.logger.error("Failed to send audio chunk: \(error.localizedDescription, privacy: .public)")
                 }
             }
         }
@@ -210,34 +207,26 @@ class StreamingTranscriptionService {
         guard let provider = provider else { return }
         let events = provider.transcriptionEvents
 
-        eventConsumerTask = Task.detached { [weak self] in
+        eventConsumerTask = Task { [weak self, events] in
             for await event in events {
                 guard let self = self else { break }
                 switch event {
                 case .committed(let text):
                     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                    await MainActor.run {
-                        if !trimmed.isEmpty {
-                            self.committedSegments.append(trimmed)
-                        }
-
-                        // Signal for any committed response (including empty) during committing phase.
-                        if self.state == .committing {
-                            self.commitSignal?.yield()
-                        }
+                    if !trimmed.isEmpty {
+                        self.committedSegments.append(trimmed)
+                    }
+                    if self.state == .committing {
+                        self.commitSignal?.yield()
                     }
                 case .partial(let text):
-                    await MainActor.run {
-                        if self.state == .streaming {
-                            self.onPartialTranscript?(text)
-                        }
+                    if self.state == .streaming {
+                        self.onPartialTranscript?(text)
                     }
                 case .sessionStarted:
                     break
                 case .error(let error):
-                    await MainActor.run {
-                        self.logger.error("Streaming event error: \(error.localizedDescription, privacy: .public)")
-                    }
+                    self.logger.error("Streaming event error: \(error.localizedDescription, privacy: .public)")
                 }
             }  
         }
@@ -245,21 +234,24 @@ class StreamingTranscriptionService {
 
     /// Waits for the server to acknowledge our explicit commit, with a 10-second timeout.
     private func waitForFinalCommit(signalStream: AsyncStream<Void>) async -> String {
-        // Race: wait for commit acknowledgment vs timeout
-        let receivedInTime = await withTaskGroup(of: Bool.self) { group in
-            group.addTask { @MainActor in
-                for await _ in signalStream {
-                    return true
-                }
-                return false
+        let signalTask = Task {
+            for await _ in signalStream {
+                return true
             }
+            return false
+        }
+        let timeoutTask = Task {
+            try? await Task.sleep(nanoseconds: 10_000_000_000)
+            return false
+        }
 
-            group.addTask {
-                try? await Task.sleep(nanoseconds: 10_000_000_000) // 10 seconds
-                return false
-            }
+        let receivedInTime = await withTaskGroup(of: Bool.self) { group in
+            group.addTask { await signalTask.value }
+            group.addTask { await timeoutTask.value }
 
             let result = await group.next() ?? false
+            signalTask.cancel()
+            timeoutTask.cancel()
             group.cancelAll()
             return result
         }

@@ -2,7 +2,7 @@ import Foundation
 import AVFoundation
 import SwiftUI
 
-class CustomSoundManager: ObservableObject {
+final class CustomSoundManager: ObservableObject, @unchecked Sendable {
     static let shared = CustomSoundManager()
 
     enum SoundType: String {

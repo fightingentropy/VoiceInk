@@ -1,7 +1,8 @@
 import Foundation
 import os
 
-class PromptDetectionService {
+@MainActor
+final class PromptDetectionService {
     private let logger = Logger(
         subsystem: "com.fightingentropy.voiceink",
         category: "promptdetection"

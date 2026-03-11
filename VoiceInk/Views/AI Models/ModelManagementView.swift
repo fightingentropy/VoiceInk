@@ -3,27 +3,15 @@ import SwiftData
 import AppKit
 import UniformTypeIdentifiers
 
-enum ModelFilter: String, CaseIterable, Identifiable {
-    case recommended = "Recommended"
-    case local = "Local"
-    case cloud = "Cloud"
-    case custom = "Custom"
-    var id: String { self.rawValue }
-}
-
 struct ModelManagementView: View {
     @EnvironmentObject private var whisperModelManager: WhisperModelManager
     @EnvironmentObject private var parakeetModelManager: ParakeetModelManager
     @EnvironmentObject private var transcriptionModelManager: TranscriptionModelManager
     @State private var customModelToEdit: CustomCloudModel?
-    @StateObject private var aiService = AIService()
     @StateObject private var customModelManager = CustomModelManager.shared
-    @EnvironmentObject private var enhancementService: AIEnhancementService
-    @Environment(\.modelContext) private var modelContext
     @StateObject private var whisperPrompt = WhisperPrompt()
     @ObservedObject private var warmupCoordinator = WhisperModelWarmupCoordinator.shared
 
-    @State private var selectedFilter: ModelFilter = .recommended
     @State private var isShowingSettings = false
     
     // State for the unified alert
@@ -35,10 +23,6 @@ struct ModelManagementView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                if SystemArchitecture.isIntelMac {
-                    intelMacWarningBanner
-                }
-
                 defaultModelSection
                 languageSelectionSection
                 availableModelsSection
@@ -79,27 +63,8 @@ struct ModelManagementView: View {
     private var availableModelsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                // Modern compact pill switcher
-                HStack(spacing: 12) {
-                    ForEach(ModelFilter.allCases, id: \.self) { filter in
-                        Button(action: {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                selectedFilter = filter
-                                isShowingSettings = false
-                            }
-                        }) {
-                            Text(filter.rawValue)
-                                .font(.system(size: 14, weight: selectedFilter == filter ? .semibold : .medium))
-                                .foregroundColor(selectedFilter == filter ? .primary : .primary.opacity(0.7))
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(
-                                    CardBackground(isSelected: selectedFilter == filter, cornerRadius: 22)
-                                )
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
-                }
+                Text("Models")
+                    .font(.headline)
                 
                 Spacer()
                 
@@ -124,7 +89,7 @@ struct ModelManagementView: View {
                 ModelSettingsView(whisperPrompt: whisperPrompt)
             } else {
                 VStack(spacing: 12) {
-                    ForEach(filteredModels, id: \.id) { model in
+                    ForEach(displayedModels, id: \.id) { model in
                         let isWarming = (model as? LocalModel).map { localModel in
                             warmupCoordinator.isWarming(modelNamed: localModel.name)
                         } ?? false
@@ -174,103 +139,63 @@ struct ModelManagementView: View {
                         )
                     }
                     
-                    // Import button as a card at the end of the Local list
-                    if selectedFilter == .local {
-                        HStack(spacing: 8) {
-                            Button(action: { presentImportPanel() }) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "square.and.arrow.down")
-                                    Text("Import Local Model…")
-                                        .font(.system(size: 12, weight: .semibold))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(16)
-                                .background(CardBackground(isSelected: false))
-                                .cornerRadius(10)
+                    HStack(spacing: 8) {
+                        Button(action: { presentImportPanel() }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "square.and.arrow.down")
+                                Text("Import Local Model…")
+                                    .font(.system(size: 12, weight: .semibold))
                             }
-                            .buttonStyle(.plain)
-
-                            InfoTip(
-                                "Add a custom fine-tuned whisper model to use with VoiceInk. Select the downloaded .bin file.",
-                                learnMoreURL: "https://github.com/fightingentropy/VoiceInk#readme"
-                            )
-                            .help("Read more about custom local models")
+                            .frame(maxWidth: .infinity)
+                            .padding(16)
+                            .background(CardBackground(isSelected: false))
+                            .cornerRadius(10)
                         }
+                        .buttonStyle(.plain)
+
+                        InfoTip(
+                            "Add a custom fine-tuned whisper model to use with VoiceInk. Select the downloaded .bin file.",
+                            learnMoreURL: "https://github.com/fightingentropy/VoiceInk#readme"
+                        )
+                        .help("Read more about custom local models")
                     }
                     
-                    if selectedFilter == .custom {
-                        // Add Custom Model Card at the bottom
-                        AddCustomModelCardView(
-                            customModelManager: customModelManager,
-                            editingModel: customModelToEdit
-                        ) {
-                            // Refresh the models when a new custom model is added
-                            transcriptionModelManager.refreshAllAvailableModels()
-                            customModelToEdit = nil // Clear editing state
-                        }
-                    }
+                    AddCustomModelCardView(
+                        customModelManager: customModelManager,
+                        onModelAdded: {
+                        transcriptionModelManager.refreshAllAvailableModels()
+                        customModelToEdit = nil
+                    },
+                        editingModel: customModelToEdit
+                    )
                 }
             }
         }
         .padding()
     }
 
-    private var intelMacWarningBanner: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.orange)
-
-            Text("Local models don't work reliably on Intel Macs")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.primary.opacity(0.85))
-
-            Spacer()
-
-            Button(action: {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    selectedFilter = .cloud
-                }
-            }) {
-                HStack(spacing: 4) {
-                    Text("Use Cloud")
-                        .font(.system(size: 12, weight: .semibold))
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 10, weight: .bold))
-                }
-                .foregroundColor(.orange)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.orange.opacity(0.12))
-                .cornerRadius(6)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(Color.orange.opacity(0.08))
-        .cornerRadius(8)
-    }
-
-    private var filteredModels: [any TranscriptionModel] {
-        switch selectedFilter {
-        case .recommended:
-            return transcriptionModelManager.allAvailableModels.filter {
-                let recommendedNames = ["ggml-base.en", "parakeet-tdt-0.6b-v2", "ggml-large-v3-turbo-q5_0", "whisper-large-v3-turbo"]
-                return recommendedNames.contains($0.name)
-            }.sorted { model1, model2 in
-                let recommendedOrder = ["ggml-base.en", "parakeet-tdt-0.6b-v2", "ggml-large-v3-turbo-q5_0", "whisper-large-v3-turbo"]
-                let index1 = recommendedOrder.firstIndex(of: model1.name) ?? Int.max
-                let index2 = recommendedOrder.firstIndex(of: model2.name) ?? Int.max
+    private var displayedModels: [any TranscriptionModel] {
+        let preferredOrder = [
+            "apple-speech",
+            "parakeet-tdt-0.6b-v2",
+            "parakeet-tdt-0.6b-v3",
+            "ggml-large-v3-turbo-q5_0",
+            "ggml-large-v3-turbo"
+        ]
+        
+        return transcriptionModelManager.allAvailableModels.sorted { model1, model2 in
+            let index1 = preferredOrder.firstIndex(of: model1.name) ?? Int.max
+            let index2 = preferredOrder.firstIndex(of: model2.name) ?? Int.max
+            
+            if index1 != index2 {
                 return index1 < index2
             }
-        case .local:
-            return transcriptionModelManager.allAvailableModels.filter { $0.provider == .local || $0.provider == .nativeApple || $0.provider == .parakeet }
-        case .cloud:
-            let cloudProviders: [ModelProvider] = [.groq, .elevenLabs, .deepgram, .mistral, .gemini, .soniox]
-            return transcriptionModelManager.allAvailableModels.filter { cloudProviders.contains($0.provider) }
-        case .custom:
-            return transcriptionModelManager.allAvailableModels.filter { $0.provider == .custom }
+            
+            if model1.provider != model2.provider {
+                return model1.provider.rawValue < model2.provider.rawValue
+            }
+            
+            return model1.displayName.localizedStandardCompare(model2.displayName) == .orderedAscending
         }
     }
 

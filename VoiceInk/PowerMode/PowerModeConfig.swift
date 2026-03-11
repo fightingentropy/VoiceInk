@@ -130,6 +130,7 @@ struct URLConfig: Codable, Identifiable, Equatable {
     }
 }
 
+@MainActor
 class PowerModeManager: ObservableObject {
     static let shared = PowerModeManager()
     @Published var configurations: [PowerModeConfig] = []

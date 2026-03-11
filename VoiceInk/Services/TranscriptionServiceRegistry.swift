@@ -51,7 +51,7 @@ class TranscriptionServiceRegistry {
     }
 
     /// Creates a streaming or file-based session depending on the model's capabilities.
-    func createSession(for model: any TranscriptionModel, onPartialTranscript: ((String) -> Void)? = nil) -> TranscriptionSession {
+    func createSession(for model: any TranscriptionModel, onPartialTranscript: (@Sendable (String) -> Void)? = nil) -> TranscriptionSession {
         if supportsStreaming(model: model) {
             let streamingService = StreamingTranscriptionService(
                 modelContext: modelContext,

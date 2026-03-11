@@ -6,17 +6,17 @@ struct PromptSelectionGrid: View {
     
     let prompts: [CustomPrompt]
     let selectedPromptId: UUID?
-    let onPromptSelected: (CustomPrompt) -> Void
-    let onEditPrompt: ((CustomPrompt) -> Void)?
-    let onDeletePrompt: ((CustomPrompt) -> Void)?
+    let onPromptSelected: @MainActor (CustomPrompt) -> Void
+    let onEditPrompt: (@MainActor (CustomPrompt) -> Void)?
+    let onDeletePrompt: (@MainActor (CustomPrompt) -> Void)?
     let onAddNewPrompt: (() -> Void)?
     
     init(
         prompts: [CustomPrompt],
         selectedPromptId: UUID?,
-        onPromptSelected: @escaping (CustomPrompt) -> Void,
-        onEditPrompt: ((CustomPrompt) -> Void)? = nil,
-        onDeletePrompt: ((CustomPrompt) -> Void)? = nil,
+        onPromptSelected: @escaping @MainActor (CustomPrompt) -> Void,
+        onEditPrompt: (@MainActor (CustomPrompt) -> Void)? = nil,
+        onDeletePrompt: (@MainActor (CustomPrompt) -> Void)? = nil,
         onAddNewPrompt: (() -> Void)? = nil
     ) {
         self.prompts = prompts

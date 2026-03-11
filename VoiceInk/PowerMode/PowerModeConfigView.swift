@@ -101,7 +101,9 @@ struct ConfigurationView: View {
             _isAutoSendEnabled = State(initialValue: false)
             _isDefault = State(initialValue: false)
             // Default to current global AI provider/model for new configurations - use UserDefaults only
-            _selectedAIProvider = State(initialValue: UserDefaults.standard.string(forKey: "selectedAIProvider"))
+            let savedProvider = UserDefaults.standard.string(forKey: "selectedAIProvider")
+                .flatMap(AIProvider.init(rawValue:))
+            _selectedAIProvider = State(initialValue: savedProvider?.isShownInModelSettings == true ? savedProvider?.rawValue : nil)
             _selectedAIModel = State(initialValue: nil) // Initialize to nil and set it after view appears
         case .edit(let config):
             // Get the latest version of this config from PowerModeManager
@@ -118,7 +120,8 @@ struct ConfigurationView: View {
             _useScreenCapture = State(initialValue: latestConfig.useScreenCapture)
             _isAutoSendEnabled = State(initialValue: latestConfig.isAutoSendEnabled)
             _isDefault = State(initialValue: latestConfig.isDefault)
-            _selectedAIProvider = State(initialValue: latestConfig.selectedAIProvider)
+            let configProvider = latestConfig.selectedAIProvider.flatMap(AIProvider.init(rawValue:))
+            _selectedAIProvider = State(initialValue: configProvider?.isShownInModelSettings == true ? configProvider?.rawValue : nil)
             _selectedAIModel = State(initialValue: latestConfig.selectedAIModel)
         }
     }

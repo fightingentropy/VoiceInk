@@ -6,10 +6,13 @@ import whisper
 #endif
 import os
 
+private final class WhisperContextStorage: @unchecked Sendable {
+    var pointer: OpaquePointer?
+}
 
 // Meet Whisper C++ constraint: Don't access from more than one thread at a time.
 actor WhisperContext {
-    private var context: OpaquePointer?
+    private let storage = WhisperContextStorage()
     private var languageCString: [CChar]?
     private var prompt: String?
     private var promptCString: [CChar]?
@@ -19,17 +22,17 @@ actor WhisperContext {
     private init() {}
 
     init(context: OpaquePointer) {
-        self.context = context
+        self.storage.pointer = context
     }
 
     deinit {
-        if let context = context {
+        if let context = storage.pointer {
             whisper_free(context)
         }
     }
 
     func fullTranscribe(samples: [Float]) -> Bool {
-        guard let context = context else { return false }
+        guard let context = storage.pointer else { return false }
         
         let maxThreads = max(1, min(8, cpuCount() - 2))
         var params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY)
@@ -102,7 +105,7 @@ actor WhisperContext {
     }
 
     func getTranscription() -> String {
-        guard let context = context else { return "" }
+        guard let context = storage.pointer else { return "" }
         var transcription = ""
         for i in 0..<whisper_full_n_segments(context) {
             transcription += String(cString: whisper_full_get_segment_text(context, i))
@@ -133,7 +136,7 @@ actor WhisperContext {
         
         let context = whisper_init_from_file_with_params(path, params)
         if let context {
-            self.context = context
+            storage.pointer = context
         } else {
             logger.error("❌ Couldn't load model at \(path, privacy: .public)")
             throw VoiceInkEngineError.modelLoadFailed
@@ -148,9 +151,9 @@ actor WhisperContext {
     }
 
     func releaseResources() {
-        if let context = context {
+        if let context = storage.pointer {
             whisper_free(context)
-            self.context = nil
+            storage.pointer = nil
         }
         languageCString = nil
     }

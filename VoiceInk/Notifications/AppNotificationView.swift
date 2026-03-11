@@ -8,7 +8,7 @@ struct AppNotificationView: View {
     let onTap: (() -> Void)?
     
     @State private var progress: Double = 1.0
-    @State private var timer: Timer?
+    @State private var progressTask: Task<Void, Never>?
 
     enum NotificationType {
         case error
@@ -113,7 +113,8 @@ struct AppNotificationView: View {
             startProgressTimer()
         }
         .onDisappear {
-            timer?.invalidate()
+            progressTask?.cancel()
+            progressTask = nil
         }
         .onTapGesture {
             if let onTap = onTap {
@@ -127,15 +128,14 @@ struct AppNotificationView: View {
         let updateInterval: TimeInterval = 0.1
         let totalSteps = duration / updateInterval
         let stepDecrement = 1.0 / totalSteps
-        
-        timer = Timer.scheduledTimer(withTimeInterval: updateInterval, repeats: true) { _ in
-            if progress > 0 {
+
+        progressTask?.cancel()
+        progressTask = Task { @MainActor in
+            while !Task.isCancelled && progress > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(updateInterval * 1_000_000_000))
+                guard !Task.isCancelled else { break }
                 progress = max(0, progress - stepDecrement)
-            } else {
-                timer?.invalidate()
-                timer = nil
             }
         }
     }
 }
-
