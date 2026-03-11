@@ -10,8 +10,13 @@ import Testing
 
 struct VoiceInkTests {
 
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+    @Test func appStoragePathsStayInsideVoiceInkAppSupportFolder() async throws {
+        let appSupportPath = AppStoragePaths.applicationSupportDirectory.path
+
+        #expect(appSupportPath.contains("/Library/Application Support/com.fightingentropy.VoiceInk"))
+        #expect(!AppStoragePaths.customSoundsDirectory.path.contains("/Library/Application Support/VoiceInk/"))
+        #expect(AppStoragePaths.recordingsDirectory.deletingLastPathComponent() == AppStoragePaths.applicationSupportDirectory)
+        #expect(AppStoragePaths.whisperModelsDirectory.deletingLastPathComponent() == AppStoragePaths.applicationSupportDirectory)
     }
 
 }

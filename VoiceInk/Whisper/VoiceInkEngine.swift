@@ -39,9 +39,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
         self.transcriptionModelManager = transcriptionModelManager
         self.enhancementService = enhancementService
 
-        let appSupportDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("com.fightingentropy.VoiceInk")
-        self.recordingsDirectory = appSupportDirectory.appendingPathComponent("Recordings")
+        self.recordingsDirectory = AppStoragePaths.recordingsDirectory
 
         self.serviceRegistry = TranscriptionServiceRegistry(
             modelProvider: whisperModelManager,
@@ -66,7 +64,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
     private func createRecordingsDirectoryIfNeeded() {
         do {
-            try FileManager.default.createDirectory(at: recordingsDirectory, withIntermediateDirectories: true, attributes: nil)
+            try AppStoragePaths.createDirectoryIfNeeded(at: recordingsDirectory)
         } catch {
             logger.error("❌ Error creating recordings directory: \(error.localizedDescription, privacy: .public)")
         }

@@ -14,9 +14,7 @@ final class TranscriptionAutoCleanupService: @unchecked Sendable {
     private let defaultRetentionMinutes: Int = 24 * 60
 
     private var recordingsDirectory: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("com.fightingentropy.VoiceInk")
-            .appendingPathComponent("Recordings")
+        AppStoragePaths.recordingsDirectory
     }
 
     private init() {}

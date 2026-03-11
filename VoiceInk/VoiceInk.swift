@@ -99,9 +99,7 @@ struct VoiceInkApp: App {
         _enhancementService = StateObject(wrappedValue: enhancementService)
 
         // 1. Create modelsDirectory URL
-        let appSupportDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("com.fightingentropy.VoiceInk")
-        let modelsDirectory = appSupportDirectory.appendingPathComponent("WhisperModels")
+        let modelsDirectory = AppStoragePaths.whisperModelsDirectory
 
         // 2. Create model managers
         let whisperModelManager = WhisperModelManager(modelsDirectory: modelsDirectory)
@@ -172,15 +170,14 @@ struct VoiceInkApp: App {
     private static func createPersistentContainer(schema: Schema, logger: Logger) -> ModelContainer? {
         do {
             // Create app-specific Application Support directory URL
-            let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("com.fightingentropy.VoiceInk", isDirectory: true)
+            let appSupportURL = AppStoragePaths.applicationSupportDirectory
 
             // Create the directory if it doesn't exist
-            try? FileManager.default.createDirectory(at: appSupportURL, withIntermediateDirectories: true)
+            try? AppStoragePaths.createDirectoryIfNeeded(at: appSupportURL)
 
             // Define storage locations
-            let defaultStoreURL = appSupportURL.appendingPathComponent("default.store")
-            let dictionaryStoreURL = appSupportURL.appendingPathComponent("dictionary.store")
+            let defaultStoreURL = AppStoragePaths.defaultStoreURL
+            let dictionaryStoreURL = AppStoragePaths.dictionaryStoreURL
 
             // Transcript configuration
             let transcriptSchema = Schema([Transcription.self])
