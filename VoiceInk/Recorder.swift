@@ -18,8 +18,7 @@ class Recorder: NSObject, ObservableObject {
     private let playbackController = PlaybackController.shared
     @Published var audioMeter = AudioMeter(averagePower: 0, peakPower: 0)
     private var audioLevelCheckTask: Task<Void, Never>?
-    private var audioMeterUpdateTimer: DispatchSourceTimer?
-    private let audioMeterQueue = DispatchQueue(label: "com.fightingentropy.voiceink.audiometer", qos: .userInteractive)
+    private var audioMeterUpdateTask: Task<Void, Never>?
     /// Dedicated serial queue for hardware setup.
     private let audioSetupQueue = DispatchQueue(label: "com.fightingentropy.voiceink.audioSetup", qos: .userInitiated)
     private var audioRestorationTask: Task<Void, Never>?
@@ -150,7 +149,7 @@ class Recorder: NSObject, ObservableObject {
             }
 
             audioLevelCheckTask?.cancel()
-            audioMeterUpdateTimer?.cancel()
+            audioMeterUpdateTask?.cancel()
 
             startAudioMeterTimer()
 
@@ -185,8 +184,8 @@ class Recorder: NSObject, ObservableObject {
     func stopRecording() {
         logger.notice("stopRecording called")
         audioLevelCheckTask?.cancel()
-        audioMeterUpdateTimer?.cancel()
-        audioMeterUpdateTimer = nil
+        audioMeterUpdateTask?.cancel()
+        audioMeterUpdateTask = nil
         
         // Capture current recorder to stop it on the serial hardware queue
         let currentRecorder = self.recorder
@@ -226,13 +225,15 @@ class Recorder: NSObject, ObservableObject {
     }
 
     private func startAudioMeterTimer() {
-        let timer = DispatchSource.makeTimerSource(queue: audioMeterQueue)
-        timer.schedule(deadline: .now(), repeating: .milliseconds(17)) 
-        timer.setEventHandler { [weak self] in
-            self?.updateAudioMeter()
+        audioMeterUpdateTask?.cancel()
+        audioMeterUpdateTask = Task { @MainActor [weak self] in
+            guard let self = self else { return }
+
+            while !Task.isCancelled {
+                self.updateAudioMeter()
+                try? await Task.sleep(for: .milliseconds(17))
+            }
         }
-        timer.resume()
-        audioMeterUpdateTimer = timer
     }
 
     private func updateAudioMeter() {
@@ -285,7 +286,7 @@ class Recorder: NSObject, ObservableObject {
 
     deinit {
         audioLevelCheckTask?.cancel()
-        audioMeterUpdateTimer?.cancel()
+        audioMeterUpdateTask?.cancel()
         audioRestorationTask?.cancel()
         if let observer = deviceSwitchObserver.value {
             NotificationCenter.default.removeObserver(observer)
