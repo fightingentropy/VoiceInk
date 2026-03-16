@@ -67,7 +67,7 @@ enum AIProvider: String, CaseIterable {
         case .mistral:
             return "mistral-large-latest"
         case .elevenLabs:
-            return "scribe_v1"
+            return "scribe_v2"
         case .deepgram:
             return "whisper-1"
         case .soniox:

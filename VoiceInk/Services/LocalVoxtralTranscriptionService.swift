@@ -6,7 +6,7 @@ enum LocalVoxtralTranscriptionError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .batchFallbackUnavailable:
-            return "Local Voxtral requires a running voxmlx realtime server. Start the local server and try again."
+            return "Local Voxtral is streaming-only. If native startup fails, there is no batch fallback available for this model."
         }
     }
 }

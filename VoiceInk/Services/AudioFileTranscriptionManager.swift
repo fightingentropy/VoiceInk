@@ -59,7 +59,7 @@ class AudioTranscriptionManager: ObservableObject {
                     throw TranscriptionError.noModelSelected
                 }
 
-                let serviceRegistry = TranscriptionServiceRegistry(modelProvider: engine.whisperModelManager, modelsDirectory: engine.whisperModelManager.modelsDirectory, modelContext: modelContext)
+                let serviceRegistry = TranscriptionServiceRegistry(modelProvider: engine.whisperModelManager, modelsDirectory: engine.whisperModelManager.modelsDirectory)
                 defer {
                     serviceRegistry.cleanup()
                 }

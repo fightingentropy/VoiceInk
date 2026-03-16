@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 import LLMkit
 
 enum CloudTranscriptionError: Error, LocalizedError {
@@ -35,12 +34,9 @@ enum CloudTranscriptionError: Error, LocalizedError {
 }
 
 final class CloudTranscriptionService: TranscriptionService, @unchecked Sendable {
-    private let modelContext: ModelContext
     private lazy var openAICompatibleService = OpenAICompatibleTranscriptionService()
 
-    init(modelContext: ModelContext) {
-        self.modelContext = modelContext
-    }
+    init() {}
 
     func transcribe(audioURL: URL, model: any TranscriptionModel) async throws -> String {
         let audioData = try loadAudioData(from: audioURL)
@@ -49,19 +45,6 @@ final class CloudTranscriptionService: TranscriptionService, @unchecked Sendable
 
         do {
             switch model.provider {
-            case .groq:
-                let apiKey = try requireAPIKey(forProvider: "Groq")
-                let prompt = transcriptionPrompt()
-                return try await OpenAITranscriptionClient.transcribe(
-                    baseURL: URL(string: "https://api.groq.com/openai")!,
-                    audioData: audioData,
-                    fileName: fileName,
-                    apiKey: apiKey,
-                    model: model.name,
-                    language: language,
-                    prompt: prompt
-                )
-
             case .elevenLabs:
                 let apiKey = try requireAPIKey(forProvider: "ElevenLabs")
                 return try await ElevenLabsClient.transcribe(
@@ -70,44 +53,6 @@ final class CloudTranscriptionService: TranscriptionService, @unchecked Sendable
                     apiKey: apiKey,
                     model: model.name,
                     language: language
-                )
-
-            case .deepgram:
-                let apiKey = try requireAPIKey(forProvider: "Deepgram")
-                return try await DeepgramClient.transcribe(
-                    audioData: audioData,
-                    apiKey: apiKey,
-                    model: model.name,
-                    language: language
-                )
-
-            case .mistral:
-                let apiKey = try requireAPIKey(forProvider: "Mistral")
-                return try await MistralTranscriptionClient.transcribe(
-                    audioData: audioData,
-                    fileName: fileName,
-                    apiKey: apiKey,
-                    model: model.name
-                )
-
-            case .gemini:
-                let apiKey = try requireAPIKey(forProvider: "Gemini")
-                return try await GeminiTranscriptionClient.transcribe(
-                    audioData: audioData,
-                    apiKey: apiKey,
-                    model: model.name
-                )
-
-            case .soniox:
-                let apiKey = try requireAPIKey(forProvider: "Soniox")
-                let customVocabulary = getCustomDictionaryTerms()
-                return try await SonioxClient.transcribe(
-                    audioData: audioData,
-                    fileName: fileName,
-                    apiKey: apiKey,
-                    model: model.name,
-                    language: language,
-                    customVocabulary: customVocabulary
                 )
 
             case .custom:
@@ -152,25 +97,6 @@ final class CloudTranscriptionService: TranscriptionService, @unchecked Sendable
     private func transcriptionPrompt() -> String? {
         let prompt = UserDefaults.standard.string(forKey: "TranscriptionPrompt") ?? ""
         return prompt.isEmpty ? nil : prompt
-    }
-
-    private func getCustomDictionaryTerms() -> [String] {
-        let descriptor = FetchDescriptor<VocabularyWord>(sortBy: [SortDescriptor(\.word)])
-        guard let vocabularyWords = try? modelContext.fetch(descriptor) else {
-            return []
-        }
-        var seen = Set<String>()
-        var unique: [String] = []
-        for word in vocabularyWords {
-            let trimmed = word.word.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { continue }
-            let key = trimmed.lowercased()
-            if !seen.contains(key) {
-                seen.insert(key)
-                unique.append(trimmed)
-            }
-        }
-        return unique
     }
 
     private func mapLLMKitError(_ error: LLMKitError) -> CloudTranscriptionError {

@@ -162,6 +162,11 @@ struct VoiceInkApp: App {
 
         AppShortcuts.updateAppShortcutParameters()
 
+        let benchmarkModelContext = container.mainContext
+        Task { @MainActor in
+            await RecentBenchmarkCorpusService.shared.bootstrapIfNeeded(modelContext: benchmarkModelContext)
+        }
+
         // Start cleanup service for the app's lifetime, not tied to window lifecycle
         TranscriptionAutoCleanupService.shared.startMonitoring(modelContext: container.mainContext)
     }

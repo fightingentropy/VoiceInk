@@ -38,7 +38,7 @@ struct OnboardingPermissionsView: View {
     @State private var showAnimation = false
     @State private var scale: CGFloat = 0.8
     @State private var opacity: CGFloat = 0
-    @State private var showModelDownload = false
+    @State private var showTutorial = false
     
     private let permissions: [OnboardingPermission] = [
         OnboardingPermission(
@@ -241,8 +241,8 @@ struct OnboardingPermissionsView: View {
                 }
             }
             
-            if showModelDownload {
-                OnboardingModelDownloadView(hasCompletedOnboarding: $hasCompletedOnboarding)
+            if showTutorial {
+                OnboardingTutorialView(hasCompletedOnboarding: $hasCompletedOnboarding)
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             }
         }
@@ -375,7 +375,7 @@ struct OnboardingPermissionsView: View {
             }
         } else {
             withAnimation {
-                showModelDownload = true
+                showTutorial = true
             }
         }
     }

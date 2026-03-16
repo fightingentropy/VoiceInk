@@ -12,6 +12,18 @@ enum AppStoragePaths {
         applicationSupportDirectory.appendingPathComponent("Recordings", isDirectory: true)
     }
 
+    static var benchmarkDirectory: URL {
+        applicationSupportDirectory.appendingPathComponent("Benchmarks", isDirectory: true)
+    }
+
+    static var recentBenchmarkCorpusDirectory: URL {
+        benchmarkDirectory.appendingPathComponent("RecentCorpus", isDirectory: true)
+    }
+
+    static var recentBenchmarkManifestURL: URL {
+        recentBenchmarkCorpusDirectory.appendingPathComponent("recent-benchmark-corpus.json")
+    }
+
     static var whisperModelsDirectory: URL {
         applicationSupportDirectory.appendingPathComponent("WhisperModels", isDirectory: true)
     }

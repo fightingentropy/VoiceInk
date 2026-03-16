@@ -72,7 +72,7 @@ class TranscriptionModelManager: ObservableObject {
 
     func loadCurrentTranscriptionModel() {
         if let savedModelName = UserDefaults.standard.string(forKey: "CurrentTranscriptionModel"),
-           let savedModel = allAvailableModels.first(where: { $0.name == savedModelName }) {
+           let savedModel = allAvailableModels.first(where: { $0.name == migratedModelName(from: savedModelName) }) {
             currentTranscriptionModel = savedModel
         }
     }
@@ -118,6 +118,44 @@ class TranscriptionModelManager: ObservableObject {
     func clearCurrentTranscriptionModel() {
         currentTranscriptionModel = nil
         UserDefaults.standard.removeObject(forKey: "CurrentTranscriptionModel")
+    }
+
+    private func migratedModelName(from storedModelName: String) -> String {
+        guard let replacementModelName = replacementModelName(for: storedModelName) else {
+            return storedModelName
+        }
+
+        UserDefaults.standard.set(replacementModelName, forKey: "CurrentTranscriptionModel")
+        return replacementModelName
+    }
+
+    private func replacementModelName(for storedModelName: String) -> String? {
+        switch storedModelName {
+        case "scribe_v1":
+            return "scribe_v2"
+        case "whisper-large-v3-turbo", "gemini-2.5-pro", "gemini-2.5-flash":
+            if allAvailableModels.contains(where: { $0.name == "voxtral-mini-realtime-local" }) {
+                return "voxtral-mini-realtime-local"
+            }
+            return allAvailableModels.contains(where: { $0.name == "apple-speech" }) ? "apple-speech" : nil
+        case "voxtral-mini-transcribe-realtime-2602":
+            if allAvailableModels.contains(where: { $0.name == "voxtral-mini-realtime-local" }) {
+                return "voxtral-mini-realtime-local"
+            }
+            return allAvailableModels.contains(where: { $0.name == "apple-speech" }) ? "apple-speech" : nil
+        case "voxtral-mini-latest":
+            if allAvailableModels.contains(where: { $0.name == "voxtral-mini-realtime-local" }) {
+                return "voxtral-mini-realtime-local"
+            }
+            return allAvailableModels.contains(where: { $0.name == "apple-speech" }) ? "apple-speech" : nil
+        case "nova-3", "nova-3-medical", "stt-async-v4", "stt-rt-v4":
+            if allAvailableModels.contains(where: { $0.name == "voxtral-mini-realtime-local" }) {
+                return "voxtral-mini-realtime-local"
+            }
+            return allAvailableModels.contains(where: { $0.name == "apple-speech" }) ? "apple-speech" : nil
+        default:
+            return nil
+        }
     }
 
     // MARK: - Handle model deletion callback

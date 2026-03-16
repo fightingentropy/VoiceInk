@@ -147,6 +147,14 @@ class TranscriptionPipeline {
         }
 
         try? modelContext.save()
+
+        if transcription.transcriptionStatus == TranscriptionStatus.completed.rawValue {
+            RecentBenchmarkCorpusService.shared.captureCompletedRecording(
+                transcription: transcription,
+                audioURL: audioURL
+            )
+        }
+
         NotificationCenter.default.post(name: .transcriptionCompleted, object: transcription)
 
         if shouldCancel() { await onCleanup(); return }

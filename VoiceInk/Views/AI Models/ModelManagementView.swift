@@ -179,12 +179,18 @@ struct ModelManagementView: View {
             "apple-speech",
             "parakeet-tdt-0.6b-v2",
             "parakeet-tdt-0.6b-v3",
-            "voxtral-mini-realtime-local",
-            "ggml-large-v3-turbo-q5_0",
-            "ggml-large-v3-turbo"
+            "voxtral-mini-realtime-local"
         ]
+        let currentModelName = transcriptionModelManager.currentTranscriptionModel?.name
         
         return transcriptionModelManager.allAvailableModels.sorted { model1, model2 in
+            let isCurrent1 = model1.name == currentModelName
+            let isCurrent2 = model2.name == currentModelName
+
+            if isCurrent1 != isCurrent2 {
+                return isCurrent1
+            }
+
             let index1 = preferredOrder.firstIndex(of: model1.name) ?? Int.max
             let index2 = preferredOrder.firstIndex(of: model2.name) ?? Int.max
             

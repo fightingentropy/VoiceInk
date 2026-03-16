@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 import os
 
 /// Sendable source that bridges audio chunks from any thread into an AsyncStream.
@@ -48,11 +47,9 @@ final class StreamingTranscriptionService {
     private let chunkSource = AudioChunkSource()
     private var state: StreamingState = .idle
     private var committedSegments: [String] = []
-    private let modelContext: ModelContext
     private var onPartialTranscript: (@Sendable (String) -> Void)?
 
-    init(modelContext: ModelContext, onPartialTranscript: (@Sendable (String) -> Void)? = nil) {
-        self.modelContext = modelContext
+    init(onPartialTranscript: (@Sendable (String) -> Void)? = nil) {
         self.onPartialTranscript = onPartialTranscript
     }
 
@@ -167,15 +164,9 @@ final class StreamingTranscriptionService {
     private func createProvider(for model: any TranscriptionModel) -> StreamingTranscriptionProvider {
         switch model.provider {
         case .localVoxtral:
-            return LocalVoxtralStreamingProvider()
+            return VoxtralNativeStreamingProvider()
         case .elevenLabs:
             return ElevenLabsStreamingProvider()
-        case .deepgram:
-            return DeepgramStreamingProvider(modelContext: modelContext)
-        case .mistral:
-            return MistralStreamingProvider()
-        case .soniox:
-            return SonioxStreamingProvider(modelContext: modelContext)
         default:
             fatalError("Unsupported streaming provider: \(model.provider). Check supportsStreaming() before calling startStreaming().")
         }
