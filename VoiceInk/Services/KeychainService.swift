@@ -131,8 +131,8 @@ final class KeychainService: @unchecked Sendable {
 
     // MARK: - Private Helpers
 
-    #if !LOCAL_BUILD && !OPEN_SOURCE_DISTRIBUTION
     private static func determineStorageMode() -> Bool {
+        #if !LOCAL_BUILD && !OPEN_SOURCE_DISTRIBUTION
         guard let task = SecTaskCreateFromSelf(nil),
               let accessGroups = SecTaskCopyValueForEntitlement(task, "keychain-access-groups" as CFString, nil) as? [String],
               !accessGroups.isEmpty else {
@@ -140,6 +140,9 @@ final class KeychainService: @unchecked Sendable {
         }
 
         return false
+        #else
+        true
+        #endif
     }
 
     /// Creates base Keychain query dictionary.
@@ -157,9 +160,4 @@ final class KeychainService: @unchecked Sendable {
 
         return query
     }
-    #else
-    private static func determineStorageMode() -> Bool {
-        true
-    }
-    #endif
 }
