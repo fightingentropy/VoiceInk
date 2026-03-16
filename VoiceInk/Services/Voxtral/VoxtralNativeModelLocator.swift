@@ -125,7 +125,7 @@ enum VoxtralNativeModelLocator {
         return base.appendingPathComponent("VoiceInk", isDirectory: true)
     }
 
-    private static func huggingFaceCacheDirectory(for repoID: String) -> URL {
+    static func huggingFaceCacheDirectory(for repoID: String) -> URL {
         let modelSlug = repoID.replacingOccurrences(of: "/", with: "--")
         return URL(fileURLWithPath: NSHomeDirectory())
             .appendingPathComponent(".cache", isDirectory: true)

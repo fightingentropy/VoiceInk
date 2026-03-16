@@ -47,6 +47,9 @@ struct LocalVoxtralModelCardView: View {
             .padding(16)
         }
         .background(CardBackground(isSelected: isCurrent, useAccentGradientWhenSelected: isCurrent))
+        .task(id: modelReference) {
+            await nativeModelManager.migrateSharedCacheToManagedCopyIfNeeded(modelReference)
+        }
     }
 
     private var headerSection: some View {
@@ -238,7 +241,7 @@ struct LocalVoxtralModelCardView: View {
             return "Native Voxtral is ready for in-process MLX transcription."
         case .missing:
             return canDownloadModel
-                ? "Download or cache the model to enable native Voxtral."
+                ? "Download the model to enable native Voxtral."
                 : "Point VoiceInk at a local model directory to enable native Voxtral."
         }
     }
