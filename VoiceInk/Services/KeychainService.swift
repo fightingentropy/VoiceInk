@@ -10,11 +10,9 @@ final class KeychainService: @unchecked Sendable {
 
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "KeychainService")
     private let service = "com.fightingentropy.VoiceInk"
-
-    #if LOCAL_BUILD || OPEN_SOURCE_DISTRIBUTION
     private let defaults = UserDefaults.standard
     private let localPrefix = "LocalKeychain_"
-    #endif
+    private static let shouldUseUserDefaultsFallback = determineStorageMode()
 
     private init() {}
 
@@ -33,10 +31,11 @@ final class KeychainService: @unchecked Sendable {
     /// Saves data to Keychain.
     @discardableResult
     func save(data: Data, forKey key: String, syncable: Bool = true) -> Bool {
-        #if LOCAL_BUILD || OPEN_SOURCE_DISTRIBUTION
-        defaults.set(data, forKey: localPrefix + key)
-        return true
-        #else
+        if Self.shouldUseUserDefaultsFallback {
+            defaults.set(data, forKey: localPrefix + key)
+            return true
+        }
+
         // First, try to delete any existing item to avoid duplicates
         delete(forKey: key, syncable: syncable)
 
@@ -48,11 +47,13 @@ final class KeychainService: @unchecked Sendable {
         if status == errSecSuccess {
             logger.info("Successfully saved keychain item for key: \(key, privacy: .public)")
             return true
+        } else if status == errSecMissingEntitlement {
+            defaults.set(data, forKey: localPrefix + key)
+            return true
         } else {
             logger.error("Failed to save keychain item for key: \(key, privacy: .public), status: \(status, privacy: .public)")
             return false
         }
-        #endif
     }
 
     /// Retrieves a string value from Keychain.
@@ -65,9 +66,10 @@ final class KeychainService: @unchecked Sendable {
 
     /// Retrieves data from Keychain.
     func getData(forKey key: String, syncable: Bool = true) -> Data? {
-        #if LOCAL_BUILD || OPEN_SOURCE_DISTRIBUTION
-        return defaults.data(forKey: localPrefix + key)
-        #else
+        if Self.shouldUseUserDefaultsFallback {
+            return defaults.data(forKey: localPrefix + key)
+        }
+
         var query = baseQuery(forKey: key, syncable: syncable)
         query[kSecReturnData as String] = kCFBooleanTrue
         query[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -77,21 +79,23 @@ final class KeychainService: @unchecked Sendable {
 
         if status == errSecSuccess {
             return result as? Data
+        } else if status == errSecMissingEntitlement {
+            return defaults.data(forKey: localPrefix + key)
         } else if status != errSecItemNotFound {
             logger.error("Failed to retrieve keychain item for key: \(key, privacy: .public), status: \(status, privacy: .public)")
         }
 
         return nil
-        #endif
     }
 
     /// Deletes an item from Keychain.
     @discardableResult
     func delete(forKey key: String, syncable: Bool = true) -> Bool {
-        #if LOCAL_BUILD || OPEN_SOURCE_DISTRIBUTION
-        defaults.removeObject(forKey: localPrefix + key)
-        return true
-        #else
+        if Self.shouldUseUserDefaultsFallback {
+            defaults.removeObject(forKey: localPrefix + key)
+            return true
+        }
+
         let query = baseQuery(forKey: key, syncable: syncable)
         let status = SecItemDelete(query as CFDictionary)
 
@@ -100,29 +104,44 @@ final class KeychainService: @unchecked Sendable {
                 logger.info("Successfully deleted keychain item for key: \(key, privacy: .public)")
             }
             return true
+        } else if status == errSecMissingEntitlement {
+            defaults.removeObject(forKey: localPrefix + key)
+            return true
         } else {
             logger.error("Failed to delete keychain item for key: \(key, privacy: .public), status: \(status, privacy: .public)")
             return false
         }
-        #endif
     }
 
     /// Checks if a key exists in Keychain.
     func exists(forKey key: String, syncable: Bool = true) -> Bool {
-        #if LOCAL_BUILD || OPEN_SOURCE_DISTRIBUTION
-        return defaults.data(forKey: localPrefix + key) != nil
-        #else
+        if Self.shouldUseUserDefaultsFallback {
+            return defaults.data(forKey: localPrefix + key) != nil
+        }
+
         var query = baseQuery(forKey: key, syncable: syncable)
         query[kSecReturnData as String] = kCFBooleanFalse
 
         let status = SecItemCopyMatching(query as CFDictionary, nil)
+        if status == errSecMissingEntitlement {
+            return defaults.data(forKey: localPrefix + key) != nil
+        }
         return status == errSecSuccess
-        #endif
     }
 
     // MARK: - Private Helpers
 
     #if !LOCAL_BUILD && !OPEN_SOURCE_DISTRIBUTION
+    private static func determineStorageMode() -> Bool {
+        guard let task = SecTaskCreateFromSelf(nil),
+              let accessGroups = SecTaskCopyValueForEntitlement(task, "keychain-access-groups" as CFString, nil) as? [String],
+              !accessGroups.isEmpty else {
+            return true
+        }
+
+        return false
+    }
+
     /// Creates base Keychain query dictionary.
     private func baseQuery(forKey key: String, syncable: Bool) -> [String: Any] {
         var query: [String: Any] = [
@@ -137,6 +156,10 @@ final class KeychainService: @unchecked Sendable {
         }
 
         return query
+    }
+    #else
+    private static func determineStorageMode() -> Bool {
+        true
     }
     #endif
 }
