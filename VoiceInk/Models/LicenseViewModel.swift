@@ -36,7 +36,9 @@ class LicenseViewModel: ObservableObject {
         if licenseManager.trialStartDate == nil {
             licenseManager.trialStartDate = Date()
             licenseState = .trial(daysRemaining: trialPeriodDays)
-            NotificationCenter.default.post(name: .licenseStatusChanged, object: nil)
+            if licenseManager.trialStartDate != nil {
+                NotificationCenter.default.post(name: .licenseStatusChanged, object: nil)
+            }
         }
         #endif
     }
