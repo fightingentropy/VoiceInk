@@ -179,6 +179,7 @@ struct ModelManagementView: View {
             "apple-speech",
             "parakeet-tdt-0.6b-v2",
             "parakeet-tdt-0.6b-v3",
+            "voxtral-mini-realtime-local",
             "ggml-large-v3-turbo-q5_0",
             "ggml-large-v3-turbo"
         ]

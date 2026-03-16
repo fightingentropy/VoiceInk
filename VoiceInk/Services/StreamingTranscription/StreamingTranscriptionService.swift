@@ -166,6 +166,8 @@ final class StreamingTranscriptionService {
 
     private func createProvider(for model: any TranscriptionModel) -> StreamingTranscriptionProvider {
         switch model.provider {
+        case .localVoxtral:
+            return LocalVoxtralStreamingProvider()
         case .elevenLabs:
             return ElevenLabsStreamingProvider()
         case .deepgram:

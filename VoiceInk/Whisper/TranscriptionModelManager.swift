@@ -48,6 +48,8 @@ class TranscriptionModelManager: ObservableObject {
                 } else {
                     return false
                 }
+            case .localVoxtral:
+                return true
             case .groq:
                 return APIKeyManager.shared.hasAPIKey(forProvider: "Groq")
             case .elevenLabs:

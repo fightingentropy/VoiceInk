@@ -3,6 +3,7 @@ import Foundation
 // Enum to differentiate between model providers
 enum ModelProvider: String, Codable, Hashable, CaseIterable, Sendable {
     case local = "Local"
+    case localVoxtral = "Local Voxtral"
     case parakeet = "Parakeet"
     case groq = "Groq"
     case elevenLabs = "ElevenLabs"
@@ -37,6 +38,18 @@ extension TranscriptionModel {
     var language: String {
         isMultilingualModel ? "Multilingual" : "English-only"
     }
+}
+
+struct LocalVoxtralModel: TranscriptionModel {
+    let id = UUID()
+    let name: String
+    let displayName: String
+    let description: String
+    let provider: ModelProvider = .localVoxtral
+    let speed: Double
+    let accuracy: Double
+    let isMultilingualModel: Bool
+    let supportedLanguages: [String: String]
 }
 
 // A new struct for Apple's native models

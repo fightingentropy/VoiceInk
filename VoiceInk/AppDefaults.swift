@@ -46,6 +46,9 @@ enum AppDefaults {
             // Model
             "PrewarmModelOnWake": true,
             "LocalModelWarmRetentionSeconds": LocalModelWarmRetention.fifteenMinutes.rawValue,
+            "LocalVoxtralEndpoint": LocalVoxtralConfiguration.defaultEndpoint,
+            "LocalVoxtralModelName": LocalVoxtralConfiguration.defaultModelName,
+            "LocalVoxtralAutoManageServer": true,
         ])
     }
 }
