@@ -85,20 +85,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
             if let recordedFile {
                 if !shouldCancelRecording {
-                    let audioAsset = AVURLAsset(url: recordedFile)
-                    let duration = (try? CMTimeGetSeconds(await audioAsset.load(.duration))) ?? 0.0
-
-                    let transcription = Transcription(
-                        text: "",
-                        duration: duration,
-                        audioFileURL: recordedFile.absoluteString,
-                        transcriptionStatus: .pending
-                    )
-                    modelContext.insert(transcription)
-                    try? modelContext.save()
-                    NotificationCenter.default.post(name: .transcriptionCreated, object: transcription)
-
-                    await runPipeline(on: transcription, audioURL: recordedFile)
+                    await runPipeline(audioURL: recordedFile, recordedAt: Date())
                 } else {
                     currentSession?.cancel()
                     currentSession = nil
@@ -263,11 +250,8 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
     // MARK: - Pipeline Dispatch
 
-    private func runPipeline(on transcription: Transcription, audioURL: URL) async {
+    private func runPipeline(audioURL: URL, recordedAt: Date) async {
         guard let model = transcriptionModelManager.currentTranscriptionModel else {
-            transcription.text = "Transcription Failed: No model selected"
-            transcription.transcriptionStatus = TranscriptionStatus.failed.rawValue
-            try? modelContext.save()
             recordingState = .idle
             return
         }
@@ -276,8 +260,8 @@ class VoiceInkEngine: NSObject, ObservableObject {
         currentSession = nil
 
         await pipeline.run(
-            transcription: transcription,
             audioURL: audioURL,
+            recordedAt: recordedAt,
             model: model,
             session: session,
             onStateChange: { [weak self] state in self?.recordingState = state },

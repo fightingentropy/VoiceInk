@@ -8,7 +8,7 @@ final class PromptDetectionService {
         category: "promptdetection"
     )
     
-    struct PromptDetectionResult {
+    struct PromptDetectionResult: Sendable {
         let shouldEnableAI: Bool
         let selectedPromptId: UUID?
         let processedText: String
