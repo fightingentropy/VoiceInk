@@ -1,4 +1,5 @@
 import Foundation
+import MLX
 
 final class VoxtralNativePreparedLease: @unchecked Sendable {
     let preparedState: VoxtralNativePreparedState
@@ -239,6 +240,34 @@ actor VoxtralNativeRuntime {
 
     func hasWarmedModel(_ modelReference: String = LocalVoxtralConfiguration.modelName) -> Bool {
         preparedStates[modelReference] != nil
+    }
+
+    func hasPreparedState(_ modelReference: String = LocalVoxtralConfiguration.modelName) -> Bool {
+        preparedStates[modelReference] != nil
+    }
+
+    @discardableResult
+    func unloadPreparedState(_ modelReference: String = LocalVoxtralConfiguration.modelName) -> Bool {
+        guard !activeLeases.contains(modelReference) else { return false }
+        guard preparedStates.removeValue(forKey: modelReference) != nil else { return false }
+        GPU.clearCache()
+        return true
+    }
+
+    @discardableResult
+    func unloadAllUnusedPreparedStates(keeping keptModelReferences: Set<String> = []) -> [String] {
+        let unloadableReferences = preparedStates.keys.filter { modelReference in
+            !activeLeases.contains(modelReference) && !keptModelReferences.contains(modelReference)
+        }
+
+        guard !unloadableReferences.isEmpty else { return [] }
+
+        for modelReference in unloadableReferences {
+            preparedStates.removeValue(forKey: modelReference)
+        }
+
+        GPU.clearCache()
+        return unloadableReferences.sorted()
     }
 
     private func releasePreparedState(modelReference: String) {

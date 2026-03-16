@@ -81,7 +81,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
         if recordingState == .recording {
             partialTranscript = ""
             recordingState = .transcribing
-            await recorder.stopRecording()
+            recorder.stopRecording()
 
             if let recordedFile {
                 if !shouldCancelRecording {
@@ -130,15 +130,49 @@ class VoiceInkEngine: NSObject, ObservableObject {
                             let permanentURL = self.recordingsDirectory.appendingPathComponent(fileName)
                             self.recordedFile = permanentURL
 
-                            let pendingChunks = OSAllocatedUnfairLock(initialState: [Data]())
+                            guard let model = self.transcriptionModelManager.currentTranscriptionModel else {
+                                throw VoiceInkEngineError.transcriptionFailed
+                            }
+
+                            let session = self.serviceRegistry.createSession(
+                                for: model,
+                                onPartialTranscript: { [weak self] partial in
+                                    Task { @MainActor in
+                                        self?.partialTranscript = partial
+                                    }
+                                }
+                            )
+                            self.currentSession = session
+
+                            let startupForwarder = BufferedPCMChunkForwarder(
+                                capacityBytes: BoundedPCMChunkBuffer.defaultCapacityBytes,
+                                logger: self.logger,
+                                label: "Streaming startup"
+                            )
+                            let sessionIdentity = ObjectIdentifier(session as AnyObject)
+                            let prepareTask = Task<(@Sendable (Data) -> Void)?, Never> {
+                                do {
+                                    return try await session.prepare(model: model)
+                                } catch {
+                                    await MainActor.run {
+                                        self.logger.error("❌ Session preparation failed: \(error.localizedDescription, privacy: .public)")
+                                    }
+                                    return nil
+                                }
+                            }
+
                             self.recorder.onAudioChunk = { data in
-                                pendingChunks.withLock { $0.append(data) }
+                                startupForwarder.send(data)
                             }
 
                             try await self.recorder.startRecording(toOutputFile: permanentURL)
 
                             guard self.recorderUIManager?.isMiniRecorderVisible ?? false, !self.shouldCancelRecording else {
                                 self.recorder.stopRecording()
+                                session.cancel()
+                                prepareTask.cancel()
+                                startupForwarder.finish()
+                                self.currentSession = nil
                                 self.recordedFile = nil
                                 return
                             }
@@ -148,51 +182,57 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
                             await ActiveWindowService.shared.applyConfiguration(powerModeId: powerModeId)
 
-                            if self.recordingState == .recording,
-                               let model = self.transcriptionModelManager.currentTranscriptionModel {
-                                let session = self.serviceRegistry.createSession(
-                                    for: model,
-                                    onPartialTranscript: { [weak self] partial in
-                                        Task { @MainActor in
-                                            self?.partialTranscript = partial
-                                        }
-                                    }
-                                )
-                                self.currentSession = session
-                                let realCallback = try await session.prepare(model: model)
+                            Task { @MainActor [weak self] in
+                                let realCallback = await prepareTask.value
+
+                                guard let self else {
+                                    startupForwarder.finish()
+                                    session.cancel()
+                                    return
+                                }
+
+                                let isCurrentSession = self.currentSession.map {
+                                    ObjectIdentifier($0 as AnyObject) == sessionIdentity
+                                } ?? false
+
+                                guard isCurrentSession,
+                                      self.recordingState == .recording,
+                                      !self.shouldCancelRecording else {
+                                    startupForwarder.finish()
+                                    session.cancel()
+                                    return
+                                }
 
                                 if let realCallback {
-                                    self.recorder.onAudioChunk = realCallback
-                                    let buffered = pendingChunks.withLock { chunks -> [Data] in
-                                        let result = chunks
-                                        chunks.removeAll()
-                                        return result
-                                    }
-                                    for chunk in buffered { realCallback(chunk) }
+                                    startupForwarder.installConsumer(realCallback)
                                 } else {
+                                    startupForwarder.finish()
                                     self.recorder.onAudioChunk = nil
-                                    pendingChunks.withLock { $0.removeAll() }
                                 }
                             }
 
                             Task.detached { [weak self] in
                                 guard let self else { return }
 
-                                if let model = await self.transcriptionModelManager.currentTranscriptionModel,
-                                   model.provider == .local {
+                                if model.provider == .local {
                                     if let localWhisperModel = await self.whisperModelManager.availableModels.first(where: { $0.name == model.name }),
                                        await self.whisperModelManager.whisperContext == nil {
                                         do {
                                             try await self.whisperModelManager.loadModel(localWhisperModel)
                                         } catch {
-                                            await self.logger.error("❌ Model loading failed: \(error.localizedDescription, privacy: .public)")
+                                            self.logger.error("❌ Model loading failed: \(error.localizedDescription, privacy: .public)")
                                         }
                                     }
-                                } else if let parakeetModel = await self.transcriptionModelManager.currentTranscriptionModel as? ParakeetModel {
+                                } else if let parakeetModel = model as? ParakeetModel {
                                     try? await self.serviceRegistry.parakeetTranscriptionService.loadModel(for: parakeetModel)
+                                } else if model.provider == .localVoxtral {
+                                    _ = try? await VoxtralNativeRuntime.shared.warmupModel(
+                                        modelReference: LocalVoxtralConfiguration.modelName,
+                                        autoDownload: true
+                                    )
                                 }
 
-                                if let enhancementService = await self.enhancementService {
+                                if let enhancementService = self.enhancementService {
                                     await MainActor.run {
                                         enhancementService.captureClipboardContext()
                                     }
@@ -202,7 +242,9 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
                         } catch {
                             self.logger.error("❌ Failed to start recording: \(error.localizedDescription, privacy: .public)")
-                            await NotificationManager.shared.showNotification(title: "Recording failed to start", type: .error)
+                            self.currentSession?.cancel()
+                            self.currentSession = nil
+                            NotificationManager.shared.showNotification(title: "Recording failed to start", type: .error)
                             self.logger.notice("toggleRecord: calling dismissMiniRecorder from error handler")
                             await self.recorderUIManager?.dismissMiniRecorder()
                             self.recordedFile = nil
@@ -254,9 +296,22 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
     func cleanupResources() async {
         logger.notice("cleanupResources: releasing model resources")
-        await whisperModelManager.cleanupResources()
-        serviceRegistry.cleanup()
+        await retainOnlyLocalModelResources(for: nil)
         logger.notice("cleanupResources: completed")
+    }
+
+    func retainOnlyLocalModelResources(for model: (any TranscriptionModel)?) async {
+        if model?.provider != .local || whisperModelManager.loadedLocalModel?.name != model?.name {
+            await whisperModelManager.cleanupResources()
+        }
+
+        if model?.provider != .parakeet {
+            serviceRegistry.parakeetTranscriptionService.cleanup()
+        }
+
+        let keptVoxtralModels: Set<String> =
+            model?.provider == .localVoxtral ? [LocalVoxtralConfiguration.modelName] : []
+        await VoxtralNativeRuntime.shared.unloadAllUnusedPreparedStates(keeping: keptVoxtralModels)
     }
 
     func prewarmCurrentLocalModel(using audioURL: URL) async throws {
@@ -277,11 +332,18 @@ class VoiceInkEngine: NSObject, ObservableObject {
         case .parakeet:
             guard let parakeetModel = model as? ParakeetModel else { return }
             try await serviceRegistry.parakeetTranscriptionService.loadModel(for: parakeetModel)
+        case .localVoxtral:
+            _ = try await VoxtralNativeRuntime.shared.warmupModel(
+                modelReference: LocalVoxtralConfiguration.modelName,
+                autoDownload: true
+            )
         default:
             return
         }
 
-        _ = try await serviceRegistry.transcribe(audioURL: audioURL, model: model)
+        if model.provider != .localVoxtral {
+            _ = try await serviceRegistry.transcribe(audioURL: audioURL, model: model)
+        }
     }
 
     // MARK: - Notification Handling

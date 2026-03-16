@@ -29,7 +29,7 @@ class Recorder: NSObject, ObservableObject {
 
     /// Audio chunk callback for streaming. Can be updated while recording;
     /// changes are forwarded to the live CoreAudioRecorder.
-    var onAudioChunk: ((_ data: Data) -> Void)? {
+    var onAudioChunk: (@Sendable (_ data: Data) -> Void)? {
         didSet { recorder?.onAudioChunk = onAudioChunk }
     }
     
