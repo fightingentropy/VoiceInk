@@ -10,20 +10,6 @@ import Foundation
                 let appleSupportedCodes = ["ar", "de", "en", "es", "fr", "it", "ja", "ko", "pt", "yue", "zh"]
                 return allLanguages.filter { appleSupportedCodes.contains($0.key) }
             }
-            // For Soniox, return only the 60 languages supported by stt-async-v4
-            if provider == .soniox {
-                let sonioxSupportedCodes = [
-                    "af", "sq", "ar", "az", "eu", "be", "bn", "bs", "bg", "ca",
-                    "zh", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "gl",
-                    "de", "el", "gu", "he", "hi", "hu", "id", "it", "ja", "kn",
-                    "kk", "ko", "lv", "lt", "mk", "ms", "ml", "mr", "no", "fa",
-                    "pl", "pt", "pa", "ro", "ru", "sr", "sk", "sl", "es", "sw",
-                    "sv", "tl", "ta", "te", "th", "tr", "uk", "ur", "vi", "cy"
-                ]
-                var filtered = allLanguages.filter { sonioxSupportedCodes.contains($0.key) }
-                filtered["auto"] = "Auto-detect"
-                return filtered
-            }
             return allLanguages
         }
     }
@@ -126,57 +112,13 @@ import Foundation
         LocalVoxtralModel(
             name: "voxtral-mini-realtime-local",
             displayName: "Voxtral Realtime (Local MLX)",
-            description: "Runs locally on Apple Silicon through a voxmlx MLX server for low-latency realtime transcription",
+            description: "Runs locally on Apple Silicon with native MLX inference for low-latency realtime transcription",
             speed: 0.99,
             accuracy: 0.97,
             isMultilingualModel: true,
             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .localVoxtral)
         ),
-
-         // Local Models
-         LocalModel(
-             name: "ggml-large-v3-turbo",
-             displayName: "Large v3 Turbo",
-             size: "1.5 GB",
-             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .local),
-             description:
-             "Large model v3 Turbo, faster than v3 with similar accuracy",
-             speed: 0.75,
-             accuracy: 0.97,
-             ramUsage: 1.8
-         ),
-         LocalModel(
-             name: "ggml-large-v3-turbo-q5_0",
-             displayName: "Large v3 Turbo (Quantized)",
-             size: "547 MB",
-             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .local),
-             description: "Quantized version of Large v3 Turbo, faster with slightly lower accuracy",
-             speed: 0.75,
-             accuracy: 0.95,
-             ramUsage: 1.0
-         ),
-
-                 // Cloud Models
-        CloudModel(
-            name: "whisper-large-v3-turbo",
-            displayName: "Whisper Large v3 Turbo (Groq)",
-            description: "Whisper Large v3 Turbo model with Groq's lightning-speed inference",
-            provider: .groq,
-            speed: 0.65,
-            accuracy: 0.95,
-            isMultilingual: true,
-            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .groq)
-        ),
-        CloudModel(
-           name: "scribe_v1",
-           displayName: "Scribe v1 (ElevenLabs)",
-           description: "ElevenLabs' Scribe model for fast & accurate transcription",
-           provider: .elevenLabs,
-           speed: 0.7,
-           accuracy: 0.98,
-           isMultilingual: true,
-           supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .elevenLabs)
-       ),
+        // Cloud Models
        CloudModel(
            name: "scribe_v2",
            displayName: "Scribe V2 Realtime (ElevenLabs)",
@@ -187,88 +129,6 @@ import Foundation
            isMultilingual: true,
            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .elevenLabs)
        ),
-       CloudModel(
-           name: "nova-3",
-           displayName: "Nova 3 Realtime (Deepgram)",
-           description: "Deepgram's latest Nova 3 model for realtime transcription",
-           provider: .deepgram,
-           speed: 0.99,
-           accuracy: 0.96,
-           isMultilingual: true,
-           supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .deepgram)
-       ),
-       CloudModel(
-           name: "nova-3-medical",
-           displayName: "Nova 3 Medical Realtime (Deepgram)",
-           description: "Specialized medical transcription model optimized for clinical environments",
-           provider: .deepgram,
-           speed: 0.99,
-           accuracy: 0.96,
-           isMultilingual: false,
-           supportedLanguages: getLanguageDictionary(isMultilingual: false, provider: .deepgram)
-       ),
-        CloudModel(
-            name: "voxtral-mini-latest",
-            displayName: "Voxtral Transcribe 2 (Mistral)",
-            description: "Mistral's latest transcription model for fast and accurate transcription",
-            provider: .mistral,
-            speed: 0.8,
-            accuracy: 0.98,
-            isMultilingual: true,
-            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .mistral)
-        ),
-        CloudModel(
-            name: "voxtral-mini-transcribe-realtime-2602",
-            displayName: "Voxtral Realtime (Mistral)",
-            description: "Mistral's Voxtral Realtime model for streaming transcription",
-            provider: .mistral,
-            speed: 0.99,
-            accuracy: 0.97,
-            isMultilingual: true,
-            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .mistral)
-        ),
-        
-        // Gemini Models
-        CloudModel(
-            name: "gemini-2.5-pro",
-            displayName: "Gemini 2.5 Pro",
-            description: "Google's advanced model with high-quality transcription capabilities",
-            provider: .gemini,
-            speed: 0.7,
-            accuracy: 0.97,
-            isMultilingual: true,
-            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .gemini)
-        ),
-        CloudModel(
-            name: "gemini-2.5-flash",
-            displayName: "Gemini 2.5 Flash",
-            description: "Google's optimized model for low-latency transcription",
-            provider: .gemini,
-            speed: 0.9,
-            accuracy: 0.95,
-            isMultilingual: true,
-            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .gemini)
-        ),
-        CloudModel(
-            name: "stt-async-v4",
-            displayName: "Soniox V4",
-            description: "Soniox asynchronous transcription model v4 with human-parity accuracy",
-            provider: .soniox,
-            speed: 0.8,
-            accuracy: 0.98,
-            isMultilingual: true,
-            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .soniox)
-        ),
-        CloudModel(
-            name: "stt-rt-v4",
-            displayName: "Soniox Realtime V4",
-            description: "Soniox real-time streaming model v4 for low-latency transcription",
-            provider: .soniox,
-            speed: 0.99,
-            accuracy: 0.97,
-            isMultilingual: true,
-            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .soniox)
-        )
      ]
  
      static let allLanguages = [

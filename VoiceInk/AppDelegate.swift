@@ -24,7 +24,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         _ = notification
-        LocalVoxtralServerManager.shared.shutdownManagedServer()
     }
 
     // Stash URL when app cold-starts to avoid spawning a new window/tab
