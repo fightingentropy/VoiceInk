@@ -44,6 +44,7 @@ final class ModelPrewarmService: ObservableObject {
     private let prewarmEnabledKey = "PrewarmModelOnWake"
     private let warmRetentionKey = "LocalModelWarmRetentionSeconds"
     private var unloadTask: Task<Void, Never>?
+    private var modelChangeTask: Task<Void, Never>?
 
     init(engine: VoiceInkEngine) {
         self.engine = engine
@@ -78,6 +79,13 @@ final class ModelPrewarmService: ObservableObject {
             object: nil
         )
 
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleModelDidChange),
+            name: .didChangeModel,
+            object: nil
+        )
+
         logger.notice("ModelPrewarmService initialized - listening for wake and app launch")
     }
 
@@ -107,6 +115,10 @@ final class ModelPrewarmService: ObservableObject {
 
     @objc private func handleSettingsDidChange() {
         rescheduleIdleUnload()
+    }
+
+    @objc private func handleModelDidChange() {
+        scheduleModelChangePrewarm()
     }
 
     // MARK: - Core Prewarming Logic
@@ -150,13 +162,13 @@ final class ModelPrewarmService: ObservableObject {
             return false
         }
 
-        // Only prewarm local models (Parakeet and Whisper need ANE compilation)
+        // Only prewarm local models.
         guard let model = engine.transcriptionModelManager.currentTranscriptionModel else {
             return false
         }
 
         switch model.provider {
-        case .local, .parakeet:
+        case .local, .parakeet, .localVoxtral:
             return true
         default:
             logger.notice("Skipping prewarm - cloud models don't need it")
@@ -180,7 +192,7 @@ final class ModelPrewarmService: ObservableObject {
             return
         }
 
-        guard model.provider == .local || model.provider == .parakeet else {
+        guard isLocalModel(model) else {
             return
         }
 
@@ -204,7 +216,7 @@ final class ModelPrewarmService: ObservableObject {
                 }
 
                 guard let self else { return }
-                if await self.engine.recordingState == .idle {
+                if self.engine.recordingState == .idle {
                     await self.engine.cleanupResources()
                 }
             } catch is CancellationError {
@@ -215,8 +227,46 @@ final class ModelPrewarmService: ObservableObject {
         }
     }
 
+    private func scheduleModelChangePrewarm() {
+        modelChangeTask?.cancel()
+
+        modelChangeTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .milliseconds(500))
+
+                guard let self else { return }
+                guard self.engine.recordingState == .idle else { return }
+
+                let currentModel = self.engine.transcriptionModelManager.currentTranscriptionModel
+                let retainedModel = currentModel.flatMap { self.isLocalModel($0) ? $0 : nil }
+                await self.engine.retainOnlyLocalModelResources(for: retainedModel)
+
+                guard self.shouldPrewarm() else {
+                    self.rescheduleIdleUnload()
+                    return
+                }
+
+                await self.performPrewarm()
+            } catch is CancellationError {
+                return
+            } catch {
+                return
+            }
+        }
+    }
+
+    private func isLocalModel(_ model: any TranscriptionModel) -> Bool {
+        switch model.provider {
+        case .local, .parakeet, .localVoxtral:
+            return true
+        default:
+            return false
+        }
+    }
+
     deinit {
         unloadTask?.cancel()
+        modelChangeTask?.cancel()
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         NotificationCenter.default.removeObserver(self)
         logger.notice("ModelPrewarmService deinitialized")

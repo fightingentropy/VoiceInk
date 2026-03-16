@@ -76,6 +76,7 @@ class TranscriptionModelManager: ObservableObject {
     // MARK: - Set default model
 
     func setDefaultTranscriptionModel(_ model: any TranscriptionModel) {
+        let previousModelName = currentTranscriptionModel?.name
         self.currentTranscriptionModel = model
         UserDefaults.standard.set(model.name, forKey: "CurrentTranscriptionModel")
 
@@ -84,8 +85,7 @@ class TranscriptionModelManager: ObservableObject {
             whisperModelManager?.isModelLoaded = true
         }
 
-        NotificationCenter.default.post(name: .didChangeModel, object: nil, userInfo: ["modelName": model.name])
-        NotificationCenter.default.post(name: .AppSettingsDidChange, object: nil)
+        postModelChange(previousModelName: previousModelName, newModelName: model.name)
     }
 
     // MARK: - Refresh all available models
@@ -112,21 +112,42 @@ class TranscriptionModelManager: ObservableObject {
     // MARK: - Clear current model
 
     func clearCurrentTranscriptionModel() {
+        let previousModelName = currentTranscriptionModel?.name
         currentTranscriptionModel = nil
         UserDefaults.standard.removeObject(forKey: "CurrentTranscriptionModel")
+        postModelChange(previousModelName: previousModelName, newModelName: nil)
     }
 
     // MARK: - Handle model deletion callback
 
     /// Called by WhisperModelManager.onModelDeleted or ParakeetModelManager.onModelDeleted.
     func handleModelDeleted(_ modelName: String) {
+        let previousModelName = currentTranscriptionModel?.name
         if currentTranscriptionModel?.name == modelName {
             currentTranscriptionModel = nil
             UserDefaults.standard.removeObject(forKey: "CurrentTranscriptionModel")
             whisperModelManager?.loadedLocalModel = nil
             whisperModelManager?.isModelLoaded = false
             UserDefaults.standard.removeObject(forKey: "CurrentModel")
+            postModelChange(previousModelName: previousModelName, newModelName: nil)
         }
         refreshAllAvailableModels()
+    }
+
+    private func postModelChange(previousModelName: String?, newModelName: String?) {
+        var userInfo: [String: Any] = [:]
+        if let previousModelName {
+            userInfo["previousModelName"] = previousModelName
+        }
+        if let newModelName {
+            userInfo["modelName"] = newModelName
+        }
+
+        NotificationCenter.default.post(
+            name: .didChangeModel,
+            object: nil,
+            userInfo: userInfo.isEmpty ? nil : userInfo
+        )
+        NotificationCenter.default.post(name: .AppSettingsDidChange, object: nil)
     }
 }

@@ -49,7 +49,7 @@ final class CoreAudioRecorder: @unchecked Sendable {
     private var renderBufferSize: UInt32 = 0
 
     /// Called on the audio thread with raw PCM data (16-bit, 16kHz, mono) for streaming.
-    var onAudioChunk: ((_ data: Data) -> Void)?
+    var onAudioChunk: (@Sendable (_ data: Data) -> Void)?
 
     // MARK: - Initialization
 

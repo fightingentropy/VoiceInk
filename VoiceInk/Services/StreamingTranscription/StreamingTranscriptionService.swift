@@ -1,30 +1,6 @@
 import Foundation
 import os
 
-/// Sendable source that bridges audio chunks from any thread into an AsyncStream.
-private final class AudioChunkSource: @unchecked Sendable {
-    let stream: AsyncStream<Data>
-    private let continuation: AsyncStream<Data>.Continuation
-
-    init() {
-        let (stream, continuation) = AsyncStream.makeStream(of: Data.self, bufferingPolicy: .unbounded)
-        self.stream = stream
-        self.continuation = continuation
-    }
-
-    deinit {
-        continuation.finish()
-    }
-
-    func send(_ data: Data) {
-        continuation.yield(data)
-    }
-
-    func finish() {
-        continuation.finish()
-    }
-}
-
 /// Lifecycle states for a streaming transcription session.
 enum StreamingState {
     case idle
@@ -44,12 +20,26 @@ final class StreamingTranscriptionService {
     private var provider: StreamingTranscriptionProvider?
     private var sendTask: Task<Void, Never>?
     private var eventConsumerTask: Task<Void, Never>?
-    private let chunkSource = AudioChunkSource()
+    private let audioBuffer: BoundedPCMChunkBuffer
+    private let bufferSignalStream: AsyncStream<Void>
+    private let bufferSignalContinuation: AsyncStream<Void>.Continuation
     private var state: StreamingState = .idle
     private var committedSegments: [String] = []
     private var onPartialTranscript: (@Sendable (String) -> Void)?
 
     init(onPartialTranscript: (@Sendable (String) -> Void)? = nil) {
+        let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "StreamingTranscriptionService")
+        let (bufferSignalStream, bufferSignalContinuation) = AsyncStream.makeStream(
+            of: Void.self,
+            bufferingPolicy: .bufferingNewest(1)
+        )
+        self.audioBuffer = BoundedPCMChunkBuffer(
+            capacityBytes: BoundedPCMChunkBuffer.defaultCapacityBytes,
+            logger: logger,
+            label: "Streaming transcription"
+        )
+        self.bufferSignalStream = bufferSignalStream
+        self.bufferSignalContinuation = bufferSignalContinuation
         self.onPartialTranscript = onPartialTranscript
     }
 
@@ -57,7 +47,8 @@ final class StreamingTranscriptionService {
         onPartialTranscript = nil
         sendTask?.cancel()
         eventConsumerTask?.cancel()
-        chunkSource.finish()
+        audioBuffer.close()
+        bufferSignalContinuation.finish()
         commitSignal?.finish()
     }
 
@@ -95,7 +86,8 @@ final class StreamingTranscriptionService {
 
     /// Buffers an audio chunk for sending. Safe to call from the audio callback thread.
     nonisolated func sendAudioChunk(_ data: Data) {
-        chunkSource.send(data)
+        audioBuffer.append(data)
+        bufferSignalContinuation.yield()
     }
 
     /// Stops streaming, commits remaining audio, and returns the final transcribed text.
@@ -142,7 +134,9 @@ final class StreamingTranscriptionService {
         eventConsumerTask = nil
         sendTask?.cancel()
         sendTask = nil
-        chunkSource.finish()
+        audioBuffer.close()
+        audioBuffer.clear()
+        bufferSignalContinuation.finish()
 
         // Clean up commit signal if waiting
         commitSignal?.finish()
@@ -174,23 +168,35 @@ final class StreamingTranscriptionService {
 
     /// Consumes audio chunks from the AsyncStream and sends them to the provider.
     private func startSendLoop() {
-        let source = chunkSource
         let provider = provider
+        let signalStream = bufferSignalStream
+        let audioBuffer = audioBuffer
 
-        sendTask = Task { [weak self, source, provider] in
-            for await chunk in source.stream {
-                do {
-                    try await provider?.sendAudioChunk(chunk)
-                } catch {
-                    self?.logger.error("Failed to send audio chunk: \(error.localizedDescription, privacy: .public)")
+        sendTask = Task { [weak self, provider, signalStream, audioBuffer] in
+            let sendChunks: ([Data]) async -> Void = { chunks in
+                for chunk in chunks {
+                    do {
+                        try await provider?.sendAudioChunk(chunk)
+                    } catch {
+                        self?.logger.error("Failed to send audio chunk: \(error.localizedDescription, privacy: .public)")
+                    }
                 }
             }
+
+            for await _ in signalStream {
+                await sendChunks(audioBuffer.drain())
+            }
+
+            await sendChunks(audioBuffer.drain())
         }
+
+        bufferSignalContinuation.yield()
     }
 
     /// Finishes the chunk source and waits for the send loop to process all remaining buffered chunks.
     private func drainRemainingChunks() async {
-        chunkSource.finish()
+        audioBuffer.close()
+        bufferSignalContinuation.finish()
         await sendTask?.value
         sendTask = nil
     }
@@ -266,7 +272,9 @@ final class StreamingTranscriptionService {
         eventConsumerTask = nil
         sendTask?.cancel()
         sendTask = nil
-        chunkSource.finish()
+        audioBuffer.close()
+        audioBuffer.clear()
+        bufferSignalContinuation.finish()
         commitSignal?.finish()
         commitSignal = nil
         await provider?.disconnect()

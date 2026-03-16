@@ -5,7 +5,7 @@ import os
 @MainActor
 protocol TranscriptionSession: AnyObject {
     /// Prepares the session. Returns an audio chunk callback for streaming, or nil for file-based.
-    func prepare(model: any TranscriptionModel) async throws -> ((Data) -> Void)?
+    func prepare(model: any TranscriptionModel) async throws -> (@Sendable (Data) -> Void)?
 
     /// Called after recording stops. Returns the final transcribed text.
     func transcribe(audioURL: URL) async throws -> String
@@ -26,7 +26,7 @@ final class FileTranscriptionSession: TranscriptionSession {
         self.service = service
     }
 
-    func prepare(model: any TranscriptionModel) async throws -> ((Data) -> Void)? {
+    func prepare(model: any TranscriptionModel) async throws -> (@Sendable (Data) -> Void)? {
         self.model = model
         return nil
     }
@@ -62,32 +62,21 @@ final class StreamingTranscriptionSession: TranscriptionSession {
         self.fallbackModel = fallbackModel
     }
 
-    func prepare(model: any TranscriptionModel) async throws -> ((Data) -> Void)? {
+    func prepare(model: any TranscriptionModel) async throws -> (@Sendable (Data) -> Void)? {
         self.model = model
+        do {
+            try await streamingService.startStreaming(model: model)
+            logger.notice("Streaming connected for \(model.displayName, privacy: .public)")
+        } catch {
+            logger.error("❌ Failed to start streaming, will fall back to batch: \(error.localizedDescription, privacy: .public)")
+            streamingFailed = true
+            return nil
+        }
 
-        // Return the audio callback immediately while the streaming provider finishes its own startup.
         let service = streamingService
-        let callback: (Data) -> Void = { [weak service] data in
+        return { [weak service] data in
             service?.sendAudioChunk(data)
         }
-
-        Task.detached { [weak self] in
-            guard let self = self else { return }
-            do {
-                try await self.streamingService.startStreaming(model: model)
-                await MainActor.run {
-                    self.logger.notice("Streaming connected for \(model.displayName, privacy: .public)")
-                }
-            } catch {
-                let desc = error.localizedDescription
-                await MainActor.run {
-                    self.logger.error("❌ Failed to start streaming, will fall back to batch: \(desc, privacy: .public)")
-                    self.streamingFailed = true
-                }
-            }
-        }
-
-        return callback
     }
 
     func transcribe(audioURL: URL) async throws -> String {
@@ -99,6 +88,9 @@ final class StreamingTranscriptionSession: TranscriptionSession {
             do {
                 let text = try await streamingService.stopAndGetFinalText()
                 logger.notice("Streaming transcript received")
+                if model.provider == .localVoxtral, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    NotificationCenter.default.post(name: .localModelDidUse, object: nil)
+                }
                 return text
             } catch {
                 logger.error("❌ Streaming failed, falling back to batch: \(error.localizedDescription, privacy: .public)")
