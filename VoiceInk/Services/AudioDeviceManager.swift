@@ -147,7 +147,20 @@ final class AudioDeviceManager: ObservableObject, @unchecked Sendable {
             nil,
             &propertySize
         )
-        
+
+        if result != noErr {
+            logger.error("Error getting audio device list size: \(result, privacy: .public)")
+            return
+        }
+
+        guard propertySize >= UInt32(MemoryLayout<AudioDeviceID>.size) else {
+            DispatchQueue.main.async { [weak self] in
+                self?.availableDevices = []
+                completion?()
+            }
+            return
+        }
+
         let deviceCount = Int(propertySize) / MemoryLayout<AudioDeviceID>.size
         
         var deviceIDs = [AudioDeviceID](repeating: 0, count: deviceCount)
@@ -219,8 +232,13 @@ final class AudioDeviceManager: ObservableObject, @unchecked Sendable {
             return false
         }
 
-        let bufferList = UnsafeMutablePointer<AudioBufferList>.allocate(capacity: Int(propertySize))
-        defer { bufferList.deallocate() }
+        let rawBuffer = UnsafeMutableRawPointer.allocate(
+            byteCount: Int(propertySize),
+            alignment: MemoryLayout<AudioBufferList>.alignment
+        )
+        defer { rawBuffer.deallocate() }
+
+        let bufferList = rawBuffer.bindMemory(to: AudioBufferList.self, capacity: 1)
 
         result = AudioObjectGetPropertyData(
             deviceID,
@@ -236,8 +254,12 @@ final class AudioDeviceManager: ObservableObject, @unchecked Sendable {
             return false
         }
 
-        let bufferCount = Int(bufferList.pointee.mNumberBuffers)
-        return bufferCount > 0
+        let buffers = UnsafeMutableAudioBufferListPointer(bufferList)
+        let channelCount = buffers.reduce(0) { partialResult, buffer in
+            partialResult + Int(buffer.mNumberChannels)
+        }
+
+        return channelCount > 0
     }
 
     func selectDevice(id: AudioDeviceID) {
