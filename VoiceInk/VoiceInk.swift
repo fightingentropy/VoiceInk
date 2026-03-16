@@ -4,6 +4,7 @@ import AppKit
 import OSLog
 import AppIntents
 import FluidAudio
+import Security
 #if !LOCAL_BUILD
 import Sparkle
 #endif
@@ -190,11 +191,7 @@ struct VoiceInkApp: App {
 
             // Dictionary configuration
             let dictionarySchema = Schema([VocabularyWord.self, WordReplacement.self])
-            #if LOCAL_BUILD || OPEN_SOURCE_DISTRIBUTION
-            let dictionaryCloudKit: ModelConfiguration.CloudKitDatabase = .none
-            #else
-            let dictionaryCloudKit: ModelConfiguration.CloudKitDatabase = .private("iCloud.com.fightingentropy.VoiceInk")
-            #endif
+            let dictionaryCloudKit = dictionaryCloudKitDatabase(logger: logger)
             let dictionaryConfig = ModelConfiguration(
                 "dictionary",
                 schema: dictionarySchema,
@@ -236,6 +233,64 @@ struct VoiceInkApp: App {
             logger.error("❌ Failed to create in-memory ModelContainer: \(error.localizedDescription, privacy: .public)")
             return nil
         }
+    }
+
+    private static func dictionaryCloudKitDatabase(logger: Logger) -> ModelConfiguration.CloudKitDatabase {
+        #if LOCAL_BUILD || OPEN_SOURCE_DISTRIBUTION
+        return .none
+        #else
+        let containerIdentifier = "iCloud.com.fightingentropy.VoiceInk"
+
+        guard runtimeCloudKitIsAvailable(requiredContainerIdentifier: containerIdentifier, logger: logger) else {
+            return .none
+        }
+
+        return .private(containerIdentifier)
+        #endif
+    }
+
+    private static func runtimeCloudKitIsAvailable(requiredContainerIdentifier: String, logger: Logger) -> Bool {
+        guard let task = SecTaskCreateFromSelf(nil) else {
+            logger.warning("CloudKit disabled because the current code signature could not be inspected.")
+            return false
+        }
+
+        let services = SecTaskCopyValueForEntitlement(task, "com.apple.developer.icloud-services" as CFString, nil) as? [String]
+        let containers = SecTaskCopyValueForEntitlement(task, "com.apple.developer.icloud-container-identifiers" as CFString, nil) as? [String]
+
+        guard services?.contains("CloudKit") == true,
+              containers?.contains(requiredContainerIdentifier) == true else {
+            logger.notice("CloudKit disabled because the runtime signature does not expose the required iCloud entitlements.")
+            return false
+        }
+
+        guard let teamIdentifier = signingTeamIdentifier(),
+              !teamIdentifier.isEmpty else {
+            logger.notice("CloudKit disabled because the runtime signature has no team identifier.")
+            return false
+        }
+
+        return true
+    }
+
+    private static func signingTeamIdentifier() -> String? {
+        guard let executableURL = Bundle.main.executableURL else {
+            return nil
+        }
+
+        var staticCode: SecStaticCode?
+        guard SecStaticCodeCreateWithPath(executableURL as CFURL, [], &staticCode) == errSecSuccess,
+              let staticCode else {
+            return nil
+        }
+
+        var signingInfo: CFDictionary?
+        guard SecCodeCopySigningInformation(staticCode, SecCSFlags(rawValue: kSecCSSigningInformation), &signingInfo) == errSecSuccess,
+              let info = signingInfo as? [String: Any] else {
+            return nil
+        }
+
+        return info[kSecCodeInfoTeamIdentifier as String] as? String
     }
 
     var body: some Scene {
