@@ -94,11 +94,6 @@ final class CloudTranscriptionService: TranscriptionService, @unchecked Sendable
         return (lang == "auto" || lang.isEmpty) ? nil : lang
     }
 
-    private func transcriptionPrompt() -> String? {
-        let prompt = UserDefaults.standard.string(forKey: "TranscriptionPrompt") ?? ""
-        return prompt.isEmpty ? nil : prompt
-    }
-
     private func mapLLMKitError(_ error: LLMKitError) -> CloudTranscriptionError {
         switch error {
         case .missingAPIKey:

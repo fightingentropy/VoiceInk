@@ -1,4 +1,3 @@
-import AppKit
 import Foundation
 import os
 
@@ -61,25 +60,6 @@ final class VoxtralNativeModelManager: ObservableObject {
             logger.error("Native Voxtral asset download failed: \(message, privacy: .public)")
             downloadStates[modelReference] = .failed(message)
         }
-    }
-
-    func deleteAppManagedModel(_ modelReference: String) {
-        guard let repoID = VoxtralNativeModelLocator.repositoryID(from: modelReference) else { return }
-
-        let directory = VoxtralNativeModelLocator.appManagedModelDirectory(for: repoID)
-        do {
-            if FileManager.default.fileExists(atPath: directory.path) {
-                try FileManager.default.removeItem(at: directory)
-            }
-            downloadStates[modelReference] = .idle
-        } catch {
-            downloadStates[modelReference] = .failed(error.localizedDescription)
-        }
-    }
-
-    func showModelInFinder(_ modelReference: String) {
-        guard let directory = availability(for: modelReference).directoryURL else { return }
-        NSWorkspace.shared.selectFile(directory.path, inFileViewerRootedAtPath: "")
     }
 
     func preparedModelDirectory(for modelReference: String, autoDownload: Bool = false) async throws -> URL {

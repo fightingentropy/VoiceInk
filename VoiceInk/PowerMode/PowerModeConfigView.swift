@@ -50,7 +50,7 @@ struct ConfigurationView: View {
         else {
             return false
         }
-        return model.provider == .parakeet || model.provider == .gemini
+        return model.provider == .parakeet
     }
     
     // TranscriptionModelManager for model selection
@@ -101,9 +101,7 @@ struct ConfigurationView: View {
             _isAutoSendEnabled = State(initialValue: false)
             _isDefault = State(initialValue: false)
             // Default to current global AI provider/model for new configurations - use UserDefaults only
-            let savedProvider = UserDefaults.standard.string(forKey: "selectedAIProvider")
-                .flatMap(AIProvider.init(rawValue:))
-            _selectedAIProvider = State(initialValue: savedProvider?.isShownInModelSettings == true ? savedProvider?.rawValue : nil)
+            _selectedAIProvider = State(initialValue: AIProvider.openAI.rawValue)
             _selectedAIModel = State(initialValue: nil) // Initialize to nil and set it after view appears
         case .edit(let config):
             // Get the latest version of this config from PowerModeManager
@@ -121,7 +119,7 @@ struct ConfigurationView: View {
             _isAutoSendEnabled = State(initialValue: latestConfig.isAutoSendEnabled)
             _isDefault = State(initialValue: latestConfig.isDefault)
             let configProvider = latestConfig.selectedAIProvider.flatMap(AIProvider.init(rawValue:))
-            _selectedAIProvider = State(initialValue: configProvider?.isShownInModelSettings == true ? configProvider?.rawValue : nil)
+            _selectedAIProvider = State(initialValue: configProvider?.rawValue ?? AIProvider.openAI.rawValue)
             _selectedAIModel = State(initialValue: latestConfig.selectedAIModel)
         }
     }
@@ -276,7 +274,7 @@ struct ConfigurationView: View {
                         // Auto-set language to "auto" for models that only support auto-detection
                         if let modelName = newModelName ?? transcriptionModelManager.currentTranscriptionModel?.name,
                            let model = transcriptionModelManager.allAvailableModels.first(where: { $0.name == modelName }),
-                           model.provider == .parakeet || model.provider == .gemini {
+                           model.provider == .parakeet {
                             selectedLanguage = "auto"
                         }
                     }
@@ -335,21 +333,6 @@ struct ConfigurationView: View {
                         }
                     }
 
-                let providerBinding = Binding<AIProvider>(
-                    get: {
-                        if let providerName = selectedAIProvider,
-                           let provider = AIProvider(rawValue: providerName) {
-                            return provider
-                        }
-                        return aiService.selectedProvider
-                    },
-                    set: { newValue in
-                        selectedAIProvider = newValue.rawValue
-                        aiService.selectedProvider = newValue
-                        selectedAIModel = nil
-                    }
-                )
-
                 if isAIEnhancementEnabled {
                     if aiService.connectedProviders.isEmpty {
                         LabeledContent("AI Provider") {
@@ -358,52 +341,37 @@ struct ConfigurationView: View {
                                 .italic()
                         }
                     } else {
-                        Picker("AI Provider", selection: providerBinding) {
-                            ForEach(aiService.connectedProviders.filter { $0 != .elevenLabs && $0 != .deepgram }, id: \.self) { provider in
-                                Text(provider.rawValue).tag(provider)
-                            }
+                        LabeledContent("AI Provider") {
+                            Text(AIProvider.openAI.rawValue)
+                                .foregroundColor(.secondary)
                         }
-                        .onChange(of: selectedAIProvider) { _, newValue in
-                            if let provider = newValue.flatMap({ AIProvider(rawValue: $0) }) {
-                                selectedAIModel = provider.defaultModel
-                            }
+                        .onAppear {
+                            selectedAIProvider = AIProvider.openAI.rawValue
+                            aiService.selectedProvider = .openAI
                         }
                     }
 
-                    let providerName = selectedAIProvider ?? aiService.selectedProvider.rawValue
-                    if let provider = AIProvider(rawValue: providerName),
-                       provider != .custom {
-                        if aiService.availableModels.isEmpty {
-                            LabeledContent("AI Model") {
-                                Text(provider == .openRouter ? "No models loaded" : "No models available")
-                                    .foregroundColor(.secondary)
-                                    .italic()
+                    if aiService.availableModels.isEmpty {
+                        LabeledContent("AI Model") {
+                            Text("No models available")
+                                .foregroundColor(.secondary)
+                                .italic()
+                        }
+                    } else {
+                        let modelBinding = Binding<String>(
+                            get: {
+                                if let model = selectedAIModel, !model.isEmpty { return model }
+                                return aiService.currentModel
+                            },
+                            set: { newModelValue in
+                                selectedAIModel = newModelValue
+                                aiService.selectModel(newModelValue)
                             }
-                        } else {
-                            let modelBinding = Binding<String>(
-                                get: {
-                                    if let model = selectedAIModel, !model.isEmpty { return model }
-                                    return aiService.currentModel
-                                },
-                                set: { newModelValue in
-                                    selectedAIModel = newModelValue
-                                    aiService.selectModel(newModelValue)
-                                }
-                            )
+                        )
 
-                            let models = provider == .openRouter ? aiService.availableModels : (provider == .ollama ? aiService.availableModels : provider.availableModels)
-
-                            Picker("AI Model", selection: modelBinding) {
-                                ForEach(models, id: \.self) { model in
-                                    Text(model).tag(model)
-                                }
-                            }
-
-                            if provider == .openRouter {
-                                Button("Refresh Models") {
-                                    Task { await aiService.fetchOpenRouterModels() }
-                                }
-                                .help("Refresh models")
+                        Picker("AI Model", selection: modelBinding) {
+                            ForEach(aiService.availableModels, id: \.self) { model in
+                                Text(model).tag(model)
                             }
                         }
                     }

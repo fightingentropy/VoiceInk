@@ -8,8 +8,4 @@ enum LocalVoxtralConfiguration {
         let stored = UserDefaults.standard.string(forKey: modelNameKey)?.trimmingCharacters(in: .whitespacesAndNewlines)
         return stored?.isEmpty == false ? stored! : defaultModelName
     }
-
-    static var resolvedModelReference: String {
-        VoxtralNativeModelLocator.resolvedModelReference(for: modelName)
-    }
 }
