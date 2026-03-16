@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import LLMkit
 
 // MARK: - Cloud Model Card View
 struct CloudModelCardView: View {
@@ -8,7 +9,6 @@ struct CloudModelCardView: View {
     var setDefaultAction: () -> Void
     
     @EnvironmentObject private var transcriptionModelManager: TranscriptionModelManager
-    @StateObject private var aiService = AIService()
     @State private var isExpanded = false
     @State private var apiKey = ""
     @State private var isVerifying = false
@@ -21,26 +21,7 @@ struct CloudModelCardView: View {
     }
     
     private var isConfigured: Bool {
-        return APIKeyManager.shared.hasAPIKey(forProvider: providerKey)
-    }
-    
-    private var providerKey: String {
-        switch model.provider {
-        case .groq:
-            return "Groq"
-        case .elevenLabs:
-            return "ElevenLabs"
-        case .deepgram:
-            return "Deepgram"
-        case .mistral:
-            return "Mistral"
-        case .gemini:
-            return "Gemini"
-        case .soniox:
-            return "Soniox"
-        default:
-            return model.provider.rawValue
-        }
+        APIKeyManager.shared.hasAPIKey(forProvider: "ElevenLabs")
     }
     
     var body: some View {
@@ -269,7 +250,7 @@ struct CloudModelCardView: View {
     }
     
     private func loadSavedAPIKey() {
-        if let savedKey = APIKeyManager.shared.getAPIKey(forProvider: providerKey) {
+        if let savedKey = APIKeyManager.shared.getAPIKey(forProvider: "ElevenLabs") {
             apiKey = savedKey
             verificationStatus = .success
         }
@@ -280,52 +261,30 @@ struct CloudModelCardView: View {
         
         isVerifying = true
         verificationStatus = .verifying
-        
-        switch model.provider {
-        case .groq:
-            aiService.selectedProvider = .groq
-        case .elevenLabs:
-            aiService.selectedProvider = .elevenLabs
-        case .deepgram:
-            aiService.selectedProvider = .deepgram
-        case .mistral:
-            aiService.selectedProvider = .mistral
-        case .gemini:
-            aiService.selectedProvider = .gemini
-        case .soniox:
-            aiService.selectedProvider = .soniox
-        default:
-            // This case should ideally not be hit for cloud models in this view
-            print("Warning: verifyAPIKey called for unsupported provider \(model.provider.rawValue)")
-            isVerifying = false
-            verificationStatus = .failure
-            return
-        }
-        
-        aiService.saveAPIKey(apiKey) { isValid, errorMessage in
-            DispatchQueue.main.async {
-                self.isVerifying = false
-                if isValid {
-                    self.verificationStatus = .success
-                    self.verificationError = nil
-                    // Save the API key to Keychain
-                    APIKeyManager.shared.saveAPIKey(self.apiKey, forProvider: self.providerKey)
-                    self.isConfiguredState = true
 
-                    // Collapse the configuration section after successful verification
+        Task {
+            let result = await ElevenLabsClient.verifyAPIKey(apiKey)
+            await MainActor.run {
+                isVerifying = false
+                if result.isValid {
+                    verificationStatus = .success
+                    verificationError = nil
+                    APIKeyManager.shared.saveAPIKey(apiKey, forProvider: "ElevenLabs")
+                    isConfiguredState = true
+
                     withAnimation(.easeInOut(duration: 0.3)) {
-                        self.isExpanded = false
+                        isExpanded = false
                     }
                 } else {
-                    self.verificationStatus = .failure
-                    self.verificationError = errorMessage
+                    verificationStatus = .failure
+                    verificationError = result.errorMessage
                 }
             }
         }
     }
     
     private func clearAPIKey() {
-        APIKeyManager.shared.deleteAPIKey(forProvider: providerKey)
+        APIKeyManager.shared.deleteAPIKey(forProvider: "ElevenLabs")
         apiKey = ""
         verificationStatus = .none
         verificationError = nil

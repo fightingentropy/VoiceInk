@@ -41,10 +41,6 @@ enum VoxtralNativeModelLocator {
         return .missing
     }
 
-    static func resolvedModelReference(for modelReference: String) -> String {
-        availability(for: modelReference).directoryURL?.path ?? modelReference
-    }
-
     static func repositoryID(from modelReference: String) -> String? {
         let trimmed = modelReference.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }

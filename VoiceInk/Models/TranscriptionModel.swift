@@ -5,12 +5,7 @@ enum ModelProvider: String, Codable, Hashable, CaseIterable, Sendable {
     case local = "Local"
     case localVoxtral = "Local Voxtral"
     case parakeet = "Parakeet"
-    case groq = "Groq"
     case elevenLabs = "ElevenLabs"
-    case deepgram = "Deepgram"
-    case mistral = "Mistral"
-    case gemini = "Gemini"
-    case soniox = "Soniox"
     case custom = "Custom"
     case nativeApple = "Native Apple"
     // Future providers can be added here

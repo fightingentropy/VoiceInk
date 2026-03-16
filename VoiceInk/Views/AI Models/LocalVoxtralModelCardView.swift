@@ -5,24 +5,26 @@ struct LocalVoxtralModelCardView: View {
     let isCurrent: Bool
     var setDefaultAction: () -> Void
 
-    @AppStorage(LocalVoxtralConfiguration.modelNameKey) private var modelName = LocalVoxtralConfiguration.defaultModelName
     @ObservedObject private var nativeModelManager = VoxtralNativeModelManager.shared
-    @State private var isExpanded = false
+
+    private var modelReference: String {
+        LocalVoxtralConfiguration.modelName
+    }
 
     private var isConfigured: Bool {
-        !modelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !modelReference.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var modelAvailability: VoxtralNativeModelLocator.Availability {
-        nativeModelManager.availability(for: modelName)
+        nativeModelManager.availability(for: modelReference)
     }
 
     private var downloadState: VoxtralNativeModelManager.DownloadState {
-        nativeModelManager.downloadState(for: modelName)
+        nativeModelManager.downloadState(for: modelReference)
     }
 
     private var canDownloadModel: Bool {
-        VoxtralNativeModelLocator.repositoryID(from: modelName) != nil
+        VoxtralNativeModelLocator.repositoryID(from: modelReference) != nil
     }
 
     private var isDownloadingModel: Bool {
@@ -43,14 +45,6 @@ struct LocalVoxtralModelCardView: View {
                 actionSection
             }
             .padding(16)
-
-            if isExpanded {
-                Divider()
-                    .padding(.horizontal, 16)
-
-                configurationSection
-                    .padding(16)
-            }
         }
         .background(CardBackground(isSelected: isCurrent, useAccentGradientWhenSelected: isCurrent))
     }
@@ -165,20 +159,6 @@ struct LocalVoxtralModelCardView: View {
         }
     }
 
-    private var modelAssetSummary: some View {
-        HStack(spacing: 6) {
-            Image(systemName: modelAssetIconName)
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(modelAssetColor)
-
-            Text(modelAssetSummaryText)
-                .font(.caption)
-                .foregroundColor(Color(.secondaryLabelColor))
-                .lineLimit(1)
-        }
-        .padding(.top, 6)
-    }
-
     private var statusSummary: some View {
         HStack(spacing: 6) {
             Image(systemName: statusSummaryIconName)
@@ -227,105 +207,6 @@ struct LocalVoxtralModelCardView: View {
             } else {
                 secondaryActionButton
             }
-
-            Button(action: toggleAdvanced) {
-                Label(isExpanded ? "Hide Advanced" : "Advanced", systemImage: isExpanded ? "chevron.up.circle" : "gearshape.circle")
-                    .font(.system(size: 11, weight: .medium))
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-        }
-    }
-
-    private var configurationSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Advanced")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(Color(.labelColor))
-
-            Text("You normally do not need to change these settings. VoiceInk runs Voxtral directly in-process using MLX.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            TextField("Model Reference or Local Path", text: $modelName)
-                .textFieldStyle(.roundedBorder)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Model Assets")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(Color(.secondaryLabelColor))
-
-                Text(modelAssetSummaryText)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                if let directoryURL = modelAvailability.directoryURL {
-                    Text(directoryURL.path)
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(Color(.secondaryLabelColor))
-                        .textSelection(.enabled)
-                        .padding(10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(.windowBackgroundColor).opacity(0.45))
-                        )
-                }
-
-                HStack(spacing: 8) {
-                    if canDownloadModel && modelAvailability == .missing {
-                        Button("Download Model") {
-                            Task {
-                                await nativeModelManager.downloadModelIfNeeded(modelName)
-                            }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
-                        .disabled(isDownloadingModel)
-                    }
-
-                    if modelAvailability.directoryURL != nil {
-                        Button("Show in Finder") {
-                            nativeModelManager.showModelInFinder(modelName)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                    }
-
-                    if case .appManaged = modelAvailability {
-                        Button("Delete Copy") {
-                            nativeModelManager.deleteAppManagedModel(modelName)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                    }
-                }
-            }
-
-            if modelName != LocalVoxtralConfiguration.resolvedModelReference {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Resolved Local Path")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(Color(.secondaryLabelColor))
-
-                    Text(LocalVoxtralConfiguration.resolvedModelReference)
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(Color(.secondaryLabelColor))
-                        .textSelection(.enabled)
-                        .padding(10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(.windowBackgroundColor).opacity(0.45))
-                        )
-                }
-            }
-        }
-    }
-
-    private func toggleAdvanced() {
-        withAnimation(.interpolatingSpring(stiffness: 170, damping: 20)) {
-            isExpanded.toggle()
         }
     }
 
@@ -336,7 +217,7 @@ struct LocalVoxtralModelCardView: View {
             if canDownloadModel {
                 Button("Download") {
                     Task {
-                        await nativeModelManager.downloadModelIfNeeded(modelName)
+                        await nativeModelManager.downloadModelIfNeeded(modelReference)
                     }
                 }
                 .buttonStyle(.bordered)
@@ -344,44 +225,6 @@ struct LocalVoxtralModelCardView: View {
             }
         case .appManaged, .sharedCache, .externalLocalPath:
             EmptyView()
-        }
-    }
-
-    private var modelAssetSummaryText: String {
-        switch modelAvailability {
-        case .appManaged:
-            return "VoiceInk is managing a local copy of the Voxtral model."
-        case .sharedCache:
-            return "Voxtral is already cached locally and ready to reuse."
-        case .externalLocalPath:
-            return "VoiceInk is pointed at a manual local model directory."
-        case .missing:
-            if let errorMessage = downloadState.errorMessage {
-                return errorMessage
-            }
-            return canDownloadModel
-                ? "The model is not cached yet. VoiceInk can download it directly."
-                : "This model reference is managed manually."
-        }
-    }
-
-    private var modelAssetIconName: String {
-        switch modelAvailability {
-        case .appManaged, .sharedCache, .externalLocalPath:
-            return "internaldrive.fill"
-        case .missing:
-            return isDownloadingModel ? "arrow.down.circle.fill" : "tray.and.arrow.down.fill"
-        }
-    }
-
-    private var modelAssetColor: Color {
-        switch modelAvailability {
-        case .appManaged, .sharedCache:
-            return Color(.systemGreen)
-        case .externalLocalPath:
-            return Color(.systemOrange)
-        case .missing:
-            return isDownloadingModel ? Color.accentColor : Color(.systemOrange)
         }
     }
 

@@ -65,7 +65,7 @@ final class StreamingTranscriptionSession: TranscriptionSession {
     func prepare(model: any TranscriptionModel) async throws -> ((Data) -> Void)? {
         self.model = model
 
-        // Return callback immediately; WebSocket connects in background
+        // Return the audio callback immediately while the streaming provider finishes its own startup.
         let service = streamingService
         let callback: (Data) -> Void = { [weak service] data in
             service?.sendAudioChunk(data)

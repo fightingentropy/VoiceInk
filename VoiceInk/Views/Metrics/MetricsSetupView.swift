@@ -90,9 +90,9 @@ struct MetricsSetupView: View {
         default:
             stepInfo = (
                 isCompleted: transcriptionModelManager.currentTranscriptionModel != nil,
-                icon: "arrow.down.to.line",
-                title: "Download Model",
-                description: "Choose an AI model to start transcribing."
+                icon: "waveform.and.mic",
+                title: "Choose Model",
+                description: "Pick the transcription model you want to use."
             )
         }
         
@@ -174,7 +174,7 @@ struct MetricsSetupView: View {
         } else if !CGPreflightScreenCaptureAccess() {
             return "Enable Screen Recording"
         } else if transcriptionModelManager.currentTranscriptionModel == nil {
-            return "Download Model"
+            return "Choose Model"
         }
         return "Get Started"
     }
@@ -207,4 +207,3 @@ struct MetricsSetupView: View {
         )
     }
 }
-

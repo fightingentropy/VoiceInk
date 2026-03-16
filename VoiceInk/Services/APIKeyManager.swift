@@ -13,30 +13,14 @@ final class APIKeyManager: @unchecked Sendable {
 
     /// Provider to Keychain identifier mapping (iOS compatible for iCloud sync).
     private static let providerToKeychainKey: [String: String] = [
-        "groq": "groqAPIKey",
-        "deepgram": "deepgramAPIKey",
-        "cerebras": "cerebrasAPIKey",
-        "gemini": "geminiAPIKey",
-        "mistral": "mistralAPIKey",
         "elevenlabs": "elevenLabsAPIKey",
-        "soniox": "sonioxAPIKey",
-        "openai": "openAIAPIKey",
-        "anthropic": "anthropicAPIKey",
-        "openrouter": "openRouterAPIKey"
+        "openai": "openAIAPIKey"
     ]
 
     /// Legacy UserDefaults to Keychain key mapping for migration.
     private static let userDefaultsToKeychainMapping: [String: String] = [
-        "GROQAPIKey": "groqAPIKey",
-        "DeepgramAPIKey": "deepgramAPIKey",
-        "CerebrasAPIKey": "cerebrasAPIKey",
-        "GeminiAPIKey": "geminiAPIKey",
-        "MistralAPIKey": "mistralAPIKey",
         "ElevenLabsAPIKey": "elevenLabsAPIKey",
-        "SonioxAPIKey": "sonioxAPIKey",
-        "OpenAIAPIKey": "openAIAPIKey",
-        "AnthropicAPIKey": "anthropicAPIKey",
-        "OpenRouterAPIKey": "openRouterAPIKey"
+        "OpenAIAPIKey": "openAIAPIKey"
     ]
 
     private init() {
@@ -188,26 +172,10 @@ final class APIKeyManager: @unchecked Sendable {
     /// Returns old UserDefaults key for provider (pre-Keychain format).
     private func oldUserDefaultsKey(forProvider provider: String) -> String {
         switch provider.lowercased() {
-        case "groq":
-            return "GROQAPIKey"
-        case "deepgram":
-            return "DeepgramAPIKey"
-        case "cerebras":
-            return "CerebrasAPIKey"
-        case "gemini":
-            return "GeminiAPIKey"
-        case "mistral":
-            return "MistralAPIKey"
         case "elevenlabs":
             return "ElevenLabsAPIKey"
-        case "soniox":
-            return "SonioxAPIKey"
         case "openai":
             return "OpenAIAPIKey"
-        case "anthropic":
-            return "AnthropicAPIKey"
-        case "openrouter":
-            return "OpenRouterAPIKey"
         default:
             return "\(provider)APIKey"
         }
