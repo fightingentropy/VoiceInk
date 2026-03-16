@@ -17,6 +17,7 @@ class TranscriptionServiceRegistry {
     private(set) lazy var cloudTranscriptionService = CloudTranscriptionService(modelContext: modelContext)
     private(set) lazy var nativeAppleTranscriptionService = NativeAppleTranscriptionService()
     private(set) lazy var parakeetTranscriptionService = ParakeetTranscriptionService()
+    private(set) lazy var localVoxtralTranscriptionService = LocalVoxtralTranscriptionService()
 
     init(modelProvider: any LocalModelProvider, modelsDirectory: URL, modelContext: ModelContext) {
         self.modelProvider = modelProvider
@@ -28,6 +29,8 @@ class TranscriptionServiceRegistry {
         switch provider {
         case .local:
             return localTranscriptionService
+        case .localVoxtral:
+            return localVoxtralTranscriptionService
         case .parakeet:
             return parakeetTranscriptionService
         case .nativeApple:
@@ -72,6 +75,8 @@ class TranscriptionServiceRegistry {
             return PredefinedModels.models.first { $0.name == "voxtral-mini-latest" }
         case (.soniox, "stt-rt-v4"):
             return PredefinedModels.models.first { $0.name == "stt-async-v4" }
+        case (.localVoxtral, "voxtral-mini-realtime-local"):
+            return nil
         default:
             return nil
         }
@@ -80,6 +85,8 @@ class TranscriptionServiceRegistry {
     /// Whether the given model supports streaming transcription
     private func supportsStreaming(model: any TranscriptionModel) -> Bool {
         switch model.provider {
+        case .localVoxtral:
+            return model.name == "voxtral-mini-realtime-local"
         case .elevenLabs:
             return model.name == "scribe_v2"
         case .deepgram:

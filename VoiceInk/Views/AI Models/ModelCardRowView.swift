@@ -58,6 +58,14 @@ struct ModelCardRowView: View {
                         setDefaultAction: setDefaultAction
                     )
                 }
+            case .localVoxtral:
+                if let localVoxtralModel = model as? LocalVoxtralModel {
+                    LocalVoxtralModelCardView(
+                        model: localVoxtralModel,
+                        isCurrent: isCurrent,
+                        setDefaultAction: setDefaultAction
+                    )
+                }
             case .groq, .elevenLabs, .deepgram, .mistral, .gemini, .soniox:
                 if let cloudModel = model as? CloudModel {
                     CloudModelCardView(

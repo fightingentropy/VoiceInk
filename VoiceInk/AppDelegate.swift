@@ -22,6 +22,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        _ = notification
+        LocalVoxtralServerManager.shared.shutdownManagedServer()
+    }
+
     // Stash URL when app cold-starts to avoid spawning a new window/tab
     var pendingOpenFileURL: URL?
     

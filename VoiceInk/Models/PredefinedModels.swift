@@ -123,6 +123,16 @@ import Foundation
             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .parakeet)
         ),
 
+        LocalVoxtralModel(
+            name: "voxtral-mini-realtime-local",
+            displayName: "Voxtral Realtime (Local MLX)",
+            description: "Runs locally on Apple Silicon through a voxmlx MLX server for low-latency realtime transcription",
+            speed: 0.99,
+            accuracy: 0.97,
+            isMultilingualModel: true,
+            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .localVoxtral)
+        ),
+
          // Local Models
          LocalModel(
              name: "ggml-large-v3-turbo",
