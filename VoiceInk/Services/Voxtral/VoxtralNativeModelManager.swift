@@ -40,9 +40,12 @@ final class VoxtralNativeModelManager: ObservableObject {
 
     func downloadModelIfNeeded(_ modelReference: String) async {
         guard !isDownloading(modelReference) else { return }
-        guard case .missing = availability(for: modelReference) else {
+        switch availability(for: modelReference) {
+        case .appManaged, .externalLocalPath:
             downloadStates[modelReference] = .completed
             return
+        case .sharedCache, .missing:
+            break
         }
 
         guard let repoID = VoxtralNativeModelLocator.repositoryID(from: modelReference) else {
@@ -53,7 +56,7 @@ final class VoxtralNativeModelManager: ObservableObject {
         downloadStates[modelReference] = .downloading
 
         do {
-            _ = try await downloadRepository(repoID)
+            _ = try await materializeRepository(repoID)
             downloadStates[modelReference] = .completed
         } catch {
             let message = error.localizedDescription
@@ -64,14 +67,50 @@ final class VoxtralNativeModelManager: ObservableObject {
 
     func preparedModelDirectory(for modelReference: String, autoDownload: Bool = false) async throws -> URL {
         switch availability(for: modelReference) {
-        case .appManaged(let url), .sharedCache(let url), .externalLocalPath(let url):
+        case .appManaged(let url), .externalLocalPath(let url):
             return url
+        case .sharedCache:
+            guard let repoID = VoxtralNativeModelLocator.repositoryID(from: modelReference) else {
+                throw VoxtralNativeModelError.missingModelAssets
+            }
+            return try await materializeRepository(repoID)
         case .missing:
             guard autoDownload, let repoID = VoxtralNativeModelLocator.repositoryID(from: modelReference) else {
                 throw VoxtralNativeModelError.missingModelAssets
             }
-            return try await downloadRepository(repoID)
+            return try await materializeRepository(repoID)
         }
+    }
+
+    func migrateSharedCacheToManagedCopyIfNeeded(_ modelReference: String) async {
+        guard !isDownloading(modelReference) else { return }
+        guard case .sharedCache = availability(for: modelReference) else { return }
+        guard let repoID = VoxtralNativeModelLocator.repositoryID(from: modelReference) else { return }
+
+        downloadStates[modelReference] = .downloading
+
+        do {
+            _ = try await materializeRepository(repoID)
+            downloadStates[modelReference] = .completed
+        } catch {
+            let message = error.localizedDescription
+            logger.error("Native Voxtral cache migration failed: \(message, privacy: .public)")
+            downloadStates[modelReference] = .failed(message)
+        }
+    }
+
+    private func materializeRepository(_ repoID: String) async throws -> URL {
+        let destinationDirectory = VoxtralNativeModelLocator.appManagedModelDirectory(for: repoID)
+        if VoxtralNativeModelLocator.isModelDirectoryComplete(destinationDirectory) {
+            return destinationDirectory
+        }
+
+        if let sharedCache = VoxtralNativeModelLocator.sharedCacheSnapshot(for: repoID),
+           VoxtralNativeModelLocator.isModelDirectoryComplete(sharedCache) {
+            return try adoptSharedCacheSnapshot(sharedCache, for: repoID)
+        }
+
+        return try await downloadRepository(repoID)
     }
 
     private func downloadRepository(_ repoID: String) async throws -> URL {
@@ -105,6 +144,35 @@ final class VoxtralNativeModelManager: ObservableObject {
             try? fileManager.removeItem(at: temporaryDirectory)
             throw error
         }
+    }
+
+    private func adoptSharedCacheSnapshot(_ sourceDirectory: URL, for repoID: String) throws -> URL {
+        let fileManager = FileManager.default
+        let destinationDirectory = VoxtralNativeModelLocator.appManagedModelDirectory(for: repoID)
+        let temporaryDirectory = destinationDirectory.appendingPathExtension("import")
+
+        try fileManager.createDirectory(
+            at: destinationDirectory.deletingLastPathComponent(),
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
+
+        if fileManager.fileExists(atPath: temporaryDirectory.path) {
+            try fileManager.removeItem(at: temporaryDirectory)
+        }
+        if fileManager.fileExists(atPath: destinationDirectory.path) {
+            try fileManager.removeItem(at: destinationDirectory)
+        }
+
+        try fileManager.copyItem(at: sourceDirectory, to: temporaryDirectory)
+        try fileManager.moveItem(at: temporaryDirectory, to: destinationDirectory)
+
+        let sharedCacheDirectory = VoxtralNativeModelLocator.huggingFaceCacheDirectory(for: repoID)
+        if fileManager.fileExists(atPath: sharedCacheDirectory.path) {
+            try? fileManager.removeItem(at: sharedCacheDirectory)
+        }
+
+        return destinationDirectory
     }
 
     private func downloadRequiredFiles(for repoID: String, into directory: URL) async throws {
