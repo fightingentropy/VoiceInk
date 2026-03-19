@@ -48,6 +48,11 @@ struct VoiceInkApp: App {
         }
 
         let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "Initialization")
+        do {
+            try AppStoragePaths.migrateLegacyApplicationSupportIfNeeded()
+        } catch {
+            logger.error("❌ Failed to migrate legacy application support data: \(error.localizedDescription, privacy: .public)")
+        }
         let schema = Schema([
             Transcription.self,
             VocabularyWord.self,

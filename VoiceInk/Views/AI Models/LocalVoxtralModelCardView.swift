@@ -47,9 +47,6 @@ struct LocalVoxtralModelCardView: View {
             .padding(16)
         }
         .background(CardBackground(isSelected: isCurrent, useAccentGradientWhenSelected: isCurrent))
-        .task(id: modelReference) {
-            await nativeModelManager.migrateSharedCacheToManagedCopyIfNeeded(modelReference)
-        }
     }
 
     private var headerSection: some View {
@@ -87,13 +84,6 @@ struct LocalVoxtralModelCardView: View {
                     .padding(.vertical, 2)
                     .background(Capsule().fill(Color(.systemGreen).opacity(0.18)))
                     .foregroundColor(Color(.systemGreen))
-            } else if case .sharedCache = modelAvailability {
-                Text("Cached")
-                    .font(.system(size: 11, weight: .medium))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color(.systemTeal).opacity(0.16)))
-                    .foregroundColor(Color(.systemTeal))
             } else if case .externalLocalPath = modelAvailability {
                 Text("Manual")
                     .font(.system(size: 11, weight: .medium))
@@ -226,7 +216,7 @@ struct LocalVoxtralModelCardView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
             }
-        case .appManaged, .sharedCache, .externalLocalPath:
+        case .appManaged, .externalLocalPath:
             EmptyView()
         }
     }
@@ -237,7 +227,7 @@ struct LocalVoxtralModelCardView: View {
         }
 
         switch modelAvailability {
-        case .appManaged, .sharedCache, .externalLocalPath:
+        case .appManaged, .externalLocalPath:
             return "Native Voxtral is ready for in-process MLX transcription."
         case .missing:
             return canDownloadModel
@@ -252,7 +242,7 @@ struct LocalVoxtralModelCardView: View {
         }
 
         switch modelAvailability {
-        case .appManaged, .sharedCache, .externalLocalPath:
+        case .appManaged, .externalLocalPath:
             return "checkmark.circle.fill"
         case .missing:
             return canDownloadModel ? "tray.and.arrow.down.fill" : "wrench.and.screwdriver.fill"
@@ -265,7 +255,7 @@ struct LocalVoxtralModelCardView: View {
         }
 
         switch modelAvailability {
-        case .appManaged, .sharedCache:
+        case .appManaged:
             return Color(.systemGreen)
         case .externalLocalPath:
             return Color(.systemOrange)

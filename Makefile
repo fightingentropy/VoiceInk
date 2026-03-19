@@ -1,10 +1,11 @@
-# Define a directory for dependencies in the user's home folder
-DEPS_DIR := $(HOME)/VoiceInk-Dependencies
+# Keep third-party build dependencies inside the project instead of the user's home folder
+DEPS_DIR := $(CURDIR)/Dependencies
 WHISPER_CPP_DIR := $(DEPS_DIR)/whisper.cpp
 FRAMEWORK_PATH := $(WHISPER_CPP_DIR)/build-apple/whisper.xcframework
 LOCAL_BUILD_ROOT := $(CURDIR)/.codex-build/local-install
 LOCAL_DERIVED_DATA := $(LOCAL_BUILD_ROOT)/deriveddata
 LOCAL_SPM_DIR := $(LOCAL_BUILD_ROOT)/spm
+LOCAL_BUILD_CONFIGURATION := Release
 INSTALL_APP_PATH := /Applications/VoiceInk.app
 LOCAL_CODESIGN_IDENTITY ?= VoiceInk
 
@@ -62,7 +63,7 @@ install-local: bump-version check setup
 	}
 	@rm -rf "$(LOCAL_BUILD_ROOT)"
 	@mkdir -p "$(LOCAL_BUILD_ROOT)"
-	xcodebuild -project VoiceInk.xcodeproj -scheme VoiceInk -configuration Debug \
+	xcodebuild -project VoiceInk.xcodeproj -scheme VoiceInk -configuration $(LOCAL_BUILD_CONFIGURATION) \
 		-xcconfig LocalBuild.xcconfig \
 		-derivedDataPath "$(LOCAL_DERIVED_DATA)" \
 		-clonedSourcePackagesDirPath "$(LOCAL_SPM_DIR)" \
@@ -73,7 +74,7 @@ install-local: bump-version check setup
 		CODE_SIGN_ENTITLEMENTS=$(CURDIR)/VoiceInk/VoiceInk.local.entitlements \
 		SWIFT_ACTIVE_COMPILATION_CONDITIONS='$$(inherited) LOCAL_BUILD' \
 		build
-	@APP_PATH="$(LOCAL_DERIVED_DATA)/Build/Products/Debug/VoiceInk.app" && \
+	@APP_PATH="$(LOCAL_DERIVED_DATA)/Build/Products/$(LOCAL_BUILD_CONFIGURATION)/VoiceInk.app" && \
 	if [ -d "$$APP_PATH" ]; then \
 		echo "Installing clean build to $(INSTALL_APP_PATH)..."; \
 		pkill -x VoiceInk >/dev/null 2>&1 || true; \
