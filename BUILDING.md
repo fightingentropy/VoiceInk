@@ -44,7 +44,7 @@ make dev
 ### How the Makefile Helps
 
 The Makefile automatically:
-1. **Manages Dependencies**: Creates a dedicated `~/VoiceInk-Dependencies` directory for all external frameworks
+1. **Manages Dependencies**: Creates a dedicated `Dependencies/` directory inside the VoiceInk project for external frameworks
 2. **Builds Whisper Framework**: Clones whisper.cpp and builds the XCFramework with the correct configuration
 3. **Handles Framework Linking**: Sets up the whisper.xcframework in the proper location for Xcode to find
 4. **Verifies Prerequisites**: Checks that git, xcodebuild, and swift are installed before building
@@ -103,16 +103,6 @@ Your normal `make all` / `make build` commands are completely unaffected.
 
 If you prefer to build manually or need more control over the build process, follow these steps:
 
-### Building whisper.cpp Framework
-
-1. Clone and build whisper.cpp:
-```bash
-git clone https://github.com/ggerganov/whisper.cpp.git
-cd whisper.cpp
-./build-xcframework.sh
-```
-This will create the XCFramework at `build-apple/whisper.xcframework`.
-
 ### Building VoiceInk
 
 1. Clone the VoiceInk repository:
@@ -121,11 +111,20 @@ git clone https://github.com/fightingentropy/VoiceInk.git
 cd VoiceInk
 ```
 
-2. Add the whisper.xcframework to your project:
-   - Drag and drop `../whisper.cpp/build-apple/whisper.xcframework` into the project navigator, or
+2. Clone and build whisper.cpp inside the project dependency folder:
+```bash
+git clone https://github.com/ggerganov/whisper.cpp.git Dependencies/whisper.cpp
+cd Dependencies/whisper.cpp
+./build-xcframework.sh
+cd ../..
+```
+This will create the XCFramework at `Dependencies/whisper.cpp/build-apple/whisper.xcframework`.
+
+3. Add the whisper.xcframework to your project:
+   - Drag and drop `Dependencies/whisper.cpp/build-apple/whisper.xcframework` into the project navigator, or
    - Add it manually in the "Frameworks, Libraries, and Embedded Content" section of project settings
 
-3. Build and Run
+4. Build and Run
    - Build the project using Cmd+B or Product > Build
    - Run the project using Cmd+R or Product > Run
 

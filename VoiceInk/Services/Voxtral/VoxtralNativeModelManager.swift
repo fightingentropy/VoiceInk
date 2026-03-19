@@ -23,11 +23,13 @@ final class VoxtralNativeModelManager: ObservableObject {
 
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "VoxtralNativeModelManager")
     private let urlSession = URLSession(configuration: .default)
+    private var hasMigratedLegacyStorage = false
 
     private init() {}
 
     func availability(for modelReference: String) -> VoxtralNativeModelLocator.Availability {
-        VoxtralNativeModelLocator.availability(for: modelReference)
+        migrateLegacyStorageIfNeeded()
+        return VoxtralNativeModelLocator.availability(for: modelReference)
     }
 
     func downloadState(for modelReference: String) -> DownloadState {
@@ -44,7 +46,7 @@ final class VoxtralNativeModelManager: ObservableObject {
         case .appManaged, .externalLocalPath:
             downloadStates[modelReference] = .completed
             return
-        case .sharedCache, .missing:
+        case .missing:
             break
         }
 
@@ -69,11 +71,6 @@ final class VoxtralNativeModelManager: ObservableObject {
         switch availability(for: modelReference) {
         case .appManaged(let url), .externalLocalPath(let url):
             return url
-        case .sharedCache:
-            guard let repoID = VoxtralNativeModelLocator.repositoryID(from: modelReference) else {
-                throw VoxtralNativeModelError.missingModelAssets
-            }
-            return try await materializeRepository(repoID)
         case .missing:
             guard autoDownload, let repoID = VoxtralNativeModelLocator.repositoryID(from: modelReference) else {
                 throw VoxtralNativeModelError.missingModelAssets
@@ -82,32 +79,12 @@ final class VoxtralNativeModelManager: ObservableObject {
         }
     }
 
-    func migrateSharedCacheToManagedCopyIfNeeded(_ modelReference: String) async {
-        guard !isDownloading(modelReference) else { return }
-        guard case .sharedCache = availability(for: modelReference) else { return }
-        guard let repoID = VoxtralNativeModelLocator.repositoryID(from: modelReference) else { return }
-
-        downloadStates[modelReference] = .downloading
-
-        do {
-            _ = try await materializeRepository(repoID)
-            downloadStates[modelReference] = .completed
-        } catch {
-            let message = error.localizedDescription
-            logger.error("Native Voxtral cache migration failed: \(message, privacy: .public)")
-            downloadStates[modelReference] = .failed(message)
-        }
-    }
-
     private func materializeRepository(_ repoID: String) async throws -> URL {
+        migrateLegacyStorageIfNeeded()
+
         let destinationDirectory = VoxtralNativeModelLocator.appManagedModelDirectory(for: repoID)
         if VoxtralNativeModelLocator.isModelDirectoryComplete(destinationDirectory) {
             return destinationDirectory
-        }
-
-        if let sharedCache = VoxtralNativeModelLocator.sharedCacheSnapshot(for: repoID),
-           VoxtralNativeModelLocator.isModelDirectoryComplete(sharedCache) {
-            return try adoptSharedCacheSnapshot(sharedCache, for: repoID)
         }
 
         return try await downloadRepository(repoID)
@@ -146,33 +123,72 @@ final class VoxtralNativeModelManager: ObservableObject {
         }
     }
 
-    private func adoptSharedCacheSnapshot(_ sourceDirectory: URL, for repoID: String) throws -> URL {
+    private func migrateLegacyStorageIfNeeded() {
+        guard !hasMigratedLegacyStorage else { return }
+
+        do {
+            try migrateLegacyManagedModelsDirectoryIfNeeded()
+            hasMigratedLegacyStorage = true
+        } catch {
+            logger.error("Native Voxtral storage migration failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private func migrateLegacyManagedModelsDirectoryIfNeeded() throws {
         let fileManager = FileManager.default
-        let destinationDirectory = VoxtralNativeModelLocator.appManagedModelDirectory(for: repoID)
-        let temporaryDirectory = destinationDirectory.appendingPathExtension("import")
+        let legacyRoot = legacyVoxtralModelsDirectory
+        guard fileManager.fileExists(atPath: legacyRoot.path) else { return }
 
         try fileManager.createDirectory(
-            at: destinationDirectory.deletingLastPathComponent(),
+            at: AppStoragePaths.voxtralModelsDirectory,
             withIntermediateDirectories: true,
             attributes: nil
         )
 
-        if fileManager.fileExists(atPath: temporaryDirectory.path) {
-            try fileManager.removeItem(at: temporaryDirectory)
-        }
-        if fileManager.fileExists(atPath: destinationDirectory.path) {
-            try fileManager.removeItem(at: destinationDirectory)
+        let legacyDirectories = try fileManager.contentsOfDirectory(
+            at: legacyRoot,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        )
+
+        for legacyDirectory in legacyDirectories {
+            let resourceValues = try legacyDirectory.resourceValues(forKeys: [.isDirectoryKey])
+            guard resourceValues.isDirectory == true else { continue }
+            guard VoxtralNativeModelLocator.isModelDirectoryComplete(legacyDirectory) else { continue }
+
+            let destinationDirectory = AppStoragePaths.voxtralModelsDirectory
+                .appendingPathComponent(legacyDirectory.lastPathComponent, isDirectory: true)
+
+            if VoxtralNativeModelLocator.isModelDirectoryComplete(destinationDirectory) {
+                try? fileManager.removeItem(at: legacyDirectory)
+                continue
+            }
+
+            if fileManager.fileExists(atPath: destinationDirectory.path) {
+                try fileManager.removeItem(at: destinationDirectory)
+            }
+
+            try fileManager.moveItem(at: legacyDirectory, to: destinationDirectory)
         }
 
-        try fileManager.copyItem(at: sourceDirectory, to: temporaryDirectory)
-        try fileManager.moveItem(at: temporaryDirectory, to: destinationDirectory)
+        try removeDirectoryIfEmpty(legacyRoot, fileManager: fileManager)
+        try removeDirectoryIfEmpty(legacyRoot.deletingLastPathComponent(), fileManager: fileManager)
+        try removeDirectoryIfEmpty(legacyRoot.deletingLastPathComponent().deletingLastPathComponent(), fileManager: fileManager)
+    }
 
-        let sharedCacheDirectory = VoxtralNativeModelLocator.huggingFaceCacheDirectory(for: repoID)
-        if fileManager.fileExists(atPath: sharedCacheDirectory.path) {
-            try? fileManager.removeItem(at: sharedCacheDirectory)
-        }
+    private var legacyVoxtralModelsDirectory: URL {
+        return AppStoragePaths.applicationSupportDirectory
+            .deletingLastPathComponent()
+            .appendingPathComponent("VoiceInk", isDirectory: true)
+            .appendingPathComponent("Models", isDirectory: true)
+            .appendingPathComponent("Voxtral", isDirectory: true)
+    }
 
-        return destinationDirectory
+    private func removeDirectoryIfEmpty(_ directory: URL, fileManager: FileManager) throws {
+        guard fileManager.fileExists(atPath: directory.path) else { return }
+        let remainingItems = try fileManager.contentsOfDirectory(atPath: directory.path)
+        guard remainingItems.isEmpty else { return }
+        try fileManager.removeItem(at: directory)
     }
 
     private func downloadRequiredFiles(for repoID: String, into directory: URL) async throws {
