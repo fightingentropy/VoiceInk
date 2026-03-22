@@ -79,6 +79,19 @@ final class VoxtralNativeModelManager: ObservableObject {
         }
     }
 
+    func deleteModelAssets(for modelReference: String) async {
+        guard case .appManaged(let directoryURL) = availability(for: modelReference) else { return }
+
+        _ = await VoxtralNativeRuntime.shared.unloadPreparedState(modelReference)
+
+        do {
+            try FileManager.default.removeItem(at: directoryURL)
+            downloadStates[modelReference] = .idle
+        } catch {
+            logger.error("Failed to delete native Voxtral assets: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     private func materializeRepository(_ repoID: String) async throws -> URL {
         migrateLegacyStorageIfNeeded()
 

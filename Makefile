@@ -50,7 +50,7 @@ setup: whisper
 	@echo "Please ensure your Xcode project references the framework from this new location."
 
 build: setup
-	xcodebuild -project VoiceInk.xcodeproj -scheme VoiceInk -configuration Debug CODE_SIGN_IDENTITY="" build
+	xcodebuild -project VoiceInk.xcodeproj -scheme VoiceInk -configuration Debug build
 
 # Build for local use without Apple Developer certificate
 install-local: bump-version check setup
@@ -126,7 +126,7 @@ help:
 	@echo "  check/healthcheck  Check if required CLI tools are installed"
 	@echo "  whisper            Clone and build whisper.cpp XCFramework"
 	@echo "  setup              Copy whisper XCFramework to VoiceInk project"
-	@echo "  build              Build the VoiceInk Xcode project"
+	@echo "  build              Build the VoiceInk Xcode project with local Sign to Run Locally signing"
 	@echo "  bump-version       Increment the app marketing/build versions"
 	@echo "  install-local      Build for local use and install a clean app to /Applications"
 	@echo "  local              Alias for install-local"

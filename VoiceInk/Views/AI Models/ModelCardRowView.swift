@@ -63,6 +63,7 @@ struct ModelCardRowView: View {
                     LocalVoxtralModelCardView(
                         model: localVoxtralModel,
                         isCurrent: isCurrent,
+                        deleteAction: deleteAction,
                         setDefaultAction: setDefaultAction
                     )
                 }
