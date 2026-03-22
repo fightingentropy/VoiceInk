@@ -121,6 +121,18 @@ struct ModelManagementView: View {
                                         }
                                     }
                                     isShowingDeleteAlert = true
+                                } else if model is LocalVoxtralModel {
+                                    alertTitle = "Delete Model"
+                                    alertMessage = "Are you sure you want to delete the model '\(model.displayName)'?"
+                                    deleteActionClosure = {
+                                        Task {
+                                            await VoxtralNativeModelManager.shared.deleteModelAssets(for: LocalVoxtralConfiguration.modelName)
+                                            if transcriptionModelManager.currentTranscriptionModel?.name == model.name {
+                                                transcriptionModelManager.clearCurrentTranscriptionModel()
+                                            }
+                                        }
+                                    }
+                                    isShowingDeleteAlert = true
                                 }
                             },
                             setDefaultAction: {

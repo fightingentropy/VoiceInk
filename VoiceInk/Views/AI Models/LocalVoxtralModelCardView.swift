@@ -1,8 +1,10 @@
 import SwiftUI
+import AppKit
 
 struct LocalVoxtralModelCardView: View {
     let model: LocalVoxtralModel
     let isCurrent: Bool
+    var deleteAction: () -> Void
     var setDefaultAction: () -> Void
 
     @ObservedObject private var nativeModelManager = VoxtralNativeModelManager.shared
@@ -11,12 +13,12 @@ struct LocalVoxtralModelCardView: View {
         LocalVoxtralConfiguration.modelName
     }
 
-    private var isConfigured: Bool {
-        !modelReference.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
     private var modelAvailability: VoxtralNativeModelLocator.Availability {
         nativeModelManager.availability(for: modelReference)
+    }
+
+    private var isDownloaded: Bool {
+        modelAvailability != .missing
     }
 
     private var downloadState: VoxtralNativeModelManager.DownloadState {
@@ -31,21 +33,31 @@ struct LocalVoxtralModelCardView: View {
         downloadState == .downloading
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 6) {
-                    headerSection
-                    metadataSection
-                    descriptionSection
-                    compactStatusNotice
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+    private var modelURL: URL? {
+        modelAvailability.directoryURL
+    }
 
-                actionSection
-            }
-            .padding(16)
+    private var showsDeleteAction: Bool {
+        if case .appManaged = modelAvailability {
+            return true
         }
+
+        return false
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                headerSection
+                metadataSection
+                descriptionSection
+                progressSection
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            actionSection
+        }
+        .padding(16)
         .background(CardBackground(isSelected: isCurrent, useAccentGradientWhenSelected: isCurrent))
     }
 
@@ -70,46 +82,25 @@ struct LocalVoxtralModelCardView: View {
                     .padding(.vertical, 2)
                     .background(Capsule().fill(Color.accentColor))
                     .foregroundColor(.white)
-            } else if isDownloadingModel {
-                Text("Downloading")
-                    .font(.system(size: 11, weight: .medium))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.accentColor.opacity(0.16)))
-                    .foregroundColor(Color.accentColor)
-            } else if case .appManaged = modelAvailability {
+            } else if isDownloaded {
                 Text("Downloaded")
                     .font(.system(size: 11, weight: .medium))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Capsule().fill(Color(.systemGreen).opacity(0.18)))
-                    .foregroundColor(Color(.systemGreen))
-            } else if case .externalLocalPath = modelAvailability {
-                Text("Manual")
-                    .font(.system(size: 11, weight: .medium))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color(.systemOrange).opacity(0.16)))
-                    .foregroundColor(Color(.systemOrange))
-            } else {
-                Text("Local")
-                    .font(.system(size: 11, weight: .medium))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color(.systemOrange).opacity(0.16)))
-                    .foregroundColor(Color(.systemOrange))
+                    .background(Capsule().fill(Color(.quaternaryLabelColor)))
+                    .foregroundColor(Color(.labelColor))
             }
         }
     }
 
     private var metadataSection: some View {
         HStack(spacing: 12) {
-            Label(model.provider.rawValue, systemImage: "desktopcomputer")
+            Label(model.language, systemImage: "globe")
                 .font(.system(size: 11))
                 .foregroundColor(Color(.secondaryLabelColor))
                 .lineLimit(1)
 
-            Label(model.language, systemImage: "globe")
+            Label(model.size, systemImage: "internaldrive")
                 .font(.system(size: 11))
                 .foregroundColor(Color(.secondaryLabelColor))
                 .lineLimit(1)
@@ -144,123 +135,82 @@ struct LocalVoxtralModelCardView: View {
             .padding(.top, 4)
     }
 
-    private var compactStatusNotice: some View {
+    private var progressSection: some View {
         Group {
-            if shouldShowCompactStatusNotice {
-                statusSummary
+            if isDownloadingModel {
+                ProgressView()
+                    .progressViewStyle(LinearProgressViewStyle())
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 8)
             }
         }
     }
 
-    private var statusSummary: some View {
-        HStack(spacing: 6) {
-            Image(systemName: statusSummaryIconName)
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(statusSummaryColor)
-
-            Text(statusSummaryText)
-                .font(.caption)
-                .foregroundColor(Color(.secondaryLabelColor))
-                .lineLimit(1)
-        }
-        .padding(.top, 6)
-    }
-
-    private var shouldShowCompactStatusNotice: Bool {
-        isDownloadingModel || modelAvailability == .missing
-    }
-
     private var actionSection: some View {
-        VStack(alignment: .trailing, spacing: 8) {
-            if isCurrent {
-                Text("Default Model")
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(.secondaryLabelColor))
-            } else if isConfigured {
-                Button(action: setDefaultAction) {
-                    Text("Set as Default")
+        HStack(spacing: 8) {
+            if isDownloaded {
+                if isCurrent {
+                    Text("Default Model")
                         .font(.system(size: 12))
+                        .foregroundColor(Color(.secondaryLabelColor))
+                } else {
+                    Button(action: setDefaultAction) {
+                        Text("Set as Default")
+                            .font(.system(size: 12))
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+            } else if canDownloadModel {
+                Button(action: {
+                    Task {
+                        await nativeModelManager.downloadModelIfNeeded(modelReference)
+                    }
+                }) {
+                    HStack(spacing: 4) {
+                        Text(isDownloadingModel ? "Downloading..." : "Download")
+                            .font(.system(size: 12, weight: .medium))
+                        Image(systemName: "arrow.down.circle")
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(Color(.controlAccentColor))
+                            .shadow(color: Color(.controlAccentColor).opacity(0.2), radius: 2, x: 0, y: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(isDownloadingModel)
             } else {
                 Text("Setup Required")
                     .font(.system(size: 12))
                     .foregroundColor(Color(.secondaryLabelColor))
             }
 
-            if isDownloadingModel {
-                HStack(spacing: 6) {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                    Text("Downloading Model")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(Color(.secondaryLabelColor))
-                }
-            } else {
-                secondaryActionButton
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var secondaryActionButton: some View {
-        switch modelAvailability {
-        case .missing:
-            if canDownloadModel {
-                Button("Download") {
-                    Task {
-                        await nativeModelManager.downloadModelIfNeeded(modelReference)
+            if isDownloaded, let modelURL {
+                Menu {
+                    if showsDeleteAction {
+                        Button(action: deleteAction) {
+                            Label("Delete Model", systemImage: "trash")
+                        }
                     }
+
+                    Button {
+                        NSWorkspace.shared.selectFile(modelURL.path, inFileViewerRootedAtPath: "")
+                    } label: {
+                        Label("Show in Finder", systemImage: "folder")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 14))
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .frame(width: 20, height: 20)
             }
-        case .appManaged, .externalLocalPath:
-            EmptyView()
-        }
-    }
-
-    private var statusSummaryText: String {
-        if isDownloadingModel {
-            return "Downloading native Voxtral assets."
-        }
-
-        switch modelAvailability {
-        case .appManaged, .externalLocalPath:
-            return "Native Voxtral is ready for in-process MLX transcription."
-        case .missing:
-            return canDownloadModel
-                ? "Download the model to enable native Voxtral."
-                : "Point VoiceInk at a local model directory to enable native Voxtral."
-        }
-    }
-
-    private var statusSummaryIconName: String {
-        if isDownloadingModel {
-            return "arrow.down.circle.fill"
-        }
-
-        switch modelAvailability {
-        case .appManaged, .externalLocalPath:
-            return "checkmark.circle.fill"
-        case .missing:
-            return canDownloadModel ? "tray.and.arrow.down.fill" : "wrench.and.screwdriver.fill"
-        }
-    }
-
-    private var statusSummaryColor: Color {
-        if isDownloadingModel {
-            return Color.accentColor
-        }
-
-        switch modelAvailability {
-        case .appManaged:
-            return Color(.systemGreen)
-        case .externalLocalPath:
-            return Color(.systemOrange)
-        case .missing:
-            return canDownloadModel ? Color(.systemOrange) : Color(.systemYellow)
         }
     }
 }

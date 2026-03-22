@@ -33,7 +33,7 @@ make dev
 - `make check` or `make healthcheck` - Verify all required tools are installed
 - `make whisper` - Clone and build whisper.cpp XCFramework automatically
 - `make setup` - Prepare the whisper framework for linking
-- `make build` - Build the VoiceInk Xcode project
+- `make build` - Build the VoiceInk Xcode project with local "Sign to Run Locally" signing
 - `make local` - Build for local use (no Apple Developer certificate needed)
 - `make run` - Launch the built VoiceInk app
 - `make dev` - Build and run (ideal for development workflow)

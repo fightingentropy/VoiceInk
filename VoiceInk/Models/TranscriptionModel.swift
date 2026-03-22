@@ -39,6 +39,7 @@ struct LocalVoxtralModel: TranscriptionModel {
     let id = UUID()
     let name: String
     let displayName: String
+    let size: String
     let description: String
     let provider: ModelProvider = .localVoxtral
     let speed: Double

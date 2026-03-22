@@ -112,6 +112,7 @@ import Foundation
         LocalVoxtralModel(
             name: "voxtral-mini-realtime-local",
             displayName: "Voxtral Realtime (Local MLX)",
+            size: "2.5 GB",
             description: "Runs locally on Apple Silicon with native MLX inference for low-latency realtime transcription",
             speed: 0.99,
             accuracy: 0.97,
