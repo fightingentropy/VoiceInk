@@ -9,6 +9,7 @@ class TranscriptionModelManager: ObservableObject {
 
     private weak var whisperModelManager: WhisperModelManager?
     private weak var parakeetModelManager: ParakeetModelManager?
+    private var cohereSetupObserverTask: Task<Void, Never>?
 
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "TranscriptionModelManager")
 
@@ -18,18 +19,35 @@ class TranscriptionModelManager: ObservableObject {
 
         // Wire up deletion callbacks so each manager notifies this manager.
         whisperModelManager.onModelDeleted = { [weak self] modelName in
-            self?.handleModelDeleted(modelName)
+            Task { @MainActor [weak self] in
+                self?.handleModelDeleted(modelName)
+            }
         }
         parakeetModelManager.onModelDeleted = { [weak self] modelName in
-            self?.handleModelDeleted(modelName)
+            Task { @MainActor [weak self] in
+                self?.handleModelDeleted(modelName)
+            }
         }
 
         // Wire up "models changed" callbacks so this manager rebuilds allAvailableModels.
         whisperModelManager.onModelsChanged = { [weak self] in
-            self?.refreshAllAvailableModels()
+            Task { @MainActor [weak self] in
+                self?.refreshAllAvailableModels()
+            }
         }
         parakeetModelManager.onModelsChanged = { [weak self] in
-            self?.refreshAllAvailableModels()
+            Task { @MainActor [weak self] in
+                self?.refreshAllAvailableModels()
+            }
+        }
+
+        cohereSetupObserverTask = Task { [weak self] in
+            for await _ in NotificationCenter.default.notifications(named: .cohereTranscribeSetupDidChange) {
+                guard !Task.isCancelled else { break }
+                await MainActor.run {
+                    self?.refreshAllAvailableModels()
+                }
+            }
         }
     }
 
@@ -50,6 +68,8 @@ class TranscriptionModelManager: ObservableObject {
                 }
             case .localVoxtral:
                 return true
+            case .cohereTranscribe:
+                return CohereTranscribeEnvironmentManager.shared.isConfigured
             case .elevenLabs:
                 return APIKeyManager.shared.hasAPIKey(forProvider: "ElevenLabs")
             case .custom:
@@ -149,5 +169,9 @@ class TranscriptionModelManager: ObservableObject {
             userInfo: userInfo.isEmpty ? nil : userInfo
         )
         NotificationCenter.default.post(name: .AppSettingsDidChange, object: nil)
+    }
+
+    deinit {
+        cohereSetupObserverTask?.cancel()
     }
 }

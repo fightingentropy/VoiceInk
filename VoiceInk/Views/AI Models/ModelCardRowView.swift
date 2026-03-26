@@ -67,6 +67,15 @@ struct ModelCardRowView: View {
                         setDefaultAction: setDefaultAction
                     )
                 }
+            case .cohereTranscribe:
+                if let cohereModel = model as? LocalCohereTranscribeModel {
+                    LocalCohereTranscribeModelCardView(
+                        model: cohereModel,
+                        isCurrent: isCurrent,
+                        deleteAction: deleteAction,
+                        setDefaultAction: setDefaultAction
+                    )
+                }
             case .elevenLabs:
                 if let cloudModel = model as? CloudModel {
                     CloudModelCardView(

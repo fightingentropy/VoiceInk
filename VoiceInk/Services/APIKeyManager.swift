@@ -14,6 +14,7 @@ final class APIKeyManager: @unchecked Sendable {
     /// Provider to Keychain identifier mapping (iOS compatible for iCloud sync).
     private static let providerToKeychainKey: [String: String] = [
         "elevenlabs": "elevenLabsAPIKey",
+        "huggingface": "huggingFaceAccessToken",
         "openai": "openAIAPIKey"
     ]
 

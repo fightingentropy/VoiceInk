@@ -16,6 +16,7 @@ class TranscriptionServiceRegistry {
     private(set) lazy var nativeAppleTranscriptionService = NativeAppleTranscriptionService()
     private(set) lazy var parakeetTranscriptionService = ParakeetTranscriptionService()
     private(set) lazy var localVoxtralTranscriptionService = LocalVoxtralTranscriptionService()
+    private(set) lazy var cohereTranscribeTranscriptionService = CohereTranscribeTranscriptionService()
 
     init(modelProvider: any LocalModelProvider, modelsDirectory: URL) {
         self.modelProvider = modelProvider
@@ -28,6 +29,8 @@ class TranscriptionServiceRegistry {
             return localTranscriptionService
         case .localVoxtral:
             return localVoxtralTranscriptionService
+        case .cohereTranscribe:
+            return cohereTranscribeTranscriptionService
         case .parakeet:
             return parakeetTranscriptionService
         case .nativeApple:
@@ -43,7 +46,9 @@ class TranscriptionServiceRegistry {
         logger.debug("Transcribing with \(effectiveModel.displayName, privacy: .public) using \(String(describing: type(of: service)), privacy: .public)")
         let text = try await service.transcribe(audioURL: audioURL, model: effectiveModel)
 
-        if effectiveModel.provider == .local || effectiveModel.provider == .parakeet {
+        if effectiveModel.provider == .local
+            || effectiveModel.provider == .parakeet
+            || effectiveModel.provider == .cohereTranscribe {
             NotificationCenter.default.post(name: .localModelDidUse, object: nil)
         }
 

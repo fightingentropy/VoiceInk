@@ -10,6 +10,9 @@ import Foundation
                 let appleSupportedCodes = ["ar", "de", "en", "es", "fr", "it", "ja", "ko", "pt", "yue", "zh"]
                 return allLanguages.filter { appleSupportedCodes.contains($0.key) }
             }
+            if provider == .cohereTranscribe {
+                return cohereTranscribeLanguages
+            }
             return allLanguages
         }
     }
@@ -72,6 +75,23 @@ import Foundation
         // Arabic
         "ar-SA": "Arabic (Saudi Arabia)"
     ]
+
+    static let cohereTranscribeLanguages = [
+        "ar": "Arabic",
+        "de": "German",
+        "el": "Greek",
+        "en": "English",
+        "es": "Spanish",
+        "fr": "French",
+        "it": "Italian",
+        "ja": "Japanese",
+        "ko": "Korean",
+        "nl": "Dutch",
+        "pl": "Polish",
+        "pt": "Portuguese",
+        "vi": "Vietnamese",
+        "zh": "Chinese"
+    ]
     
     static var models: [any TranscriptionModel] {
         return predefinedModels + CustomModelManager.shared.customModels
@@ -118,6 +138,16 @@ import Foundation
             accuracy: 0.97,
             isMultilingualModel: true,
             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .localVoxtral)
+        ),
+        LocalCohereTranscribeModel(
+            name: "cohere-transcribe-03-2026-local",
+            displayName: "Cohere Transcribe (Local MPS)",
+            size: "4.1 GB",
+            description: "Runs locally through a persistent Apple Silicon runtime for high-accuracy batch transcription. Requires Hugging Face model access.",
+            speed: 0.94,
+            accuracy: 0.99,
+            isMultilingualModel: true,
+            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .cohereTranscribe)
         ),
         // Cloud Models
        CloudModel(

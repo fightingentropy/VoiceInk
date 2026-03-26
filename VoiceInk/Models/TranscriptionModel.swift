@@ -4,6 +4,7 @@ import Foundation
 enum ModelProvider: String, Codable, Hashable, CaseIterable, Sendable {
     case local = "Local"
     case localVoxtral = "Local Voxtral"
+    case cohereTranscribe = "Cohere Transcribe"
     case parakeet = "Parakeet"
     case elevenLabs = "ElevenLabs"
     case custom = "Custom"
@@ -42,6 +43,19 @@ struct LocalVoxtralModel: TranscriptionModel {
     let size: String
     let description: String
     let provider: ModelProvider = .localVoxtral
+    let speed: Double
+    let accuracy: Double
+    let isMultilingualModel: Bool
+    let supportedLanguages: [String: String]
+}
+
+struct LocalCohereTranscribeModel: TranscriptionModel {
+    let id = UUID()
+    let name: String
+    let displayName: String
+    let size: String
+    let description: String
+    let provider: ModelProvider = .cohereTranscribe
     let speed: Double
     let accuracy: Double
     let isMultilingualModel: Bool
