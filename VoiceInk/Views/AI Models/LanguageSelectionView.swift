@@ -40,6 +40,38 @@ struct LanguageSelectionView: View {
         return provider == .parakeet
     }
 
+    private func defaultLanguage(for model: any TranscriptionModel) -> String {
+        if model.supportedLanguages["en"] != nil {
+            return "en"
+        }
+
+        return model.supportedLanguages.keys.sorted().first ?? "en"
+    }
+
+    private func ensureSupportedLanguageSelection() {
+        guard let currentModel = transcriptionModelManager.currentTranscriptionModel else {
+            return
+        }
+
+        if languageSelectionDisabled() {
+            if selectedLanguage != "auto" {
+                updateLanguage("auto")
+            }
+            return
+        }
+
+        guard currentModel.isMultilingualModel else {
+            if selectedLanguage != "en" {
+                updateLanguage("en")
+            }
+            return
+        }
+
+        if currentModel.supportedLanguages[selectedLanguage] == nil {
+            updateLanguage(defaultLanguage(for: currentModel))
+        }
+    }
+
     // Function to get current model's supported languages
     private func getCurrentModelLanguages() -> [String: String] {
         guard let currentModel = transcriptionModelManager.currentTranscriptionModel else {
@@ -50,6 +82,11 @@ struct LanguageSelectionView: View {
 
     // Get the display name of the current language
     private func currentLanguageDisplayName() -> String {
+        if let currentModel = transcriptionModelManager.currentTranscriptionModel,
+           currentModel.supportedLanguages[selectedLanguage] == nil {
+            return currentModel.supportedLanguages[defaultLanguage(for: currentModel)] ?? "Unknown"
+        }
+
         return getCurrentModelLanguages()[selectedLanguage] ?? "Unknown"
     }
 
@@ -66,6 +103,12 @@ struct LanguageSelectionView: View {
     private var fullView: some View {
         VStack(alignment: .leading, spacing: 16) {
             languageSelectionSection
+        }
+        .onAppear {
+            ensureSupportedLanguageSelection()
+        }
+        .onChange(of: transcriptionModelManager.currentTranscriptionModel?.name) { _, _ in
+            ensureSupportedLanguageSelection()
         }
     }
     
@@ -205,6 +248,12 @@ struct LanguageSelectionView: View {
                     updateLanguage("en")
                 }
             }
+        }
+        .onAppear {
+            ensureSupportedLanguageSelection()
+        }
+        .onChange(of: transcriptionModelManager.currentTranscriptionModel?.name) { _, _ in
+            ensureSupportedLanguageSelection()
         }
     }
 }

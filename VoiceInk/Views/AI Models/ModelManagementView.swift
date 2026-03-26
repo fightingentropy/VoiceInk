@@ -9,6 +9,7 @@ struct ModelManagementView: View {
     @EnvironmentObject private var transcriptionModelManager: TranscriptionModelManager
     @State private var customModelToEdit: CustomCloudModel?
     @StateObject private var customModelManager = CustomModelManager.shared
+    @StateObject private var cohereEnvironmentManager = CohereTranscribeEnvironmentManager.shared
     @StateObject private var whisperPrompt = WhisperPrompt()
     @ObservedObject private var warmupCoordinator = WhisperModelWarmupCoordinator.shared
 
@@ -133,6 +134,18 @@ struct ModelManagementView: View {
                                         }
                                     }
                                     isShowingDeleteAlert = true
+                                } else if model is LocalCohereTranscribeModel {
+                                    alertTitle = "Delete Model"
+                                    alertMessage = "Delete the Cohere runtime and cached model files for '\(model.displayName)'?"
+                                    deleteActionClosure = {
+                                        Task {
+                                            await cohereEnvironmentManager.deleteManagedAssets()
+                                            if transcriptionModelManager.currentTranscriptionModel?.name == model.name {
+                                                transcriptionModelManager.clearCurrentTranscriptionModel()
+                                            }
+                                        }
+                                    }
+                                    isShowingDeleteAlert = true
                                 }
                             },
                             setDefaultAction: {
@@ -191,7 +204,8 @@ struct ModelManagementView: View {
             "apple-speech",
             "parakeet-tdt-0.6b-v2",
             "parakeet-tdt-0.6b-v3",
-            "voxtral-mini-realtime-local"
+            "voxtral-mini-realtime-local",
+            "cohere-transcribe-03-2026-local"
         ]
         let currentModelName = transcriptionModelManager.currentTranscriptionModel?.name
         

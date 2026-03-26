@@ -52,6 +52,14 @@ struct ConfigurationView: View {
         }
         return model.provider == .parakeet
     }
+
+    private func defaultLanguage(for model: any TranscriptionModel) -> String {
+        if model.supportedLanguages["en"] != nil {
+            return "en"
+        }
+
+        return model.supportedLanguages.keys.sorted().first ?? "en"
+    }
     
     // TranscriptionModelManager for model selection
     @EnvironmentObject private var transcriptionModelManager: TranscriptionModelManager
@@ -271,11 +279,13 @@ struct ConfigurationView: View {
                         }
                     }
                     .onChange(of: selectedTranscriptionModelName) { _, newModelName in
-                        // Auto-set language to "auto" for models that only support auto-detection
                         if let modelName = newModelName ?? transcriptionModelManager.currentTranscriptionModel?.name,
-                           let model = transcriptionModelManager.allAvailableModels.first(where: { $0.name == modelName }),
-                           model.provider == .parakeet {
-                            selectedLanguage = "auto"
+                           let model = transcriptionModelManager.allAvailableModels.first(where: { $0.name == modelName }) {
+                            if model.provider == .parakeet {
+                                selectedLanguage = "auto"
+                            } else if model.supportedLanguages[selectedLanguage ?? ""] == nil {
+                                selectedLanguage = defaultLanguage(for: model)
+                            }
                         }
                     }
                 }
@@ -292,7 +302,12 @@ struct ConfigurationView: View {
                           let modelInfo = transcriptionModelManager.allAvailableModels.first(where: { $0.name == selectedModel }),
                           modelInfo.isMultilingualModel {
                     let languageBinding = Binding<String?>(
-                        get: { selectedLanguage ?? UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "auto" },
+                        get: {
+                            let candidate = selectedLanguage
+                                ?? UserDefaults.standard.string(forKey: "SelectedLanguage")
+                                ?? defaultLanguage(for: modelInfo)
+                            return modelInfo.supportedLanguages[candidate] == nil ? defaultLanguage(for: modelInfo) : candidate
+                        },
                         set: { selectedLanguage = $0 }
                     )
 
@@ -303,6 +318,11 @@ struct ConfigurationView: View {
                             return $0.value < $1.value
                         }), id: \.key) { key, value in
                             Text(value).tag(key as String?)
+                        }
+                    }
+                    .onAppear {
+                        if modelInfo.supportedLanguages[selectedLanguage ?? ""] == nil {
+                            selectedLanguage = defaultLanguage(for: modelInfo)
                         }
                     }
                 } else if let selectedModel = effectiveModelName,

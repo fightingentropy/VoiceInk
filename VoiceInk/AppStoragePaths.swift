@@ -35,6 +35,24 @@ enum AppStoragePaths {
             .appendingPathComponent("Voxtral", isDirectory: true)
     }
 
+    static var cohereTranscribeDirectory: URL {
+        applicationSupportDirectory
+            .appendingPathComponent("Models", isDirectory: true)
+            .appendingPathComponent("CohereTranscribe", isDirectory: true)
+    }
+
+    static var cohereTranscribeRuntimeDirectory: URL {
+        cohereTranscribeDirectory.appendingPathComponent("Runtime", isDirectory: true)
+    }
+
+    static var cohereTranscribeCacheDirectory: URL {
+        cohereTranscribeDirectory.appendingPathComponent("HuggingFace", isDirectory: true)
+    }
+
+    static var cohereTranscribeTorchCompileCacheDirectory: URL {
+        cohereTranscribeRuntimeDirectory.appendingPathComponent("TorchInductor", isDirectory: true)
+    }
+
     static var customSoundsDirectory: URL {
         applicationSupportDirectory.appendingPathComponent("CustomSounds", isDirectory: true)
     }

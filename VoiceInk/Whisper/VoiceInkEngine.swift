@@ -217,6 +217,8 @@ class VoiceInkEngine: NSObject, ObservableObject {
                                         modelReference: LocalVoxtralConfiguration.modelName,
                                         autoDownload: true
                                     )
+                                } else if let cohereModel = model as? LocalCohereTranscribeModel {
+                                    try? await self.serviceRegistry.cohereTranscribeTranscriptionService.prepareModel(for: cohereModel)
                                 }
 
                                 if let enhancementService = self.enhancementService {
@@ -296,6 +298,10 @@ class VoiceInkEngine: NSObject, ObservableObject {
         let keptVoxtralModels: Set<String> =
             model?.provider == .localVoxtral ? [LocalVoxtralConfiguration.modelName] : []
         await VoxtralNativeRuntime.shared.unloadAllUnusedPreparedStates(keeping: keptVoxtralModels)
+
+        if model?.provider != .cohereTranscribe {
+            await serviceRegistry.cohereTranscribeTranscriptionService.cleanup()
+        }
     }
 
     func prewarmCurrentLocalModel(using audioURL: URL) async throws {
@@ -321,11 +327,17 @@ class VoiceInkEngine: NSObject, ObservableObject {
                 modelReference: LocalVoxtralConfiguration.modelName,
                 autoDownload: true
             )
+        case .cohereTranscribe:
+            guard let cohereModel = model as? LocalCohereTranscribeModel else { return }
+            try await serviceRegistry.cohereTranscribeTranscriptionService.warmup(
+                for: cohereModel,
+                using: audioURL
+            )
         default:
             return
         }
 
-        if model.provider != .localVoxtral {
+        if model.provider != .localVoxtral && model.provider != .cohereTranscribe {
             _ = try await serviceRegistry.transcribe(audioURL: audioURL, model: model)
         }
     }
