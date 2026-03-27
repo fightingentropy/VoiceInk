@@ -138,7 +138,11 @@ class RecorderUIManager: ObservableObject {
             isMiniRecorderVisible = false
         }
 
-        await engine.cleanupResources()
+        let retainedModel = retainableLocalModel(from: engine)
+        await engine.retainOnlyLocalModelResources(for: retainedModel)
+        if retainedModel != nil {
+            NotificationCenter.default.post(name: .localModelDidUse, object: nil)
+        }
 
         if UserDefaults.standard.bool(forKey: PowerModeDefaults.autoRestoreKey) {
             await PowerModeSessionManager.shared.endSession()
@@ -203,6 +207,19 @@ class RecorderUIManager: ObservableObject {
         logger.notice("handleDismissMiniRecorder: .dismissMiniRecorder notification received")
         Task {
             await dismissMiniRecorder()
+        }
+    }
+
+    private func retainableLocalModel(from engine: VoiceInkEngine) -> (any TranscriptionModel)? {
+        guard let model = engine.transcriptionModelManager.currentTranscriptionModel else {
+            return nil
+        }
+
+        switch model.provider {
+        case .local, .parakeet, .localVoxtral, .cohereTranscribe:
+            return model
+        default:
+            return nil
         }
     }
 }

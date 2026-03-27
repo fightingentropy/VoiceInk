@@ -19,5 +19,5 @@ extension Notification.Name {
     static let openFileForTranscription = Notification.Name("openFileForTranscription")
     static let audioDeviceSwitchRequired = Notification.Name("audioDeviceSwitchRequired")
     static let localModelDidUse = Notification.Name("localModelDidUse")
-    static let cohereTranscribeSetupDidChange = Notification.Name("cohereTranscribeSetupDidChange")
+    static let cohereTranscribeAvailabilityDidChange = Notification.Name("cohereTranscribeAvailabilityDidChange")
 }

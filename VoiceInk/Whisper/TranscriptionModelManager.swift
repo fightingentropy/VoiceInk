@@ -9,7 +9,7 @@ class TranscriptionModelManager: ObservableObject {
 
     private weak var whisperModelManager: WhisperModelManager?
     private weak var parakeetModelManager: ParakeetModelManager?
-    private var cohereSetupObserverTask: Task<Void, Never>?
+    private var cohereAvailabilityObserverTask: Task<Void, Never>?
 
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "TranscriptionModelManager")
 
@@ -41,8 +41,8 @@ class TranscriptionModelManager: ObservableObject {
             }
         }
 
-        cohereSetupObserverTask = Task { [weak self] in
-            for await _ in NotificationCenter.default.notifications(named: .cohereTranscribeSetupDidChange) {
+        cohereAvailabilityObserverTask = Task { [weak self] in
+            for await _ in NotificationCenter.default.notifications(named: .cohereTranscribeAvailabilityDidChange) {
                 guard !Task.isCancelled else { break }
                 await MainActor.run {
                     self?.refreshAllAvailableModels()
@@ -69,7 +69,7 @@ class TranscriptionModelManager: ObservableObject {
             case .localVoxtral:
                 return true
             case .cohereTranscribe:
-                return CohereTranscribeEnvironmentManager.shared.isConfigured
+                return CohereNativeModelManager.shared.isModelDownloaded()
             case .elevenLabs:
                 return APIKeyManager.shared.hasAPIKey(forProvider: "ElevenLabs")
             case .custom:
@@ -172,6 +172,6 @@ class TranscriptionModelManager: ObservableObject {
     }
 
     deinit {
-        cohereSetupObserverTask?.cancel()
+        cohereAvailabilityObserverTask?.cancel()
     }
 }

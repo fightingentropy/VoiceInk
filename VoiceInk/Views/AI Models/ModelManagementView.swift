@@ -9,7 +9,6 @@ struct ModelManagementView: View {
     @EnvironmentObject private var transcriptionModelManager: TranscriptionModelManager
     @State private var customModelToEdit: CustomCloudModel?
     @StateObject private var customModelManager = CustomModelManager.shared
-    @StateObject private var cohereEnvironmentManager = CohereTranscribeEnvironmentManager.shared
     @StateObject private var whisperPrompt = WhisperPrompt()
     @ObservedObject private var warmupCoordinator = WhisperModelWarmupCoordinator.shared
 
@@ -136,10 +135,10 @@ struct ModelManagementView: View {
                                     isShowingDeleteAlert = true
                                 } else if model is LocalCohereTranscribeModel {
                                     alertTitle = "Delete Model"
-                                    alertMessage = "Delete the Cohere runtime and cached model files for '\(model.displayName)'?"
+                                    alertMessage = "Delete the local MLX model files for '\(model.displayName)'?"
                                     deleteActionClosure = {
                                         Task {
-                                            await cohereEnvironmentManager.deleteManagedAssets()
+                                            await CohereNativeModelManager.shared.deleteManagedAssets()
                                             if transcriptionModelManager.currentTranscriptionModel?.name == model.name {
                                                 transcriptionModelManager.clearCurrentTranscriptionModel()
                                             }

@@ -93,5 +93,8 @@ class TranscriptionServiceRegistry {
 
     func cleanup() {
         parakeetTranscriptionService.cleanup()
+        Task {
+            await cohereTranscribeTranscriptionService.cleanup()
+        }
     }
 }
