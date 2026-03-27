@@ -141,9 +141,9 @@ import Foundation
         ),
         LocalCohereTranscribeModel(
             name: "cohere-transcribe-03-2026-local",
-            displayName: "Cohere Transcribe (Local MPS)",
+            displayName: "Cohere Transcribe (Local MLX)",
             size: "4.1 GB",
-            description: "Runs locally through a persistent Apple Silicon runtime for high-accuracy batch transcription. Requires Hugging Face model access.",
+            description: "Runs locally on Apple Silicon with native MLX inference for high-accuracy batch transcription.",
             speed: 0.94,
             accuracy: 0.99,
             isMultilingualModel: true,

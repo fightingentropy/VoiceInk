@@ -9,6 +9,11 @@ enum AppStoragePaths {
         return baseDirectory.appendingPathComponent(appSupportFolderName, isDirectory: true)
     }
 
+    static var cachesDirectory: URL {
+        let baseDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        return baseDirectory.appendingPathComponent(appSupportFolderName, isDirectory: true)
+    }
+
     static var recordingsDirectory: URL {
         applicationSupportDirectory.appendingPathComponent("Recordings", isDirectory: true)
     }
@@ -41,16 +46,8 @@ enum AppStoragePaths {
             .appendingPathComponent("CohereTranscribe", isDirectory: true)
     }
 
-    static var cohereTranscribeRuntimeDirectory: URL {
-        cohereTranscribeDirectory.appendingPathComponent("Runtime", isDirectory: true)
-    }
-
-    static var cohereTranscribeCacheDirectory: URL {
-        cohereTranscribeDirectory.appendingPathComponent("HuggingFace", isDirectory: true)
-    }
-
-    static var cohereTranscribeTorchCompileCacheDirectory: URL {
-        cohereTranscribeRuntimeDirectory.appendingPathComponent("TorchInductor", isDirectory: true)
+    static var cohereTranscribeNativeDirectory: URL {
+        cohereTranscribeDirectory.appendingPathComponent("NativeMLX", isDirectory: true)
     }
 
     static var customSoundsDirectory: URL {

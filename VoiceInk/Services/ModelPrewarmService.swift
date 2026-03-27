@@ -45,6 +45,7 @@ final class ModelPrewarmService: ObservableObject {
     private let warmRetentionKey = "LocalModelWarmRetentionSeconds"
     private var unloadTask: Task<Void, Never>?
     private var modelChangeTask: Task<Void, Never>?
+    private static let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
 
     init(engine: VoiceInkEngine) {
         self.engine = engine
@@ -155,15 +156,19 @@ final class ModelPrewarmService: ObservableObject {
     // MARK: - Validation
 
     private func shouldPrewarm() -> Bool {
-        // Check if user has enabled prewarming
-        let isEnabled = UserDefaults.standard.bool(forKey: prewarmEnabledKey)
-        guard isEnabled else {
-            logger.notice("Prewarm disabled by user")
+        guard !Self.isRunningTests else {
+            logger.notice("Skipping prewarm while running under XCTest")
             return false
         }
 
-        // Only prewarm local models.
         guard let model = engine.transcriptionModelManager.currentTranscriptionModel else {
+            return false
+        }
+
+        let isEnabled = UserDefaults.standard.bool(forKey: prewarmEnabledKey)
+        let shouldForceCoherePrewarm = model.provider == .cohereTranscribe
+        guard isEnabled || shouldForceCoherePrewarm else {
+            logger.notice("Prewarm disabled by user")
             return false
         }
 

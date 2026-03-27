@@ -7,29 +7,38 @@ struct LocalCohereTranscribeModelCardView: View {
     var deleteAction: () -> Void
     var setDefaultAction: () -> Void
 
-    @EnvironmentObject private var transcriptionModelManager: TranscriptionModelManager
-    @ObservedObject private var environmentManager = CohereTranscribeEnvironmentManager.shared
+    @ObservedObject private var nativeModelManager = CohereNativeModelManager.shared
 
-    @State private var isExpanded = false
-    @State private var accessToken = ""
-    @State private var isVerifyingToken = false
-    @State private var verificationError: String?
-    @State private var verificationSucceeded = false
-
-    private var modelDirectoryExists: Bool {
-        FileManager.default.fileExists(atPath: environmentManager.modelAssetsDirectory.path)
+    private var availability: CohereNativeModelLocator.Availability {
+        nativeModelManager.availability()
     }
 
-    private var isConfigured: Bool {
-        environmentManager.isConfigured
+    private var downloadState: CohereNativeModelManager.DownloadState {
+        nativeModelManager.downloadState()
     }
 
-    private var runtimeInstalled: Bool {
-        environmentManager.isRuntimeInstalled
+    private var isDownloaded: Bool {
+        nativeModelManager.isModelDownloaded()
     }
 
-    private var hasSavedToken: Bool {
-        environmentManager.hasHuggingFaceAccessToken
+    private var isDownloading: Bool {
+        downloadState == .downloading
+    }
+
+    private var modelDirectoryURL: URL? {
+        switch availability {
+        case .appManaged(let url), .externalLocalPath(let url):
+            return url
+        case .missing:
+            return nil
+        }
+    }
+
+    private var isAppManaged: Bool {
+        if case .appManaged = availability {
+            return true
+        }
+        return false
     }
 
     var body: some View {
@@ -46,20 +55,18 @@ struct LocalCohereTranscribeModelCardView: View {
             }
             .padding(16)
 
-            if isExpanded {
+            if let errorMessage = downloadState.errorMessage {
                 Divider()
                     .padding(.horizontal, 16)
 
-                configurationSection
-                    .padding(16)
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundColor(Color(.systemRed))
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
             }
         }
         .background(CardBackground(isSelected: isCurrent, useAccentGradientWhenSelected: isCurrent))
-        .onAppear {
-            if let savedToken = APIKeyManager.shared.getAPIKey(forProvider: LocalCohereTranscribeConfiguration.huggingFaceProviderName) {
-                accessToken = savedToken
-            }
-        }
     }
 
     private var headerSection: some View {
@@ -78,12 +85,12 @@ struct LocalCohereTranscribeModelCardView: View {
         Group {
             if isCurrent {
                 badge("Default", color: Color.accentColor, textColor: .white)
-            } else if environmentManager.installState == .installing {
-                badge("Installing", color: Color(.systemOrange).opacity(0.18), textColor: Color(.systemOrange))
-            } else if isConfigured {
-                badge("Ready", color: Color(.systemGreen).opacity(0.18), textColor: Color(.systemGreen))
+            } else if isDownloading {
+                badge("Downloading", color: Color(.systemOrange).opacity(0.18), textColor: Color(.systemOrange))
+            } else if isDownloaded {
+                badge("Downloaded", color: Color(.quaternaryLabelColor), textColor: Color(.labelColor))
             } else {
-                badge("Setup Required", color: Color(.systemOrange).opacity(0.18), textColor: Color(.systemOrange))
+                EmptyView()
             }
         }
     }
@@ -148,7 +155,7 @@ struct LocalCohereTranscribeModelCardView: View {
                 Text("Default Model")
                     .font(.system(size: 12))
                     .foregroundColor(Color(.secondaryLabelColor))
-            } else if isConfigured {
+            } else if isDownloaded {
                 Button(action: setDefaultAction) {
                     Text("Set as Default")
                         .font(.system(size: 12))
@@ -156,15 +163,21 @@ struct LocalCohereTranscribeModelCardView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
             } else {
-                Button(action: {
-                    withAnimation(.interpolatingSpring(stiffness: 170, damping: 20)) {
-                        isExpanded.toggle()
+                Button {
+                    Task {
+                        await nativeModelManager.downloadModelIfNeeded()
                     }
-                }) {
-                    HStack(spacing: 4) {
-                        Text("Configure")
-                            .font(.system(size: 12, weight: .medium))
-                        Image(systemName: "gear")
+                } label: {
+                    HStack(spacing: 6) {
+                        if isDownloading {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                                .frame(width: 12, height: 12)
+                        } else {
+                            Image(systemName: "arrow.down.circle")
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                        Text(isDownloading ? "Downloading..." : "Download")
                             .font(.system(size: 12, weight: .medium))
                     }
                     .foregroundColor(.white)
@@ -177,30 +190,20 @@ struct LocalCohereTranscribeModelCardView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .disabled(isDownloading)
             }
 
-            if runtimeInstalled || hasSavedToken || modelDirectoryExists {
+            if modelDirectoryURL != nil {
                 Menu {
-                    if hasSavedToken {
-                        Button {
-                            environmentManager.clearAccessToken()
-                            verificationSucceeded = false
-                            verificationError = nil
-                            if isCurrent {
-                                transcriptionModelManager.clearCurrentTranscriptionModel()
-                            }
-                        } label: {
-                            Label("Remove Hugging Face Token", systemImage: "key.slash")
+                    if isAppManaged {
+                        Button(action: deleteAction) {
+                            Label("Delete Model", systemImage: "trash")
                         }
                     }
 
-                    if modelDirectoryExists {
-                        Button(action: deleteAction) {
-                            Label("Delete Runtime and Cache", systemImage: "trash")
-                        }
-
+                    if let modelDirectoryURL {
                         Button {
-                            NSWorkspace.shared.activateFileViewerSelecting([environmentManager.modelAssetsDirectory])
+                            NSWorkspace.shared.activateFileViewerSelecting([modelDirectoryURL])
                         } label: {
                             Label("Show in Finder", systemImage: "folder")
                         }
@@ -212,142 +215,6 @@ struct LocalCohereTranscribeModelCardView: View {
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
                 .frame(width: 20, height: 20)
-            }
-        }
-    }
-
-    private var configurationSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Local Setup")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(Color(.labelColor))
-
-            Text("Cohere Transcribe is a gated Hugging Face model. Accept access on Hugging Face once, save a token here, then install the local runtime.")
-                .font(.caption)
-                .foregroundColor(Color(.secondaryLabelColor))
-
-            Link("Open Cohere Transcribe on Hugging Face", destination: URL(string: "https://huggingface.co/CohereLabs/cohere-transcribe-03-2026")!)
-                .font(.caption)
-
-            HStack(spacing: 8) {
-                SecureField("Enter your Hugging Face access token", text: $accessToken)
-                    .textFieldStyle(.roundedBorder)
-                    .disabled(isVerifyingToken)
-
-                Button(action: verifyAndSaveToken) {
-                    HStack(spacing: 4) {
-                        if isVerifyingToken {
-                            ProgressView()
-                                .scaleEffect(0.7)
-                                .frame(width: 12, height: 12)
-                        } else {
-                            Image(systemName: verificationSucceeded ? "checkmark" : "checkmark.shield")
-                                .font(.system(size: 12, weight: .medium))
-                        }
-                        Text(isVerifyingToken ? "Verifying..." : "Verify")
-                            .font(.system(size: 12, weight: .medium))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(verificationSucceeded ? Color(.systemGreen) : Color(.controlAccentColor))
-                    )
-                }
-                .buttonStyle(.plain)
-                .disabled(accessToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isVerifyingToken)
-            }
-
-            if verificationSucceeded {
-                Text("Hugging Face access verified.")
-                    .font(.caption)
-                    .foregroundColor(Color(.systemGreen))
-            } else if let verificationError {
-                Text(verificationError)
-                    .font(.caption)
-                    .foregroundColor(Color(.systemRed))
-            } else if hasSavedToken {
-                Text("A Hugging Face token is already saved.")
-                    .font(.caption)
-                    .foregroundColor(Color(.systemGreen))
-            }
-
-            HStack(spacing: 8) {
-                Button {
-                    Task {
-                        await environmentManager.installRuntimeIfNeeded()
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        if environmentManager.installState == .installing {
-                            ProgressView()
-                                .scaleEffect(0.7)
-                                .frame(width: 12, height: 12)
-                        } else {
-                            Image(systemName: runtimeInstalled ? "checkmark.circle" : "arrow.down.circle")
-                                .font(.system(size: 12, weight: .medium))
-                        }
-                        Text(installButtonTitle)
-                            .font(.system(size: 12, weight: .medium))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(runtimeInstalled ? Color(.systemGreen) : Color(.controlAccentColor))
-                    )
-                }
-                .buttonStyle(.plain)
-                .disabled(environmentManager.installState == .installing)
-
-                if runtimeInstalled {
-                    Text("Runtime ready")
-                        .font(.caption)
-                        .foregroundColor(Color(.systemGreen))
-                }
-            }
-
-            if let installError = environmentManager.installState.errorMessage {
-                Text(installError)
-                    .font(.caption)
-                    .foregroundColor(Color(.systemRed))
-            }
-        }
-    }
-
-    private var installButtonTitle: String {
-        switch environmentManager.installState {
-        case .installing:
-            return "Installing..."
-        case .installed:
-            return "Runtime Installed"
-        default:
-            return "Install Runtime"
-        }
-    }
-
-    private func verifyAndSaveToken() {
-        let trimmedToken = accessToken.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedToken.isEmpty else { return }
-
-        isVerifyingToken = true
-        verificationError = nil
-        verificationSucceeded = false
-
-        Task {
-            do {
-                try await environmentManager.verifyAndSaveAccessToken(trimmedToken)
-                await MainActor.run {
-                    verificationSucceeded = true
-                    isVerifyingToken = false
-                }
-            } catch {
-                await MainActor.run {
-                    verificationError = error.localizedDescription
-                    isVerifyingToken = false
-                }
             }
         }
     }

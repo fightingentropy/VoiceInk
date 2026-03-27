@@ -62,7 +62,7 @@ Build VoiceInk locally by following [BUILDING.md](BUILDING.md). The project incl
 
 ## Model Runtime Matrix
 
-VoiceInk supports a mix of native local runtimes, managed local runtimes, and cloud providers. They are not all implemented the same way.
+VoiceInk supports a mix of native local runtimes and cloud providers. They are not all implemented the same way.
 
 | Model family | Runs where | Runtime | Notes |
 | --- | --- | --- | --- |
@@ -70,17 +70,12 @@ VoiceInk supports a mix of native local runtimes, managed local runtimes, and cl
 | Voxtral Realtime (Local MLX) | On-device | Native MLX | Apple Silicon path for low-latency realtime transcription. |
 | Parakeet V2 / V3 | On-device | Native Core ML via FluidAudio | Local runtime with on-device batch and streaming support. |
 | Apple Speech | On-device | Native Apple Speech framework | Uses Apple's Speech APIs when built and run with the required macOS/SDK support. |
-| Cohere Transcribe (Local MPS) | On-device | Managed Python/PyTorch `mps` runtime | Local, but not native MLX/Core ML. Requires Hugging Face access to the gated model and installs its own runtime on first setup. |
+| Cohere Transcribe (Local MLX) | On-device | Native MLX | Local Apple Silicon path for high-accuracy batch transcription. |
 | ElevenLabs Scribe / custom API models | Cloud | Remote API | Audio leaves the device and is transcribed by the configured provider. |
 
 ### Cohere Transcribe Note
 
-`Cohere Transcribe (Local MPS)` is local, but it is currently not a native Apple runtime inside VoiceInk. It runs through a persistent Apple Silicon `mps` worker because Cohere's open release does not currently ship with an MLX/Core ML runtime in this app. That means:
-
-- it stays on-device once configured
-- it requires Hugging Face model access and a saved token
-- it installs a managed Python runtime the first time you enable it
-- it is optimized for Apple Silicon, but it is architecturally different from the native MLX/Core ML paths used by Voxtral and Parakeet
+`Cohere Transcribe (Local MLX)` now runs through the app's native MLX path on Apple Silicon. It downloads MLX model assets directly and no longer depends on the older Python/PyTorch `mps` worker or a saved Hugging Face access token inside VoiceInk.
 
 ## Documentation
 

@@ -1,16 +1,7 @@
 import Foundation
 
 enum LocalCohereTranscribeConfiguration {
-    static let modelNameKey = "LocalCohereTranscribeModelName"
-    static let defaultModelName = "CohereLabs/cohere-transcribe-03-2026"
-    static let runtimeVersion = 1
-    static let huggingFaceProviderName = "HuggingFace"
-    static let workerScriptName = "cohere_transcribe_worker"
+    static let nativeModelRepository = "beshkenadze/cohere-transcribe-03-2026-mlx-fp16"
+    static let nativeModelRevision = "06bbe0d853a93cbbf7c1f40cffccd4c5481459ef"
     static let fallbackLanguage = "en"
-
-    static var modelName: String {
-        let stored = UserDefaults.standard.string(forKey: modelNameKey)?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return stored?.isEmpty == false ? stored! : defaultModelName
-    }
 }
