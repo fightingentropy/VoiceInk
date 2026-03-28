@@ -51,6 +51,12 @@ struct BenchmarkSettingsSectionView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
+            if benchmarkStore.selectedCorpusSource == .recentRecordings {
+                Text("Recent Recordings is best for practical latency checks on your own speech. Treat its accuracy numbers as source-transcript agreement, not neutral ground truth.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             HStack(spacing: 12) {
                 Button(benchmarkStore.isRunning ? "Running…" : "Run Benchmarks") {
                     benchmarkStore.runBenchmarks(

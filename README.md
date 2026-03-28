@@ -66,7 +66,7 @@ VoiceInk supports a mix of native local runtimes and cloud providers. They are n
 
 | Model family | Runs where | Runtime | Notes |
 | --- | --- | --- | --- |
-| Whisper Large v3 Turbo (built-in preset) | On-device | Native WhisperKit + Core ML | Fastest Apple Silicon Whisper path in the current app, with direct recorder PCM input and model prewarm. |
+| Whisper Large v3 Turbo (built-in preset) | On-device | Native WhisperKit + Core ML | High-performance open-source Whisper path for Apple Silicon, with direct recorder PCM input and model prewarm. |
 | Voxtral Realtime (Local MLX) | On-device | Native MLX | Apple Silicon path for low-latency realtime transcription. |
 | Parakeet V2 / V3 | On-device | Native Core ML via FluidAudio | Local runtime with on-device batch and streaming support. |
 | Apple Speech | On-device | Native Apple Speech framework | Uses Apple's Speech APIs when built and run with the required macOS/SDK support. |
@@ -89,7 +89,7 @@ VoiceInk now includes an in-app benchmark suite in `Models > Settings`. It is de
 - Cloud/API models are intentionally excluded from this suite because network latency and provider-side changes make them poor local baselines.
 - Two corpus sources are supported:
   - `Standard Corpus`: a fixed synthetic phrase set generated once and reused for consistent model-to-model comparisons.
-  - `Recent Recordings`: completed VoiceInk recordings captured into the app-managed benchmark corpus.
+  - `Recent Recordings`: completed VoiceInk recordings captured into the app-managed benchmark corpus. This is useful for real-world latency checks on your own speech, but its accuracy numbers reflect agreement with the saved transcript text for those recordings rather than neutral hand-labeled ground truth.
 - Benchmark reports are saved under the app's benchmark directory as both JSON and Markdown so later runs can be compared, shared, or checked into notes without extra scripting.
 
 When adding a new on-device model in the future, it should expose an on-device benchmark path so it joins the same suite instead of requiring one-off scripts.
