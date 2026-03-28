@@ -70,12 +70,14 @@ VoiceInk supports a mix of native local runtimes and cloud providers. They are n
 | Voxtral Realtime (Local MLX) | On-device | Native MLX | Apple Silicon path for low-latency realtime transcription. |
 | Parakeet V2 / V3 | On-device | Native Core ML via FluidAudio | Local runtime with on-device batch and streaming support. |
 | Apple Speech | On-device | Native Apple Speech framework | Uses Apple's Speech APIs when built and run with the required macOS/SDK support. |
-| Cohere Transcribe (Local MLX) | On-device | Native MLX | Local Apple Silicon path for high-accuracy batch transcription. |
+| Cohere Transcribe (Local MLX) | On-device | Native MLX | Local Apple Silicon path for high-accuracy live recorder transcription. Imported audio and retranscription stay on the file-capable model paths. |
 | ElevenLabs Scribe / custom API models | Cloud | Remote API | Audio leaves the device and is transcribed by the configured provider. |
 
 ### Cohere Transcribe Note
 
 `Cohere Transcribe (Local MLX)` now runs through the app's native MLX path on Apple Silicon. It downloads MLX model assets directly and no longer depends on the older Python/PyTorch `mps` worker or a saved Hugging Face access token inside VoiceInk.
+
+In the current app architecture, Cohere is a live-recorder model only. Imported audio transcription and history retranscription continue to use the file-capable model paths such as Whisper, Parakeet, Apple Speech, or cloud providers.
 
 ## Documentation
 
