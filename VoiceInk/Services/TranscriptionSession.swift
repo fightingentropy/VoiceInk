@@ -74,24 +74,21 @@ final class FileTranscriptionSession: TranscriptionSession {
 
 // MARK: - Streaming Session
 
-/// Streaming session with automatic fallback to file-based upload on failure.
+/// Streaming session with automatic fallback to file-based transcription when available.
 @MainActor
 final class StreamingTranscriptionSession: TranscriptionSession {
     private let streamingService: StreamingTranscriptionService
     private let fallbackService: (any TranscriptionService)?
-    private let fallbackModel: (any TranscriptionModel)?
     private var model: (any TranscriptionModel)?
     private var streamingFailed = false
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "StreamingTranscriptionSession")
 
     init(
         streamingService: StreamingTranscriptionService,
-        fallbackService: (any TranscriptionService)?,
-        fallbackModel: (any TranscriptionModel)? = nil
+        fallbackService: (any TranscriptionService)?
     ) {
         self.streamingService = streamingService
         self.fallbackService = fallbackService
-        self.fallbackModel = fallbackModel
     }
 
     func prepare(model: any TranscriptionModel) async throws -> (@Sendable (Data) -> Void)? {
@@ -132,13 +129,11 @@ final class StreamingTranscriptionSession: TranscriptionSession {
             streamingService.cancel()
         }
 
-        // Use fallbackModel if set — streaming-only models are rejected by the batch REST API.
-        let modelForFallback = fallbackModel ?? model
         guard let fallbackService else {
             throw StreamingTranscriptionSessionError.batchFallbackUnavailable(modelName: model.displayName)
         }
-        logger.notice("Using batch fallback for \(model.displayName, privacy: .public) with model \(modelForFallback.displayName, privacy: .public)")
-        return try await fallbackService.transcribe(audioURL: audioURL, model: modelForFallback)
+        logger.notice("Using file-based fallback for \(model.displayName, privacy: .public)")
+        return try await fallbackService.transcribe(audioURL: audioURL, model: model)
     }
 
     func cancel() {

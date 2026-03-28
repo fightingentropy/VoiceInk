@@ -13,8 +13,8 @@ enum TranscriptionCapabilityError: LocalizedError {
 
 protocol RecorderTranscriptionService: AnyObject, Sendable {}
 
-/// A protocol defining the interface for a transcription service.
-/// This allows for a unified way to handle both local and cloud-based transcription models.
+/// File-capable transcription services implement this protocol.
+/// Recorder-only models such as Cohere and Voxtral intentionally do not conform.
 protocol TranscriptionService: RecorderTranscriptionService {
     /// Transcribes the audio from a given file URL.
     ///

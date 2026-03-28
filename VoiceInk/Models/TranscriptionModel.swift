@@ -35,6 +35,7 @@ extension TranscriptionModel {
         isMultilingualModel ? "Multilingual" : "English-only"
     }
 
+    // Cohere and Voxtral are live-recorder paths in the current app and do not accept file imports/retranscription.
     var supportsAudioFileTranscription: Bool {
         provider != .cohereTranscribe && provider != .localVoxtral
     }

@@ -55,17 +55,14 @@ class TranscriptionServiceRegistry {
     }
 
     func transcribe(audioURL: URL, model: any TranscriptionModel) async throws -> String {
-        let effectiveModel = batchFallbackModel(for: model) ?? model
-        guard effectiveModel.supportsAudioFileTranscription else {
-            throw TranscriptionCapabilityError.audioFileInputUnsupported(modelName: effectiveModel.displayName)
+        guard model.supportsAudioFileTranscription else {
+            throw TranscriptionCapabilityError.audioFileInputUnsupported(modelName: model.displayName)
         }
-        let service = fileService(for: effectiveModel.provider)
-        logger.debug("Transcribing with \(effectiveModel.displayName, privacy: .public) using \(String(describing: type(of: service)), privacy: .public)")
-        let text = try await service.transcribe(audioURL: audioURL, model: effectiveModel)
+        let service = fileService(for: model.provider)
+        logger.debug("Transcribing with \(model.displayName, privacy: .public) using \(String(describing: type(of: service)), privacy: .public)")
+        let text = try await service.transcribe(audioURL: audioURL, model: model)
 
-        if effectiveModel.provider == .local
-            || effectiveModel.provider == .parakeet
-            || effectiveModel.provider == .cohereTranscribe {
+        if model.provider == .local || model.provider == .parakeet {
             NotificationCenter.default.post(name: .localModelDidUse, object: nil)
         }
 
@@ -78,26 +75,13 @@ class TranscriptionServiceRegistry {
             let streamingService = StreamingTranscriptionService(
                 onPartialTranscript: onPartialTranscript
             )
-            let fallbackModel = batchFallbackModel(for: model) ?? model
-            let fallbackService = fallbackModel.supportsAudioFileTranscription ? fileService(for: fallbackModel.provider) : nil
-            let effectiveFallbackModel = fallbackService == nil ? nil : fallbackModel
+            let fallbackService = model.supportsAudioFileTranscription ? fileService(for: model.provider) : nil
             return StreamingTranscriptionSession(
                 streamingService: streamingService,
-                fallbackService: fallbackService,
-                fallbackModel: effectiveFallbackModel
+                fallbackService: fallbackService
             )
         } else {
             return FileTranscriptionSession(service: recorderService(for: model.provider))
-        }
-    }
-
-    // Maps streaming-only models to a batch-compatible equivalent for fallback.
-    private func batchFallbackModel(for model: any TranscriptionModel) -> (any TranscriptionModel)? {
-        switch (model.provider, model.name) {
-        case (.localVoxtral, "voxtral-mini-realtime-local"):
-            return nil
-        default:
-            return nil
         }
     }
 

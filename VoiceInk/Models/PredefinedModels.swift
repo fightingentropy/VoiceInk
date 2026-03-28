@@ -143,7 +143,7 @@ import Foundation
             name: "cohere-transcribe-03-2026-local",
             displayName: "Cohere Transcribe (Local MLX)",
             size: "4.1 GB",
-            description: "Runs locally on Apple Silicon with native MLX inference for high-accuracy batch transcription.",
+            description: "Runs locally on Apple Silicon with native MLX inference for high-accuracy live recorder transcription.",
             speed: 0.94,
             accuracy: 0.99,
             isMultilingualModel: true,
