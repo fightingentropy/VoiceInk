@@ -66,18 +66,33 @@ VoiceInk supports a mix of native local runtimes and cloud providers. They are n
 
 | Model family | Runs where | Runtime | Notes |
 | --- | --- | --- | --- |
-| Whisper local models | On-device | Native `whisper.cpp` runtime | Uses the bundled `whisper` C runtime. Supported models can also download an optional Core ML encoder on Apple Silicon. |
+| Whisper Large v3 Turbo (built-in preset) | On-device | Native WhisperKit + Core ML | Fastest Apple Silicon Whisper path in the current app, with direct recorder PCM input and model prewarm. |
 | Voxtral Realtime (Local MLX) | On-device | Native MLX | Apple Silicon path for low-latency realtime transcription. |
 | Parakeet V2 / V3 | On-device | Native Core ML via FluidAudio | Local runtime with on-device batch and streaming support. |
 | Apple Speech | On-device | Native Apple Speech framework | Uses Apple's Speech APIs when built and run with the required macOS/SDK support. |
 | Cohere Transcribe (Local MLX) | On-device | Native MLX | Local Apple Silicon path for high-accuracy live recorder transcription. Imported audio and retranscription stay on the file-capable model paths. |
 | ElevenLabs Scribe / custom API models | Cloud | Remote API | Audio leaves the device and is transcribed by the configured provider. |
 
+The built-in downloadable Whisper preset is `Whisper Large v3 Turbo`. It downloads the WhisperKit/Core ML Apple Silicon package and is the app's only local Whisper implementation.
+
 ### Cohere Transcribe Note
 
 `Cohere Transcribe (Local MLX)` now runs through the app's native MLX path on Apple Silicon. It downloads MLX model assets directly and no longer depends on the older Python/PyTorch `mps` worker or a saved Hugging Face access token inside VoiceInk.
 
 In the current app architecture, Cohere is a live-recorder model only. Imported audio transcription and history retranscription continue to use the file-capable model paths such as Whisper, Parakeet, Apple Speech, or cloud providers.
+
+## Benchmark Suite
+
+VoiceInk now includes an in-app benchmark suite in `Models > Settings`. It is designed to give the current on-device models a stable baseline and keep comparable results around for future model additions.
+
+- The suite benchmarks the current on-device model families: Whisper, Voxtral, Parakeet, Apple Speech, and Cohere.
+- Cloud/API models are intentionally excluded from this suite because network latency and provider-side changes make them poor local baselines.
+- Two corpus sources are supported:
+  - `Standard Corpus`: a fixed synthetic phrase set generated once and reused for consistent model-to-model comparisons.
+  - `Recent Recordings`: completed VoiceInk recordings captured into the app-managed benchmark corpus.
+- Benchmark reports are saved under the app's benchmark directory as both JSON and Markdown so later runs can be compared, shared, or checked into notes without extra scripting.
+
+When adding a new on-device model in the future, it should expose an on-device benchmark path so it joins the same suite instead of requiring one-off scripts.
 
 ## Documentation
 
@@ -117,7 +132,7 @@ If you encounter any issues or have questions, please:
 ## Acknowledgments
 
 ### Core Technology
-- [whisper.cpp](https://github.com/ggerganov/whisper.cpp) - High-performance inference of OpenAI's Whisper model
+- [WhisperKit](https://github.com/argmaxinc/WhisperKit) - Native Whisper + Core ML pipeline for Apple Silicon
 - [FluidAudio](https://github.com/FluidInference/FluidAudio) - Used for Parakeet model implementation
 
 ### Essential Dependencies
@@ -125,6 +140,5 @@ If you encounter any issues or have questions, please:
 - [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) - User-customizable keyboard shortcuts
 - [LaunchAtLogin](https://github.com/sindresorhus/LaunchAtLogin) - Launch at login functionality
 - [MediaRemoteAdapter](https://github.com/ejbills/mediaremote-adapter) - Media playback control during recording
-- [Zip](https://github.com/marmelroy/Zip) - File compression and decompression utilities
 - [SelectedTextKit](https://github.com/tisfeng/SelectedTextKit) - A modern macOS library for getting selected text
 - [Swift Atomics](https://github.com/apple/swift-atomics) - Low-level atomic operations for thread-safe concurrent programming

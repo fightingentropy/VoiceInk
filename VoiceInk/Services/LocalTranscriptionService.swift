@@ -2,15 +2,12 @@ import Foundation
 import AVFoundation
 import os
 
-final class LocalTranscriptionService: TranscriptionService, @unchecked Sendable {
-
-    private var whisperContext: WhisperContext?
+final class LocalTranscriptionService: TranscriptionService, PCMBufferTranscriptionService, @unchecked Sendable {
+    private var whisperKitRuntime: WhisperKitRuntime?
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "LocalTranscriptionService")
-    private let modelsDirectory: URL
     private weak var modelProvider: (any LocalModelProvider)?
 
-    init(modelsDirectory: URL, modelProvider: (any LocalModelProvider)? = nil) {
-        self.modelsDirectory = modelsDirectory
+    init(modelProvider: (any LocalModelProvider)? = nil) {
         self.modelProvider = modelProvider
     }
 
@@ -20,73 +17,101 @@ final class LocalTranscriptionService: TranscriptionService, @unchecked Sendable
         }
 
         logger.notice("Initiating local transcription for model: \(model.displayName, privacy: .public)")
+        let runtime = try await resolveRuntime(for: model)
+        let audioSamples = try readAudioSamples(audioURL)
+        let text = try await transcribe(samples: audioSamples, with: runtime)
+        await releaseTransientRuntimeIfNeeded(runtime)
+        return text
+    }
 
-        // Check if the required model is already loaded in the model provider
-        if let provider = modelProvider,
-           await provider.isModelLoaded,
-           let loadedContext = await provider.whisperContext,
-           await provider.loadedLocalModel?.name == model.name {
+    func transcribe(recordedPCMBuffer: Data, sampleRate: Int, model: any TranscriptionModel) async throws -> String {
+        guard model.provider == .local else {
+            throw VoiceInkEngineError.modelLoadFailed
+        }
+        guard sampleRate == 16_000 else {
+            logger.error("❌ Unsupported PCM sample rate for local Whisper fast path: \(sampleRate, privacy: .public)")
+            throw VoiceInkEngineError.transcriptionFailed
+        }
 
-            logger.notice("Using already loaded model: \(model.name, privacy: .public)")
-            whisperContext = loadedContext
-        } else {
-            // Resolve the on-disk URL using the provider's availableModels (covers imports)
-            let resolvedURL: URL? = await modelProvider?.availableModels.first(where: { $0.name == model.name })?.url
-            guard let modelURL = resolvedURL, FileManager.default.fileExists(atPath: modelURL.path) else {
-                logger.error("❌ Model file not found for: \(model.name, privacy: .public)")
-                throw VoiceInkEngineError.modelLoadFailed
-            }
+        logger.notice("Initiating local PCM transcription for model: \(model.displayName, privacy: .public)")
+        let runtime = try await resolveRuntime(for: model)
+        let audioSamples = Self.decodePCM16Mono(recordedPCMBuffer)
+        let text = try await transcribe(samples: audioSamples, with: runtime)
+        await releaseTransientRuntimeIfNeeded(runtime)
+        return text
+    }
 
-            logger.notice("Loading model: \(model.name, privacy: .public)")
-            do {
-                whisperContext = try await WhisperContext.createContext(path: modelURL.path)
-            } catch {
-                logger.error("❌ Failed to load model: \(model.name, privacy: .public) - \(error.localizedDescription, privacy: .public)")
-                throw VoiceInkEngineError.modelLoadFailed
+    private func resolveRuntime(for model: any TranscriptionModel) async throws -> WhisperKitRuntime {
+        if let provider = modelProvider {
+            let isModelLoaded = await provider.isModelLoaded
+            let loadedModel = await provider.loadedLocalModel
+
+            if isModelLoaded,
+               let loadedModel,
+               loadedModel.name == model.name,
+               let loadedRuntime = await provider.whisperKitRuntime {
+                logger.notice("Using already loaded model: \(model.name, privacy: .public)")
+                whisperKitRuntime = loadedRuntime
+                return loadedRuntime
             }
         }
 
-        guard let whisperContext = whisperContext else {
-            logger.error("❌ Cannot transcribe: Model could not be loaded")
+        let availableModels = await modelProvider?.availableModels ?? []
+        let resolvedModel = availableModels.first(where: { $0.name == model.name })
+        guard let resolvedModel, FileManager.default.fileExists(atPath: resolvedModel.url.path) else {
+            logger.error("❌ Model file not found for: \(model.name, privacy: .public)")
             throw VoiceInkEngineError.modelLoadFailed
         }
 
-        // Read audio data
-        let data = try readAudioSamples(audioURL)
+        logger.notice("Loading model: \(model.name, privacy: .public)")
+        do {
+            let runtime = try await WhisperKitRuntime(modelFolder: resolvedModel.url.path)
+            whisperKitRuntime = runtime
+            return runtime
+        } catch {
+            logger.error("❌ Failed to load model: \(model.name, privacy: .public) - \(error.localizedDescription, privacy: .public)")
+            throw VoiceInkEngineError.modelLoadFailed
+        }
+    }
 
-        // Set prompt
+    private func transcribe(samples: [Float], with runtime: WhisperKitRuntime) async throws -> String {
         let currentPrompt = UserDefaults.standard.string(forKey: "TranscriptionPrompt") ?? ""
-        await whisperContext.setPrompt(currentPrompt)
-
-        // Transcribe
-        let success = await whisperContext.fullTranscribe(samples: data)
-
-        guard success else {
-            logger.error("❌ Core transcription engine failed (whisper_full).")
-            throw VoiceInkEngineError.whisperCoreFailed
-        }
-
-        let text = await whisperContext.getTranscription()
-
-        logger.notice("Local transcription completed successfully.")
-
-        // Only release resources if we created a new context (not using the shared one)
-        if await modelProvider?.whisperContext !== whisperContext {
-            await whisperContext.releaseResources()
-            self.whisperContext = nil
-        }
-
+        let currentLanguage = selectedWhisperLanguageCode()
+        let text = try await runtime.transcribe(
+            samples: samples,
+            prompt: currentPrompt,
+            language: currentLanguage
+        )
+        logger.notice("WhisperKit transcription completed successfully.")
         return text
+    }
+
+    private func releaseTransientRuntimeIfNeeded(_ runtime: WhisperKitRuntime) async {
+        let providerRuntime = await modelProvider?.whisperKitRuntime
+        if providerRuntime !== runtime {
+            await runtime.unload()
+            whisperKitRuntime = nil
+        }
+    }
+
+    private func selectedWhisperLanguageCode() -> String? {
+        let selectedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "auto"
+        return selectedLanguage == "auto" ? nil : selectedLanguage
     }
 
     private func readAudioSamples(_ url: URL) throws -> [Float] {
         let data = try Data(contentsOf: url)
-        let floats = stride(from: 44, to: data.count, by: 2).map {
-            return data[$0..<$0 + 2].withUnsafeBytes {
-                let short = Int16(littleEndian: $0.load(as: Int16.self))
+        return Self.decodePCM16Mono(Data(data.dropFirst(44)))
+    }
+
+    static func decodePCM16Mono(_ pcm: Data) -> [Float] {
+        guard !pcm.isEmpty else { return [] }
+
+        return stride(from: 0, to: pcm.count - 1, by: 2).map { offset in
+            pcm[offset ..< offset + 2].withUnsafeBytes { bytes in
+                let short = Int16(littleEndian: bytes.load(as: Int16.self))
                 return max(-1.0, min(Float(short) / 32767.0, 1.0))
             }
         }
-        return floats
     }
 }

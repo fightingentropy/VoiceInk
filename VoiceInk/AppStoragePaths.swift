@@ -22,6 +22,18 @@ enum AppStoragePaths {
         applicationSupportDirectory.appendingPathComponent("Benchmarks", isDirectory: true)
     }
 
+    static var benchmarkReportsDirectory: URL {
+        benchmarkDirectory.appendingPathComponent("Reports", isDirectory: true)
+    }
+
+    static var standardBenchmarkCorpusDirectory: URL {
+        benchmarkDirectory.appendingPathComponent("StandardCorpus", isDirectory: true)
+    }
+
+    static var standardBenchmarkManifestURL: URL {
+        standardBenchmarkCorpusDirectory.appendingPathComponent("standard-benchmark-corpus.json")
+    }
+
     static var recentBenchmarkCorpusDirectory: URL {
         benchmarkDirectory.appendingPathComponent("RecentCorpus", isDirectory: true)
     }
@@ -30,20 +42,20 @@ enum AppStoragePaths {
         recentBenchmarkCorpusDirectory.appendingPathComponent("recent-benchmark-corpus.json")
     }
 
-    static var whisperModelsDirectory: URL {
-        applicationSupportDirectory.appendingPathComponent("WhisperModels", isDirectory: true)
+    static var modelsDirectory: URL {
+        applicationSupportDirectory.appendingPathComponent("Models", isDirectory: true)
+    }
+
+    static var whisperKitModelsDirectory: URL {
+        modelsDirectory.appendingPathComponent("WhisperKit", isDirectory: true)
     }
 
     static var voxtralModelsDirectory: URL {
-        applicationSupportDirectory
-            .appendingPathComponent("Models", isDirectory: true)
-            .appendingPathComponent("Voxtral", isDirectory: true)
+        modelsDirectory.appendingPathComponent("Voxtral", isDirectory: true)
     }
 
     static var cohereTranscribeDirectory: URL {
-        applicationSupportDirectory
-            .appendingPathComponent("Models", isDirectory: true)
-            .appendingPathComponent("CohereTranscribe", isDirectory: true)
+        modelsDirectory.appendingPathComponent("CohereTranscribe", isDirectory: true)
     }
 
     static var cohereTranscribeNativeDirectory: URL {

@@ -1,7 +1,5 @@
 import SwiftUI
 import SwiftData
-import AppKit
-import UniformTypeIdentifiers
 
 struct ModelManagementView: View {
     @EnvironmentObject private var whisperModelManager: WhisperModelManager
@@ -10,7 +8,6 @@ struct ModelManagementView: View {
     @State private var customModelToEdit: CustomCloudModel?
     @StateObject private var customModelManager = CustomModelManager.shared
     @StateObject private var whisperPrompt = WhisperPrompt()
-    @ObservedObject private var warmupCoordinator = WhisperModelWarmupCoordinator.shared
 
     @State private var isShowingSettings = false
     
@@ -90,10 +87,6 @@ struct ModelManagementView: View {
             } else {
                 VStack(spacing: 12) {
                     ForEach(displayedModels, id: \.id) { model in
-                        let isWarming = (model as? LocalModel).map { localModel in
-                            warmupCoordinator.isWarming(modelNamed: localModel.name)
-                        } ?? false
-
                         ModelCardRowView(
                             model: model,
                             parakeetModelManager: parakeetModelManager,
@@ -102,7 +95,6 @@ struct ModelManagementView: View {
                             isCurrent: transcriptionModelManager.currentTranscriptionModel?.name == model.name,
                             downloadProgress: whisperModelManager.downloadProgress,
                             modelURL: whisperModelManager.availableModels.first { $0.name == model.name }?.url,
-                            isWarming: isWarming,
                             deleteAction: {
                                 if let customModel = model as? CustomCloudModel {
                                     alertTitle = "Delete Custom Model"
@@ -162,28 +154,7 @@ struct ModelManagementView: View {
                             } : nil
                         )
                     }
-                    
-                    HStack(spacing: 8) {
-                        Button(action: { presentImportPanel() }) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "square.and.arrow.down")
-                                Text("Import Local Model…")
-                                    .font(.system(size: 12, weight: .semibold))
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(16)
-                            .background(CardBackground(isSelected: false))
-                            .cornerRadius(10)
-                        }
-                        .buttonStyle(.plain)
 
-                        InfoTip(
-                            "Add a custom fine-tuned whisper model to use with VoiceInk. Select the downloaded .bin file.",
-                            learnMoreURL: "https://github.com/fightingentropy/VoiceInk#readme"
-                        )
-                        .help("Read more about custom local models")
-                    }
-                    
                     AddCustomModelCardView(
                         customModelManager: customModelManager,
                         onModelAdded: {
@@ -201,6 +172,7 @@ struct ModelManagementView: View {
     private var displayedModels: [any TranscriptionModel] {
         let preferredOrder = [
             "apple-speech",
+            "whisper-large-v3-turbo",
             "parakeet-tdt-0.6b-v2",
             "parakeet-tdt-0.6b-v3",
             "voxtral-mini-realtime-local",
@@ -228,21 +200,6 @@ struct ModelManagementView: View {
             }
             
             return model1.displayName.localizedStandardCompare(model2.displayName) == .orderedAscending
-        }
-    }
-
-    // MARK: - Import Panel
-    private func presentImportPanel() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.init(filenameExtension: "bin")!]
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.resolvesAliases = true
-        panel.title = "Select a Whisper ggml .bin model"
-        if panel.runModal() == .OK, let url = panel.url {
-            Task { @MainActor in
-                await whisperModelManager.importLocalModel(from: url)
-            }
         }
     }
 }

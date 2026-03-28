@@ -6,7 +6,6 @@ import os.log
 
 final class ParakeetTranscriptionService: TranscriptionService, @unchecked Sendable {
     private var asrManager: AsrManager?
-    private var vadManager: VadManager?
     private var activeVersion: AsrModelVersion?
     private var cachedModels: AsrModels?
     private var loadingTask: (version: AsrModelVersion, task: Task<AsrModels, Error>)?
@@ -24,7 +23,6 @@ final class ParakeetTranscriptionService: TranscriptionService, @unchecked Senda
         // Clean up existing manager but preserve cachedModels for reuse
         asrManager?.cleanup()
         asrManager = nil
-        vadManager = nil
         activeVersion = nil
 
         let models = try await getOrLoadModels(for: version)
@@ -84,32 +82,7 @@ final class ParakeetTranscriptionService: TranscriptionService, @unchecked Senda
         }
 
         let audioSamples = try readAudioSamples(from: audioURL)
-
-        let durationSeconds = Double(audioSamples.count) / 16000.0
-        let isVADEnabled = UserDefaults.standard.bool(forKey: "IsVADEnabled")
-
         var speechAudio = audioSamples
-        if durationSeconds >= 20.0, isVADEnabled {
-            let vadConfig = VadConfig(defaultThreshold: 0.7)
-            if vadManager == nil {
-                do {
-                    vadManager = try await VadManager(config: vadConfig)
-                } catch {
-                    logger.notice("VAD init failed; falling back to full audio: \(error.localizedDescription, privacy: .public)")
-                    vadManager = nil
-                }
-            }
-
-            if let vadManager {
-                do {
-                    let segments = try await vadManager.segmentSpeechAudio(audioSamples)
-                    speechAudio = segments.isEmpty ? audioSamples : segments.flatMap { $0 }
-                } catch {
-                    logger.notice("VAD segmentation failed; using full audio: \(error.localizedDescription, privacy: .public)")
-                    speechAudio = audioSamples
-                }
-            }
-        }
 
         // Pad with 1s of silence to capture final punctuation at sequence boundary
         let trailingSilenceSamples = 16_000
@@ -143,11 +116,10 @@ final class ParakeetTranscriptionService: TranscriptionService, @unchecked Senda
         }
     }
 
-    // Releases ASR/VAD resources but preserves cached models for reuse
+    // Releases ASR resources but preserves cached models for reuse
     func cleanup() {
         asrManager?.cleanup()
         asrManager = nil
-        vadManager = nil
         activeVersion = nil
     }
 

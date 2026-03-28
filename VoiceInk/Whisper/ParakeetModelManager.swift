@@ -57,8 +57,6 @@ class ParakeetModelManager: ObservableObject {
 
         do {
             _ = try await AsrModels.downloadAndLoad(version: version)
-            _ = try await VadManager()
-
             UserDefaults.standard.set(true, forKey: parakeetDefaultsKey(for: modelName))
             downloadProgress[modelName] = 1.0
         } catch {

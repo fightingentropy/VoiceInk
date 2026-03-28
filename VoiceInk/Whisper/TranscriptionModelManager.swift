@@ -112,16 +112,7 @@ class TranscriptionModelManager: ObservableObject {
 
     func refreshAllAvailableModels() {
         let currentModelName = currentTranscriptionModel?.name
-        var models = PredefinedModels.models
-
-        for whisperModel in whisperModelManager?.availableModels ?? [] {
-            if !models.contains(where: { $0.name == whisperModel.name }) {
-                let importedModel = ImportedLocalModel(fileBaseName: whisperModel.name)
-                models.append(importedModel)
-            }
-        }
-
-        allAvailableModels = models
+        allAvailableModels = PredefinedModels.models
 
         if let currentName = currentModelName,
            let updatedModel = allAvailableModels.first(where: { $0.name == currentName }) {
