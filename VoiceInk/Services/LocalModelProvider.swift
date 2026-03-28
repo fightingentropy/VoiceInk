@@ -6,7 +6,7 @@ import SwiftData
 @MainActor
 protocol LocalModelProvider: AnyObject, Sendable {
     var isModelLoaded: Bool { get }
-    var whisperContext: WhisperContext? { get }
+    var whisperKitRuntime: WhisperKitRuntime? { get }
     var loadedLocalModel: WhisperModel? { get }
     var availableModels: [WhisperModel] { get }
 }

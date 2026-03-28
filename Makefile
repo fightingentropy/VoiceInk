@@ -1,7 +1,4 @@
-# Keep third-party build dependencies inside the project instead of the user's home folder
-DEPS_DIR := $(CURDIR)/Dependencies
-WHISPER_CPP_DIR := $(DEPS_DIR)/whisper.cpp
-FRAMEWORK_PATH := $(WHISPER_CPP_DIR)/build-apple/whisper.xcframework
+# VoiceInk build helpers
 LOCAL_BUILD_ROOT := $(CURDIR)/.codex-build/local-install
 LOCAL_DERIVED_DATA := $(LOCAL_BUILD_ROOT)/deriveddata
 LOCAL_SPM_DIR := $(LOCAL_BUILD_ROOT)/spm
@@ -9,51 +6,31 @@ LOCAL_BUILD_CONFIGURATION := Release
 INSTALL_APP_PATH := /Applications/VoiceInk.app
 LOCAL_CODESIGN_IDENTITY ?= VoiceInk
 
-.PHONY: all clean whisper setup build local install-local bump-version check healthcheck help dev run
+.PHONY: all clean build local install-local bump-version check healthcheck help dev run resolve-packages
 
-# Default target
 all: check build
 
-# Development workflow
 dev: build run
 
 bump-version:
 	@./scripts/bump_version.sh $(CURDIR)
 
-# Prerequisites
 check:
 	@echo "Checking prerequisites..."
-	@command -v git >/dev/null 2>&1 || { echo "git is not installed"; exit 1; }
 	@command -v xcodebuild >/dev/null 2>&1 || { echo "xcodebuild is not installed (need Xcode)"; exit 1; }
 	@command -v swift >/dev/null 2>&1 || { echo "swift is not installed"; exit 1; }
+	@command -v rsync >/dev/null 2>&1 || { echo "rsync is not installed"; exit 1; }
 	@echo "Prerequisites OK"
 
 healthcheck: check
 
-# Build process
-whisper:
-	@mkdir -p $(DEPS_DIR)
-	@if [ ! -d "$(FRAMEWORK_PATH)" ]; then \
-		echo "Building whisper.xcframework in $(DEPS_DIR)..."; \
-		if [ ! -d "$(WHISPER_CPP_DIR)" ]; then \
-			git clone https://github.com/ggerganov/whisper.cpp.git $(WHISPER_CPP_DIR); \
-		else \
-			(cd $(WHISPER_CPP_DIR) && git pull); \
-		fi; \
-		cd $(WHISPER_CPP_DIR) && ./build-xcframework.sh; \
-	else \
-		echo "whisper.xcframework already built in $(DEPS_DIR), skipping build"; \
-	fi
+resolve-packages:
+	xcodebuild -project VoiceInk.xcodeproj -resolvePackageDependencies
 
-setup: whisper
-	@echo "Whisper framework is ready at $(FRAMEWORK_PATH)"
-	@echo "Please ensure your Xcode project references the framework from this new location."
-
-build: setup
+build: check resolve-packages
 	xcodebuild -project VoiceInk.xcodeproj -scheme VoiceInk -configuration Debug build
 
-# Build for local use without Apple Developer certificate
-install-local: bump-version check setup
+install-local: bump-version check resolve-packages
 	@echo "Building VoiceInk for local use and installing to $(INSTALL_APP_PATH)..."
 	@security find-identity -v -p codesigning | grep -F '"$(LOCAL_CODESIGN_IDENTITY)"' >/dev/null || { \
 		echo "Missing local code signing identity: $(LOCAL_CODESIGN_IDENTITY)"; \
@@ -78,8 +55,8 @@ install-local: bump-version check setup
 	if [ -d "$$APP_PATH" ]; then \
 		echo "Installing clean build to $(INSTALL_APP_PATH)..."; \
 		pkill -x VoiceInk >/dev/null 2>&1 || true; \
-		rm -rf "$(INSTALL_APP_PATH)"; \
-		ditto "$$APP_PATH" "$(INSTALL_APP_PATH)"; \
+		mkdir -p "$(INSTALL_APP_PATH)"; \
+		rsync -aE --delete "$$APP_PATH"/ "$(INSTALL_APP_PATH)"/; \
 		xattr -cr "$(INSTALL_APP_PATH)"; \
 		rm -rf "$$HOME/Downloads/VoiceInk.app"; \
 		open -na "$(INSTALL_APP_PATH)"; \
@@ -97,7 +74,6 @@ install-local: bump-version check setup
 
 local: install-local
 
-# Run application
 run:
 	@if [ -d "$(INSTALL_APP_PATH)" ]; then \
 		echo "Opening $(INSTALL_APP_PATH)..."; \
@@ -114,19 +90,16 @@ run:
 		fi; \
 	fi
 
-# Cleanup
 clean:
 	@echo "Cleaning build artifacts..."
-	@rm -rf $(DEPS_DIR)
+	@rm -rf "$(LOCAL_BUILD_ROOT)"
 	@echo "Clean complete"
 
-# Help
 help:
 	@echo "Available targets:"
 	@echo "  check/healthcheck  Check if required CLI tools are installed"
-	@echo "  whisper            Clone and build whisper.cpp XCFramework"
-	@echo "  setup              Copy whisper XCFramework to VoiceInk project"
-	@echo "  build              Build the VoiceInk Xcode project with local Sign to Run Locally signing"
+	@echo "  resolve-packages   Resolve Swift package dependencies"
+	@echo "  build              Build the VoiceInk Xcode project"
 	@echo "  bump-version       Increment the app marketing/build versions"
 	@echo "  install-local      Build for local use and install a clean app to /Applications"
 	@echo "  local              Alias for install-local"

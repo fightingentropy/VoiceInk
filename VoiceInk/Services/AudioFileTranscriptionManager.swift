@@ -62,7 +62,7 @@ class AudioTranscriptionManager: ObservableObject {
                     throw TranscriptionCapabilityError.audioFileInputUnsupported(modelName: currentModel.displayName)
                 }
 
-                let serviceRegistry = TranscriptionServiceRegistry(modelProvider: engine.whisperModelManager, modelsDirectory: engine.whisperModelManager.modelsDirectory)
+                let serviceRegistry = TranscriptionServiceRegistry(modelProvider: engine.whisperModelManager)
                 defer {
                     serviceRegistry.cleanup()
                 }

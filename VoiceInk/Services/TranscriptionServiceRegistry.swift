@@ -5,11 +5,9 @@ import os
 @MainActor
 class TranscriptionServiceRegistry {
     private weak var modelProvider: (any LocalModelProvider)?
-    private let modelsDirectory: URL
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "TranscriptionServiceRegistry")
 
     private(set) lazy var localTranscriptionService = LocalTranscriptionService(
-        modelsDirectory: modelsDirectory,
         modelProvider: modelProvider
     )
     private(set) lazy var cloudTranscriptionService = CloudTranscriptionService()
@@ -17,9 +15,8 @@ class TranscriptionServiceRegistry {
     private(set) lazy var parakeetTranscriptionService = ParakeetTranscriptionService()
     private(set) lazy var cohereTranscribeTranscriptionService = CohereTranscribeTranscriptionService()
 
-    init(modelProvider: any LocalModelProvider, modelsDirectory: URL) {
+    init(modelProvider: any LocalModelProvider) {
         self.modelProvider = modelProvider
-        self.modelsDirectory = modelsDirectory
     }
 
     private func fileService(for provider: ModelProvider) -> any TranscriptionService {

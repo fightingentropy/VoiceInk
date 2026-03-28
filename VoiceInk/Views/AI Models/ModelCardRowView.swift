@@ -9,7 +9,6 @@ struct ModelCardRowView: View {
     let isCurrent: Bool
     let downloadProgress: [String: Double]
     let modelURL: URL?
-    let isWarming: Bool
 
     // Actions
     var deleteAction: () -> Void
@@ -27,19 +26,9 @@ struct ModelCardRowView: View {
                         isCurrent: isCurrent,
                         downloadProgress: downloadProgress,
                         modelURL: modelURL,
-                        isWarming: isWarming,
                         deleteAction: deleteAction,
                         setDefaultAction: setDefaultAction,
                         downloadAction: downloadAction
-                    )
-                } else if let importedModel = model as? ImportedLocalModel {
-                    ImportedLocalModelCardView(
-                        model: importedModel,
-                        isDownloaded: isDownloaded,
-                        isCurrent: isCurrent,
-                        modelURL: modelURL,
-                        deleteAction: deleteAction,
-                        setDefaultAction: setDefaultAction
                     )
                 }
             case .parakeet:

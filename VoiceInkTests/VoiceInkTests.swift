@@ -16,7 +16,8 @@ struct VoiceInkTests {
         #expect(appSupportPath.contains("/Library/Application Support/com.fightingentropy.VoiceInk"))
         #expect(!AppStoragePaths.customSoundsDirectory.path.contains("/Library/Application Support/VoiceInk/"))
         #expect(AppStoragePaths.recordingsDirectory.deletingLastPathComponent() == AppStoragePaths.applicationSupportDirectory)
-        #expect(AppStoragePaths.whisperModelsDirectory.deletingLastPathComponent() == AppStoragePaths.applicationSupportDirectory)
+        #expect(AppStoragePaths.modelsDirectory.deletingLastPathComponent() == AppStoragePaths.applicationSupportDirectory)
+        #expect(AppStoragePaths.whisperKitModelsDirectory.deletingLastPathComponent() == AppStoragePaths.modelsDirectory)
     }
 
 }

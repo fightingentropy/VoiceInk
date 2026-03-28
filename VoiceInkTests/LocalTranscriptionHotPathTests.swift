@@ -71,6 +71,32 @@ struct LocalTranscriptionHotPathTests {
     }
 
     @Test
+    func localWhisperPCMDecoderNormalizesRecorderBytes() {
+        let pcm = Data([
+            0x00, 0x00,
+            0xFF, 0x7F,
+            0x00, 0x80,
+        ])
+
+        let decoded = LocalTranscriptionService.decodePCM16Mono(pcm)
+
+        #expect(decoded.count == 3)
+        #expect(decoded[0] == 0)
+        #expect(decoded[1] == 1)
+        #expect(decoded[2] == -1)
+    }
+
+    @Test
+    func predefinedModelsExposeWhisperTurboPreset() {
+        let whisperTurbo = PredefinedModels.models.first { $0.name == "whisper-large-v3-turbo" }
+
+        #expect(whisperTurbo != nil)
+        #expect(whisperTurbo?.provider == .local)
+        #expect(whisperTurbo?.displayName == "Whisper Large v3 Turbo")
+        #expect((whisperTurbo as? LocalModel)?.whisperKitVariant == "openai_whisper-large-v3_turbo")
+    }
+
+    @Test
     @MainActor
     func fileTranscriptionSessionUsesPCMFastPathWhenServiceSupportsIt() async throws {
         let service = MockPCMBufferTranscriptionService()
@@ -104,8 +130,7 @@ struct LocalTranscriptionHotPathTests {
     @MainActor
     func registryRejectsRecorderOnlyModelsForAudioFileTranscription() async throws {
         let registry = TranscriptionServiceRegistry(
-            modelProvider: MockLocalModelProvider(),
-            modelsDirectory: URL(fileURLWithPath: "/tmp/models")
+            modelProvider: MockLocalModelProvider()
         )
         let model = LocalCohereTranscribeModel(
             name: "cohere-transcribe-test",
@@ -197,7 +222,7 @@ private final class MockPCMBufferTranscriptionService: PCMBufferTranscriptionSer
 @MainActor
 private final class MockLocalModelProvider: LocalModelProvider {
     let isModelLoaded = false
-    let whisperContext: WhisperContext? = nil
+    let whisperKitRuntime: WhisperKitRuntime? = nil
     let loadedLocalModel: WhisperModel? = nil
     let availableModels: [WhisperModel] = []
 }

@@ -128,6 +128,17 @@ import Foundation
             ramUsage: 0.8,
             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .parakeet)
         ),
+        LocalModel(
+            name: "whisper-large-v3-turbo",
+            displayName: "Whisper Large v3 Turbo",
+            size: "2.8 GB",
+            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .local),
+            description: "Fast local Whisper preset using WhisperKit and Core ML on Apple Silicon.",
+            speed: 0.96,
+            accuracy: 0.95,
+            ramUsage: 2.4,
+            whisperKitVariant: "openai_whisper-large-v3_turbo"
+        ),
 
         LocalVoxtralModel(
             name: "voxtral-mini-realtime-local",

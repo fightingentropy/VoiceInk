@@ -12,6 +12,12 @@ enum ModelProvider: String, Codable, Hashable, CaseIterable, Sendable {
     // Future providers can be added here
 }
 
+enum BenchmarkExecutionMode: String, Codable, Hashable, Sendable {
+    case audioFile
+    case recorderPCM
+    case streamingPCM
+}
+
 // A unified protocol for any transcription model
 protocol TranscriptionModel: Identifiable, Hashable, Sendable {
     var id: UUID { get }
@@ -38,6 +44,25 @@ extension TranscriptionModel {
     // Cohere and Voxtral are live-recorder paths in the current app and do not accept file imports/retranscription.
     var supportsAudioFileTranscription: Bool {
         provider != .cohereTranscribe && provider != .localVoxtral
+    }
+
+    var benchmarkExecutionMode: BenchmarkExecutionMode? {
+        switch provider {
+        case .local:
+            return .recorderPCM
+        case .parakeet, .nativeApple:
+            return .audioFile
+        case .localVoxtral:
+            return .streamingPCM
+        case .cohereTranscribe:
+            return .recorderPCM
+        case .elevenLabs, .custom:
+            return nil
+        }
+    }
+
+    var supportsOnDeviceBenchmarking: Bool {
+        benchmarkExecutionMode != nil
     }
 }
 
@@ -193,36 +218,32 @@ struct LocalModel: TranscriptionModel {
     let speed: Double
     let accuracy: Double
     let ramUsage: Double
+    let whisperKitVariant: String
     let provider: ModelProvider = .local
 
-    var downloadURL: String {
-        "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/\(filename)"
-    }
-
-    var filename: String {
-        "\(name).bin"
+    init(
+        name: String,
+        displayName: String,
+        size: String,
+        supportedLanguages: [String: String],
+        description: String,
+        speed: Double,
+        accuracy: Double,
+        ramUsage: Double,
+        whisperKitVariant: String
+    ) {
+        self.name = name
+        self.displayName = displayName
+        self.size = size
+        self.supportedLanguages = supportedLanguages
+        self.description = description
+        self.speed = speed
+        self.accuracy = accuracy
+        self.ramUsage = ramUsage
+        self.whisperKitVariant = whisperKitVariant
     }
 
     var isMultilingualModel: Bool {
         supportedLanguages.count > 1
-    }
-} 
-
-// User-imported local models 
-struct ImportedLocalModel: TranscriptionModel {
-    let id = UUID()
-    let name: String
-    let displayName: String
-    let description: String
-    let provider: ModelProvider = .local
-    let isMultilingualModel: Bool
-    let supportedLanguages: [String: String]
-
-    init(fileBaseName: String) {
-        self.name = fileBaseName
-        self.displayName = fileBaseName
-        self.description = "Imported local model"
-        self.isMultilingualModel = true
-        self.supportedLanguages = PredefinedModels.getLanguageDictionary(isMultilingual: true, provider: .local)
     }
 }

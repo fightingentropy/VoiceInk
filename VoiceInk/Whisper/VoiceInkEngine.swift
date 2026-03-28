@@ -42,8 +42,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
         self.recordingsDirectory = AppStoragePaths.recordingsDirectory
 
         self.serviceRegistry = TranscriptionServiceRegistry(
-            modelProvider: whisperModelManager,
-            modelsDirectory: whisperModelManager.modelsDirectory
+            modelProvider: whisperModelManager
         )
         self.pipeline = TranscriptionPipeline(
             modelContext: modelContext,
@@ -202,8 +201,12 @@ class VoiceInkEngine: NSObject, ObservableObject {
                                 guard let self else { return }
 
                                 if model.provider == .local {
-                                    if let localWhisperModel = await self.whisperModelManager.availableModels.first(where: { $0.name == model.name }),
-                                       await self.whisperModelManager.whisperContext == nil {
+                                    let availableModels = await self.whisperModelManager.availableModels
+                                    let loadedModelName = await self.whisperModelManager.loadedLocalModel?.name
+                                    let isModelLoaded = await self.whisperModelManager.isModelLoaded
+
+                                    if let localWhisperModel = availableModels.first(where: { $0.name == model.name }),
+                                       loadedModelName != localWhisperModel.name || !isModelLoaded {
                                         do {
                                             try await self.whisperModelManager.loadModel(localWhisperModel)
                                         } catch {
@@ -315,8 +318,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
                 throw VoiceInkEngineError.modelLoadFailed
             }
 
-            if whisperModelManager.whisperContext == nil
-                || whisperModelManager.loadedLocalModel?.name != localWhisperModel.name {
+            if whisperModelManager.loadedLocalModel?.name != localWhisperModel.name || !whisperModelManager.isModelLoaded {
                 try await whisperModelManager.loadModel(localWhisperModel)
             }
         case .parakeet:
@@ -348,25 +350,9 @@ class VoiceInkEngine: NSObject, ObservableObject {
             name: .licenseStatusChanged,
             object: nil
         )
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handlePromptChange),
-            name: .promptDidChange,
-            object: nil
-        )
     }
 
     @objc func handleLicenseStatusChanged() {
         pipeline.licenseViewModel = LicenseViewModel()
-    }
-
-    @objc func handlePromptChange() {
-        Task {
-            let currentPrompt = UserDefaults.standard.string(forKey: "TranscriptionPrompt")
-                ?? whisperModelManager.whisperPrompt.transcriptionPrompt
-            if let context = whisperModelManager.whisperContext {
-                await context.setPrompt(currentPrompt)
-            }
-        }
     }
 }

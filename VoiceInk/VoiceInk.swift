@@ -104,21 +104,18 @@ struct VoiceInkApp: App {
         let enhancementService = AIEnhancementService(aiService: aiService, modelContext: container.mainContext)
         _enhancementService = StateObject(wrappedValue: enhancementService)
 
-        // 1. Create modelsDirectory URL
-        let modelsDirectory = AppStoragePaths.whisperModelsDirectory
-
-        // 2. Create model managers
-        let whisperModelManager = WhisperModelManager(modelsDirectory: modelsDirectory)
+        // 1. Create model managers
+        let whisperModelManager = WhisperModelManager()
         let parakeetModelManager = ParakeetModelManager()
         let transcriptionModelManager = TranscriptionModelManager(
             whisperModelManager: whisperModelManager,
             parakeetModelManager: parakeetModelManager
         )
 
-        // 3. Create UI manager
+        // 2. Create UI manager
         let recorderUIManager = RecorderUIManager()
 
-        // 4. Create engine
+        // 3. Create engine
         let engine = VoiceInkEngine(
             modelContext: container.mainContext,
             whisperModelManager: whisperModelManager,
@@ -126,12 +123,11 @@ struct VoiceInkApp: App {
             enhancementService: enhancementService
         )
 
-        // 5. Configure circular deps
+        // 4. Configure circular deps
         recorderUIManager.configure(engine: engine, recorder: engine.recorder)
         engine.recorderUIManager = recorderUIManager
 
-        // 6. Initialize model state
-        // refreshAllAvailableModels must run before loadCurrentTranscriptionModel so imported models are present when restoring the saved selection.
+        // 5. Initialize model state
         whisperModelManager.createModelsDirectoryIfNeeded()
         whisperModelManager.loadAvailableModels()
         transcriptionModelManager.refreshAllAvailableModels()

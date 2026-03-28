@@ -4,7 +4,6 @@ struct ModelSettingsView: View {
     @ObservedObject var whisperPrompt: WhisperPrompt
     @AppStorage("SelectedLanguage") private var selectedLanguage: String = "en"
     @AppStorage("IsTextFormattingEnabled") private var isTextFormattingEnabled = true
-    @AppStorage("IsVADEnabled") private var isVADEnabled = true
     @AppStorage("AppendTrailingSpace") private var appendTrailingSpace = true
     @AppStorage("PrewarmModelOnWake") private var prewarmModelOnWake = true
     @AppStorage("LocalModelWarmRetentionSeconds") private var localModelWarmRetention = LocalModelWarmRetention.fifteenMinutes.rawValue
@@ -83,15 +82,6 @@ struct ModelSettingsView: View {
             }
 
             HStack {
-                Toggle(isOn: $isVADEnabled) {
-                    Text("Voice Activity Detection (VAD)")
-                }
-                .toggleStyle(.switch)
-
-                InfoTip("Detect speech segments and filter out silence to improve accuracy of local models.")
-            }
-
-            HStack {
                 Toggle(isOn: $prewarmModelOnWake) {
                     Text("Prewarm model on launch and wake")
                 }
@@ -115,6 +105,12 @@ struct ModelSettingsView: View {
             Text("The timer resets after each successful local transcription or prewarm.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            Divider().padding(.vertical, 4)
+
+            BenchmarkSettingsSectionView()
+
+            Divider().padding(.vertical, 4)
 
             FillerWordsSettingsView()
 
