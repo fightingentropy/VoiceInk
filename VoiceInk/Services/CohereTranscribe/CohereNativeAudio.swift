@@ -83,8 +83,35 @@ final class CohereNativeFeatureExtractor: @unchecked Sendable {
         try extractLogMelFeatures(from: Self.loadAudioFile(url, sampleRate: configuration.sampleRate))
     }
 
+    static func decodePCM16Mono(_ data: Data) throws -> [Float] {
+        guard !data.isEmpty else {
+            throw CohereNativeAudioError.emptyAudioFile
+        }
+
+        guard data.count.isMultiple(of: MemoryLayout<Int16>.size) else {
+            throw CohereNativeAudioError.unsupportedFormat
+        }
+
+        let sampleCount = data.count / MemoryLayout<Int16>.size
+        return data.withUnsafeBytes { rawBuffer in
+            let samples = rawBuffer.bindMemory(to: Int16.self)
+            var floats: [Float] = []
+            floats.reserveCapacity(sampleCount)
+
+            for sample in samples {
+                floats.append(max(-1.0, min(Float(sample) / 32767.0, 1.0)))
+            }
+
+            return floats
+        }
+    }
+
     static func loadAudioFile(_ url: URL, sampleRate: Int) throws -> [Float] {
         let audioFile = try AVAudioFile(forReading: url)
+        guard audioFile.length > 0 else {
+            throw CohereNativeAudioError.emptyAudioFile
+        }
+
         let inputFormat = audioFile.processingFormat
         guard let outputFormat = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
@@ -291,6 +318,7 @@ enum CohereNativeAudioError: LocalizedError {
     case bufferAllocationFailed
     case conversionFailed
     case missingChannelData
+    case emptyAudioFile
 
     var errorDescription: String? {
         switch self {
@@ -302,6 +330,8 @@ enum CohereNativeAudioError: LocalizedError {
             return "Failed to convert audio for the experimental native Cohere MLX path."
         case .missingChannelData:
             return "The audio buffer did not contain channel data for the experimental native Cohere MLX path."
+        case .emptyAudioFile:
+            return "The recorded audio file was still being finalized and did not contain readable audio frames yet."
         }
     }
 }

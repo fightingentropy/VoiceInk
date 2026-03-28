@@ -58,6 +58,9 @@ class AudioTranscriptionManager: ObservableObject {
                 guard let currentModel = engine.transcriptionModelManager.currentTranscriptionModel else {
                     throw TranscriptionError.noModelSelected
                 }
+                guard currentModel.supportsAudioFileTranscription else {
+                    throw TranscriptionCapabilityError.audioFileInputUnsupported(modelName: currentModel.displayName)
+                }
 
                 let serviceRegistry = TranscriptionServiceRegistry(modelProvider: engine.whisperModelManager, modelsDirectory: engine.whisperModelManager.modelsDirectory)
                 defer {

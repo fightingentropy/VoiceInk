@@ -53,6 +53,82 @@ struct LocalTranscriptionHotPathTests {
         #expect(forwarder.hasTrimmedAudio)
         #expect(collector.snapshot() == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
     }
+
+    @Test
+    func coherePCMDecoderNormalizesRecorderBytes() throws {
+        let pcm = Data([
+            0x00, 0x00,
+            0xFF, 0x7F,
+            0x00, 0x80,
+        ])
+
+        let decoded = try CohereNativeFeatureExtractor.decodePCM16Mono(pcm)
+
+        #expect(decoded.count == 3)
+        #expect(decoded[0] == 0)
+        #expect(decoded[1] == 1)
+        #expect(decoded[2] == -1)
+    }
+
+    @Test
+    @MainActor
+    func fileTranscriptionSessionUsesPCMFastPathWhenServiceSupportsIt() async throws {
+        let service = MockPCMBufferTranscriptionService()
+        let session = FileTranscriptionSession(service: service)
+        let model = LocalCohereTranscribeModel(
+            name: "cohere-transcribe-test",
+            displayName: "Cohere Test",
+            size: "0 GB",
+            description: "Test model",
+            speed: 1,
+            accuracy: 1,
+            isMultilingualModel: true,
+            supportedLanguages: ["en": "English"]
+        )
+
+        let callback = try await session.prepare(model: model)
+        #expect(callback != nil)
+
+        let pcm = Data([0x34, 0x12, 0x78, 0x56])
+        callback?(pcm)
+
+        let result = try await session.transcribe(audioURL: URL(fileURLWithPath: "/tmp/unused.wav"))
+
+        #expect(result == "pcm-fast-path")
+        #expect(service.pcmTranscribeCallCount == 1)
+        #expect(service.lastPCMBuffer == pcm)
+        #expect(service.lastSampleRate == 16_000)
+    }
+
+    @Test
+    @MainActor
+    func registryRejectsRecorderOnlyModelsForAudioFileTranscription() async throws {
+        let registry = TranscriptionServiceRegistry(
+            modelProvider: MockLocalModelProvider(),
+            modelsDirectory: URL(fileURLWithPath: "/tmp/models")
+        )
+        let model = LocalCohereTranscribeModel(
+            name: "cohere-transcribe-test",
+            displayName: "Cohere Test",
+            size: "0 GB",
+            description: "Test model",
+            speed: 1,
+            accuracy: 1,
+            isMultilingualModel: true,
+            supportedLanguages: ["en": "English"]
+        )
+
+        do {
+            _ = try await registry.transcribe(audioURL: URL(fileURLWithPath: "/tmp/unused.wav"), model: model)
+            Issue.record("Recorder-only model unexpectedly accepted file-based transcription.")
+        } catch let error as TranscriptionCapabilityError {
+            guard case let .audioFileInputUnsupported(modelName) = error else {
+                Issue.record("Unexpected capability error: \(error.localizedDescription)")
+                return
+            }
+            #expect(modelName == model.displayName)
+        }
+    }
 }
 
 @Suite(.serialized, .timeLimit(.minutes(10)))
@@ -102,4 +178,26 @@ private final class ByteCollector: @unchecked Sendable {
         defer { lock.unlock() }
         return bytes
     }
+}
+
+private final class MockPCMBufferTranscriptionService: PCMBufferTranscriptionService, @unchecked Sendable {
+    private(set) var pcmTranscribeCallCount = 0
+    private(set) var lastPCMBuffer = Data()
+    private(set) var lastSampleRate: Int?
+
+    func transcribe(recordedPCMBuffer: Data, sampleRate: Int, model: any TranscriptionModel) async throws -> String {
+        _ = model
+        pcmTranscribeCallCount += 1
+        lastPCMBuffer = recordedPCMBuffer
+        lastSampleRate = sampleRate
+        return "pcm-fast-path"
+    }
+}
+
+@MainActor
+private final class MockLocalModelProvider: LocalModelProvider {
+    let isModelLoaded = false
+    let whisperContext: WhisperContext? = nil
+    let loadedLocalModel: WhisperModel? = nil
+    let availableModels: [WhisperModel] = []
 }

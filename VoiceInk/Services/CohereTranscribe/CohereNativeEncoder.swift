@@ -24,15 +24,227 @@ final class CohereNativePreparedState: @unchecked Sendable {
     let bootstrap: CohereNativeBootstrap
     let model: CohereNativeConditionalGenerationModel
     let summary: CohereNativeEncoderWarmupSummary
+    let promptInputIDs: MLXArray
+    let promptPositions: MLXArray
+    let singleStepPositions: [MLXArray]
+    let decoderCache: CohereNativeDecoderCache
 
     init(
         bootstrap: CohereNativeBootstrap,
         model: CohereNativeConditionalGenerationModel,
-        summary: CohereNativeEncoderWarmupSummary
+        summary: CohereNativeEncoderWarmupSummary,
+        promptInputIDs: MLXArray,
+        promptPositions: MLXArray,
+        singleStepPositions: [MLXArray],
+        decoderCache: CohereNativeDecoderCache
     ) {
         self.bootstrap = bootstrap
         self.model = model
         self.summary = summary
+        self.promptInputIDs = promptInputIDs
+        self.promptPositions = promptPositions
+        self.singleStepPositions = singleStepPositions
+        self.decoderCache = decoderCache
+    }
+}
+
+struct CohereNativeDecoderContext: @unchecked Sendable {
+    let encoderHiddenStates: MLXArray
+    let crossAttentionMask: MLXArray
+    let decoderHeadWeight: MLXArray
+    let decoderHeadBias: MLXArray?
+}
+
+final class CohereNativeDecoderKVCache: @unchecked Sendable {
+    fileprivate var key: MLXArray? {
+        guard visibleLength > 0 else {
+            return nil
+        }
+        return visiblePrefix(from: keyStorage)
+    }
+
+    fileprivate var value: MLXArray? {
+        guard visibleLength > 0 else {
+            return nil
+        }
+        return visiblePrefix(from: valueStorage)
+    }
+
+    private let maxSequenceLength: Int?
+    private var keyStorage: MLXArray?
+    private var valueStorage: MLXArray?
+    private var visibleLength = 0
+
+    init(maxSequenceLength: Int? = nil) {
+        self.maxSequenceLength = maxSequenceLength
+    }
+
+    func append(key newKey: MLXArray, value newValue: MLXArray) -> (MLXArray, MLXArray) {
+        if let maxSequenceLength {
+            let chunkLength = newKey.dim(2)
+            let nextLength = visibleLength + chunkLength
+            precondition(
+                nextLength <= maxSequenceLength,
+                "Cohere native decoder KV cache exceeded its allocated max sequence length."
+            )
+
+            if keyStorage == nil || valueStorage == nil {
+                keyStorage = MLXArray.zeros(
+                    [newKey.dim(0), newKey.dim(1), maxSequenceLength, newKey.dim(3)],
+                    dtype: newKey.dtype
+                )
+                valueStorage = MLXArray.zeros(
+                    [newValue.dim(0), newValue.dim(1), maxSequenceLength, newValue.dim(3)],
+                    dtype: newValue.dtype
+                )
+            }
+
+            keyStorage![0..., 0..., visibleLength ..< nextLength, 0...] = newKey
+            valueStorage![0..., 0..., visibleLength ..< nextLength, 0...] = newValue
+            visibleLength = nextLength
+            return (key!, value!)
+        }
+
+        if let keyStorage, let valueStorage {
+            let appendedKey = concatenated([keyStorage, newKey], axis: 2)
+            let appendedValue = concatenated([valueStorage, newValue], axis: 2)
+            self.keyStorage = appendedKey
+            self.valueStorage = appendedValue
+            visibleLength = appendedKey.dim(2)
+            return (appendedKey, appendedValue)
+        }
+
+        self.keyStorage = newKey
+        self.valueStorage = newValue
+        visibleLength = newKey.dim(2)
+        return (newKey, newValue)
+    }
+
+    func prepare(key newKey: MLXArray, value newValue: MLXArray) -> (MLXArray, MLXArray) {
+        if let key, let value {
+            return (key, value)
+        }
+
+        if let maxSequenceLength {
+            let visibleLength = newKey.dim(2)
+            precondition(
+                visibleLength <= maxSequenceLength,
+                "Cohere native decoder KV cache prefix exceeded its allocated max sequence length."
+            )
+            let keyStorageShape = [newKey.dim(0), newKey.dim(1), maxSequenceLength, newKey.dim(3)]
+            let valueStorageShape = [newValue.dim(0), newValue.dim(1), maxSequenceLength, newValue.dim(3)]
+
+            if keyStorage?.shape != keyStorageShape || valueStorage?.shape != valueStorageShape {
+                keyStorage = MLXArray.zeros(
+                    keyStorageShape,
+                    dtype: newKey.dtype
+                )
+                valueStorage = MLXArray.zeros(
+                    valueStorageShape,
+                    dtype: newValue.dtype
+                )
+            }
+
+            keyStorage![0..., 0..., 0 ..< visibleLength, 0...] = newKey
+            valueStorage![0..., 0..., 0 ..< visibleLength, 0...] = newValue
+            self.visibleLength = visibleLength
+            return (self.key!, self.value!)
+        }
+
+        self.keyStorage = newKey
+        self.valueStorage = newValue
+        visibleLength = newKey.dim(2)
+        return (newKey, newValue)
+    }
+
+    func arraysForEval() -> [MLXArray] {
+        [keyStorage, valueStorage].compactMap { $0 }
+    }
+
+    func clear() {
+        reset(keepStorage: false)
+    }
+
+    func reset(keepStorage: Bool) {
+        if !keepStorage {
+            keyStorage = nil
+            valueStorage = nil
+        }
+        
+        visibleLength = 0
+    }
+
+    func hasAllocatedStorage() -> Bool {
+        keyStorage != nil && valueStorage != nil
+    }
+
+    func currentVisibleLength() -> Int {
+        visibleLength
+    }
+
+    func currentStorageShape() -> [Int]? {
+        keyStorage?.shape
+    }
+
+    func currentValueStorageShape() -> [Int]? {
+        valueStorage?.shape
+    }
+
+    private func visiblePrefix(from storage: MLXArray?) -> MLXArray? {
+        guard let storage else {
+            return nil
+        }
+
+        if let maxSequenceLength, visibleLength < maxSequenceLength {
+            return storage[0..., 0..., 0 ..< visibleLength, 0...]
+        }
+
+        return storage
+    }
+}
+
+final class CohereNativeDecoderLayerCache: @unchecked Sendable {
+    let selfAttention: CohereNativeDecoderKVCache
+    let crossAttention = CohereNativeDecoderKVCache()
+
+    init(maxSequenceLength: Int) {
+        self.selfAttention = CohereNativeDecoderKVCache(maxSequenceLength: maxSequenceLength)
+    }
+
+    func arraysForEval() -> [MLXArray] {
+        selfAttention.arraysForEval() + crossAttention.arraysForEval()
+    }
+
+    func clear() {
+        selfAttention.clear()
+        crossAttention.clear()
+    }
+
+    func resetForTranscription() {
+        selfAttention.reset(keepStorage: true)
+        crossAttention.reset(keepStorage: false)
+    }
+}
+
+final class CohereNativeDecoderCache: @unchecked Sendable {
+    let layers: [CohereNativeDecoderLayerCache]
+
+    init(layerCount: Int, maxSequenceLength: Int) {
+        self.layers = (0 ..< layerCount).map { _ in
+            CohereNativeDecoderLayerCache(maxSequenceLength: maxSequenceLength)
+        }
+    }
+
+    func arraysForEval() -> [MLXArray] {
+        layers.flatMap { $0.arraysForEval() }
+    }
+
+    func clear() {
+        layers.forEach { $0.clear() }
+    }
+
+    func resetForTranscription() {
+        layers.forEach { $0.resetForTranscription() }
     }
 }
 
@@ -507,19 +719,118 @@ final class CohereNativeDecoderAttention: Module {
             .reshaped([batch, source.dim(1), headCount, headDimension])
             .transposed(0, 2, 1, 3)
 
-        var scores = matmul(query, key.transposed(0, 1, 3, 2)) * scale
-        if let attentionMask {
-            scores = scores + attentionMask.asType(attentionDType)
-        }
-
-        let attention = softmax(scores, axis: -1, precise: true)
-        let attended = matmul(attention, value)
+        let maskMode: MLXFast.ScaledDotProductAttentionMaskMode =
+            if let attentionMask {
+                .array(attentionMask.asType(attentionDType))
+            } else {
+                .none
+            }
+        let attended = MLXFast.scaledDotProductAttention(
+            queries: query,
+            keys: key,
+            values: value,
+            scale: scale,
+            mask: maskMode
+        )
         return out_proj(
             attended
                 .transposed(0, 2, 1, 3)
                 .reshaped([batch, targetLength, hiddenSize])
                 .asType(outputDType)
         )
+    }
+
+    func step(
+        _ hiddenStates: MLXArray,
+        contextStates: MLXArray? = nil,
+        attentionMask: MLXArray? = nil,
+        cache: CohereNativeDecoderKVCache? = nil
+    ) -> MLXArray {
+        let batch = hiddenStates.dim(0)
+        let targetLength = hiddenStates.dim(1)
+        let outputDType = hiddenStates.dtype
+        let hiddenQKV = qkv_proj(hiddenStates)
+        let hiddenPieces = hiddenQKV.split(indices: [hiddenSize, hiddenSize * 2], axis: -1)
+
+        let query = reshapeProjection(hiddenPieces[0], batch: batch, sequenceLength: targetLength)
+
+        let key: MLXArray
+        let value: MLXArray
+        if let contextStates {
+            if let cache, let cachedKey = cache.key, let cachedValue = cache.value {
+                key = cachedKey
+                value = cachedValue
+            } else {
+                let sourcePieces = qkv_proj(contextStates).split(indices: [hiddenSize, hiddenSize * 2], axis: -1)
+                let projectedKey = reshapeProjection(sourcePieces[1], batch: batch, sequenceLength: contextStates.dim(1))
+                let projectedValue = reshapeProjection(sourcePieces[2], batch: batch, sequenceLength: contextStates.dim(1))
+                if let cache {
+                    (key, value) = cache.prepare(key: projectedKey, value: projectedValue)
+                } else {
+                    key = projectedKey
+                    value = projectedValue
+                }
+            }
+        } else {
+            let projectedKey = reshapeProjection(hiddenPieces[1], batch: batch, sequenceLength: targetLength)
+            let projectedValue = reshapeProjection(hiddenPieces[2], batch: batch, sequenceLength: targetLength)
+            if let cache {
+                (key, value) = cache.append(key: projectedKey, value: projectedValue)
+            } else {
+                key = projectedKey
+                value = projectedValue
+            }
+        }
+
+        let maskMode: MLXFast.ScaledDotProductAttentionMaskMode =
+            if let attentionMask {
+                .array(attentionMask.asType(attentionDType))
+            } else {
+                .none
+            }
+        let attended = MLXFast.scaledDotProductAttention(
+            queries: query,
+            keys: key,
+            values: value,
+            scale: scale,
+            mask: maskMode
+        )
+        return out_proj(
+            attended
+                .transposed(0, 2, 1, 3)
+                .reshaped([batch, targetLength, hiddenSize])
+                .asType(outputDType)
+        )
+    }
+
+    func prepareSelfAttentionCache(_ hiddenStates: MLXArray, cache: CohereNativeDecoderKVCache) {
+        let batch = hiddenStates.dim(0)
+        let targetLength = hiddenStates.dim(1)
+        let hiddenQKV = qkv_proj(hiddenStates)
+        let hiddenPieces = hiddenQKV.split(indices: [hiddenSize, hiddenSize * 2], axis: -1)
+        let projectedKey = reshapeProjection(hiddenPieces[1], batch: batch, sequenceLength: targetLength)
+        let projectedValue = reshapeProjection(hiddenPieces[2], batch: batch, sequenceLength: targetLength)
+        _ = cache.prepare(key: projectedKey, value: projectedValue)
+    }
+
+    func prepareContextCache(_ contextStates: MLXArray, cache: CohereNativeDecoderKVCache) {
+        if cache.key != nil, cache.value != nil {
+            return
+        }
+
+        let batch = contextStates.dim(0)
+        let sourceLength = contextStates.dim(1)
+        let sourcePieces = qkv_proj(contextStates).split(indices: [hiddenSize, hiddenSize * 2], axis: -1)
+        let projectedKey = reshapeProjection(sourcePieces[1], batch: batch, sequenceLength: sourceLength)
+        let projectedValue = reshapeProjection(sourcePieces[2], batch: batch, sequenceLength: sourceLength)
+        _ = cache.prepare(key: projectedKey, value: projectedValue)
+    }
+
+    private func reshapeProjection(_ projection: MLXArray, batch: Int, sequenceLength: Int) -> MLXArray {
+        projection
+            .asType(attentionDType)
+            .reshaped([batch, sequenceLength, headCount, headDimension])
+            .transposed(0, 2, 1, 3)
     }
 }
 
@@ -593,6 +904,66 @@ final class CohereNativeTransformerDecoderLayer: Module {
         let feedForwardResidual = crossHiddenStates
         return feedForwardResidual + third_sub_layer(layer_norm_3(crossHiddenStates))
     }
+
+    func step(
+        _ hiddenStates: MLXArray,
+        encoderHiddenStates: MLXArray,
+        crossAttentionMask: MLXArray?,
+        cache: CohereNativeDecoderLayerCache
+    ) -> MLXArray {
+        let selfResidual = hiddenStates
+        let selfOutput = first_sub_layer.step(
+            layer_norm_1(hiddenStates),
+            attentionMask: nil,
+            cache: cache.selfAttention
+        )
+        let hiddenStates = selfResidual + selfOutput
+
+        let crossResidual = hiddenStates
+        let crossOutput = second_sub_layer.step(
+            layer_norm_2(hiddenStates),
+            contextStates: encoderHiddenStates,
+            attentionMask: crossAttentionMask,
+            cache: cache.crossAttention
+        )
+        let crossHiddenStates = crossResidual + crossOutput
+
+        let feedForwardResidual = crossHiddenStates
+        return feedForwardResidual + third_sub_layer(layer_norm_3(crossHiddenStates))
+    }
+
+    func prefill(
+        _ hiddenStates: MLXArray,
+        encoderHiddenStates: MLXArray,
+        selfAttentionMask: MLXArray?,
+        crossAttentionMask: MLXArray?,
+        cache: CohereNativeDecoderLayerCache
+    ) -> MLXArray {
+        let normalizedSelfStates = layer_norm_1(hiddenStates)
+        first_sub_layer.prepareSelfAttentionCache(normalizedSelfStates, cache: cache.selfAttention)
+
+        let selfResidual = hiddenStates
+        let selfOutput = first_sub_layer(
+            normalizedSelfStates,
+            contextStates: nil,
+            attentionMask: selfAttentionMask
+        )
+        let hiddenStates = selfResidual + selfOutput
+
+        let normalizedCrossStates = layer_norm_2(hiddenStates)
+        second_sub_layer.prepareContextCache(encoderHiddenStates, cache: cache.crossAttention)
+
+        let crossResidual = hiddenStates
+        let crossOutput = second_sub_layer(
+            normalizedCrossStates,
+            contextStates: encoderHiddenStates,
+            attentionMask: crossAttentionMask
+        )
+        let crossHiddenStates = crossResidual + crossOutput
+
+        let feedForwardResidual = crossHiddenStates
+        return feedForwardResidual + third_sub_layer(layer_norm_3(crossHiddenStates))
+    }
 }
 
 final class CohereNativeTransformerDecoderEmbedding: Module {
@@ -650,13 +1021,53 @@ final class CohereNativeTransformerDecoderCore: Module {
         }
         return final_layer_norm(hiddenStates)
     }
+
+    func step(
+        _ hiddenStates: MLXArray,
+        encoderHiddenStates: MLXArray,
+        crossAttentionMask: MLXArray?,
+        cache: CohereNativeDecoderCache
+    ) -> MLXArray {
+        var hiddenStates = hiddenStates
+        for (layer, layerCache) in zip(layers, cache.layers) {
+            hiddenStates = layer.step(
+                hiddenStates,
+                encoderHiddenStates: encoderHiddenStates,
+                crossAttentionMask: crossAttentionMask,
+                cache: layerCache
+            )
+        }
+        return final_layer_norm(hiddenStates)
+    }
+
+    func prefill(
+        _ hiddenStates: MLXArray,
+        encoderHiddenStates: MLXArray,
+        selfAttentionMask: MLXArray?,
+        crossAttentionMask: MLXArray?,
+        cache: CohereNativeDecoderCache
+    ) -> MLXArray {
+        var hiddenStates = hiddenStates
+        for (layer, layerCache) in zip(layers, cache.layers) {
+            hiddenStates = layer.prefill(
+                hiddenStates,
+                encoderHiddenStates: encoderHiddenStates,
+                selfAttentionMask: selfAttentionMask,
+                crossAttentionMask: crossAttentionMask,
+                cache: layerCache
+            )
+        }
+        return final_layer_norm(hiddenStates)
+    }
 }
 
 final class CohereNativeTransformerDecoder: Module {
     let embedding: CohereNativeTransformerDecoderEmbedding
     let core: CohereNativeTransformerDecoderCore
+    let maxSequenceLength: Int
 
     init(config: CohereNativeModelConfig.DecoderConfig.CoreConfig, vocabularySize: Int) {
+        self.maxSequenceLength = config.maxSequenceLength
         self.embedding = CohereNativeTransformerDecoderEmbedding(
             vocabularySize: vocabularySize,
             hiddenSize: config.hiddenSize,
@@ -684,6 +1095,40 @@ final class CohereNativeTransformerDecoder: Module {
             encoderHiddenStates: encoderHiddenStates,
             selfAttentionMask: selfAttentionMask,
             crossAttentionMask: crossAttentionMask
+        )
+    }
+
+    func step(
+        _ inputIDs: MLXArray,
+        positions: MLXArray,
+        encoderHiddenStates: MLXArray,
+        crossAttentionMask: MLXArray?,
+        cache: CohereNativeDecoderCache
+    ) -> MLXArray {
+        let embedded = embedding(inputIDs, positions: positions)
+        return core.step(
+            embedded,
+            encoderHiddenStates: encoderHiddenStates,
+            crossAttentionMask: crossAttentionMask,
+            cache: cache
+        )
+    }
+
+    func prefill(
+        _ inputIDs: MLXArray,
+        positions: MLXArray,
+        encoderHiddenStates: MLXArray,
+        selfAttentionMask: MLXArray?,
+        crossAttentionMask: MLXArray?,
+        cache: CohereNativeDecoderCache
+    ) -> MLXArray {
+        let embedded = embedding(inputIDs, positions: positions)
+        return core.prefill(
+            embedded,
+            encoderHiddenStates: encoderHiddenStates,
+            selfAttentionMask: selfAttentionMask,
+            crossAttentionMask: crossAttentionMask,
+            cache: cache
         )
     }
 }
@@ -775,6 +1220,91 @@ final class CohereNativeConditionalGenerationModel: Module {
         return usesLogSoftmax ? logSoftmax(logits, axis: -1) : logits
     }
 
+    func makeDecoderCache() -> CohereNativeDecoderCache {
+        CohereNativeDecoderCache(
+            layerCount: decoder.core.layers.count,
+            maxSequenceLength: decoder.maxSequenceLength
+        )
+    }
+
+    func prepareDecoderContext(
+        encoderHiddenStates: MLXArray,
+        encodedLengths: [Int]
+    ) -> CohereNativeDecoderContext {
+        let decoderComputeDType: DType = .float32
+        let decoderEncoderHiddenStates = encoderHiddenStates.asType(decoderComputeDType)
+        let crossAttentionMask = Self.makeCrossAttentionMask(
+            lengths: encodedLengths,
+            sourceLength: decoderEncoderHiddenStates.dim(1),
+            dtype: decoderComputeDType
+        )
+        return CohereNativeDecoderContext(
+            encoderHiddenStates: decoderEncoderHiddenStates,
+            crossAttentionMask: crossAttentionMask,
+            decoderHeadWeight: lm_head.weight.asType(decoderComputeDType),
+            decoderHeadBias: lm_head.bias?.asType(decoderComputeDType)
+        )
+    }
+
+    func decodeStep(
+        inputIDs: MLXArray,
+        positions: MLXArray,
+        decoderContext: CohereNativeDecoderContext,
+        cache: CohereNativeDecoderCache,
+        applyLogSoftmax: Bool = true
+    ) -> MLXArray {
+        let decoderHiddenStates = decoder.step(
+            inputIDs,
+            positions: positions,
+            encoderHiddenStates: decoderContext.encoderHiddenStates,
+            crossAttentionMask: decoderContext.crossAttentionMask,
+            cache: cache
+        )
+        let logits = Self.applyLinear(
+            decoderHiddenStates,
+            weight: decoderContext.decoderHeadWeight,
+            bias: decoderContext.decoderHeadBias
+        )
+        if usesLogSoftmax && applyLogSoftmax {
+            return logSoftmax(logits, axis: -1)
+        }
+
+        return logits
+    }
+
+    func prefill(
+        inputIDs: MLXArray,
+        positions: MLXArray,
+        decoderContext: CohereNativeDecoderContext,
+        cache: CohereNativeDecoderCache,
+        applyLogSoftmax: Bool = true
+    ) -> MLXArray {
+        let normalizedInputIDs = inputIDs.asType(.int32)
+        let selfAttentionMask = Self.makeSelfAttentionMask(
+            batchSize: normalizedInputIDs.dim(0),
+            targetLength: normalizedInputIDs.dim(1),
+            dtype: decoderContext.encoderHiddenStates.dtype
+        )
+        let decoderHiddenStates = decoder.prefill(
+            normalizedInputIDs,
+            positions: positions.asType(.int32),
+            encoderHiddenStates: decoderContext.encoderHiddenStates,
+            selfAttentionMask: selfAttentionMask,
+            crossAttentionMask: decoderContext.crossAttentionMask,
+            cache: cache
+        )
+        let logits = Self.applyLinear(
+            decoderHiddenStates,
+            weight: decoderContext.decoderHeadWeight,
+            bias: decoderContext.decoderHeadBias
+        )
+        if usesLogSoftmax && applyLogSoftmax {
+            return logSoftmax(logits, axis: -1)
+        }
+
+        return logits
+    }
+
     private static func applyLinear(_ x: MLXArray, weight: MLXArray, bias: MLXArray?) -> MLXArray {
         if let bias {
             return addMM(bias, x, weight.T)
@@ -852,14 +1382,32 @@ enum CohereNativeEncoderLoader {
             .extractLogMelFeatures(from: silence)
             .expandedDimensions(axis: 0)
             .asType(model.encoder.subsampling.out.weight.dtype)
-        let lengths = [features.dim(2)]
-        let promptIDs = MLXArray(bootstrap.promptTokenIDs, [1, bootstrap.promptTokenIDs.count]).asType(.int32)
-        let (logits, encoderHiddenStates, encodedLengths) = model(
+        let (encoderHiddenStates, encodedLengths) = model.encode(
             inputFeatures: features,
-            lengths: lengths,
-            inputIDs: promptIDs
+            lengths: [features.dim(2)]
         )
-        eval(logits, encoderHiddenStates)
+        let decoderContext = model.prepareDecoderContext(
+            encoderHiddenStates: encoderHiddenStates,
+            encodedLengths: encodedLengths
+        )
+        let decoderCache = model.makeDecoderCache()
+        let promptInputIDs = MLXArray(bootstrap.promptTokenIDs, [1, bootstrap.promptTokenIDs.count]).asType(.int32)
+        let promptPositions = MLXArray(Array(0 ..< bootstrap.promptTokenIDs.count), [1, bootstrap.promptTokenIDs.count])
+            .asType(.int32)
+        let singleStepPositions = (0 ..< bootstrap.config.decoder.config.maxSequenceLength).map { position in
+            MLXArray([Int32(position)], [1, 1])
+        }
+        let logits = model.prefill(
+            inputIDs: promptInputIDs,
+            positions: promptPositions,
+            decoderContext: decoderContext,
+            cache: decoderCache,
+            applyLogSoftmax: false
+        )
+        eval(logits, decoderCache.arraysForEval())
+
+        eval(encoderHiddenStates)
+        decoderCache.resetForTranscription()
 
         let summary = CohereNativeEncoderWarmupSummary(
             outputShape: encoderHiddenStates.shape,
@@ -871,7 +1419,11 @@ enum CohereNativeEncoderLoader {
         return CohereNativePreparedState(
             bootstrap: bootstrap,
             model: model,
-            summary: summary
+            summary: summary,
+            promptInputIDs: promptInputIDs,
+            promptPositions: promptPositions,
+            singleStepPositions: singleStepPositions,
+            decoderCache: decoderCache
         )
     }
 

@@ -278,6 +278,14 @@ struct AudioPlayerView: View {
     private var transcriptionService: AudioTranscriptionService {
         AudioTranscriptionService(modelContext: modelContext, engine: engine)
     }
+
+    private var currentTranscriptionModel: (any TranscriptionModel)? {
+        engine.transcriptionModelManager.currentTranscriptionModel
+    }
+
+    private var canRetranscribeWithCurrentModel: Bool {
+        currentTranscriptionModel?.supportsAudioFileTranscription == true
+    }
     
     var body: some View {
         VStack(spacing: 8) {
@@ -379,8 +387,8 @@ struct AudioPlayerView: View {
                             )
                     }
                     .buttonStyle(.plain)
-                    .disabled(isRetranscribing)
-                    .help("Retranscribe this audio")
+                    .disabled(isRetranscribing || !canRetranscribeWithCurrentModel)
+                    .help(canRetranscribeWithCurrentModel ? "Retranscribe this audio" : "Current model only supports live recorder transcription")
                 }
 
                 Spacer()
@@ -455,8 +463,16 @@ struct AudioPlayerView: View {
     }
     
     private func retranscribeAudio() {
-        guard let currentTranscriptionModel = engine.transcriptionModelManager.currentTranscriptionModel else {
+        guard let currentTranscriptionModel else {
             errorMessage = "No transcription model selected"
+            showRetranscribeError = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                withAnimation { showRetranscribeError = false }
+            }
+            return
+        }
+        guard currentTranscriptionModel.supportsAudioFileTranscription else {
+            errorMessage = TranscriptionCapabilityError.audioFileInputUnsupported(modelName: currentTranscriptionModel.displayName).localizedDescription
             showRetranscribeError = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                 withAnimation { showRetranscribeError = false }

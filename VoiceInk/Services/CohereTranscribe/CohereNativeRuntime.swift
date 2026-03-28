@@ -7,6 +7,7 @@ struct CohereNativeBootstrap: Sendable {
     let tokenizer: CohereNativeTokenizer
     let promptText: String
     let promptTokenIDs: [Int]
+    let promptTokenIDs32: [Int32]
     let featureExtractor: CohereNativeFeatureExtractor
 }
 
@@ -39,6 +40,10 @@ struct CohereNativeGenerationResult: Sendable {
 
 actor CohereNativeRuntime {
     static let shared = CohereNativeRuntime()
+    private static let minimumDefaultNewTokens = 48
+    private static let maximumDefaultNewTokens = 192
+    private static let estimatedTokensPerSecond = 5.0
+    private static let generationSlackTokens = 16
 
     private var bootstraps: [String: CohereNativeBootstrap] = [:]
     private var preparedStates: [String: CohereNativePreparedState] = [:]
@@ -68,6 +73,7 @@ actor CohereNativeRuntime {
         let resolvedLanguage = config.supportedLanguages.contains(language) ? language : LocalCohereTranscribeConfiguration.fallbackLanguage
         let promptText = CohereNativePromptBuilder.buildPrompt(language: resolvedLanguage, punctuation: punctuation)
         let promptTokenIDs = tokenizer.encode(promptText)
+        let promptTokenIDs32 = promptTokenIDs.map(Int32.init)
         let featureExtractor = CohereNativeFeatureExtractor(configuration: config.audioConfiguration)
 
         let bootstrap = CohereNativeBootstrap(
@@ -76,6 +82,7 @@ actor CohereNativeRuntime {
             tokenizer: tokenizer,
             promptText: promptText,
             promptTokenIDs: promptTokenIDs,
+            promptTokenIDs32: promptTokenIDs32,
             featureExtractor: featureExtractor
         )
         bootstraps[cacheKey] = bootstrap
@@ -121,7 +128,8 @@ actor CohereNativeRuntime {
     }
 
     func transcribe(
-        audioURL: URL,
+        audioSamples: [Float],
+        sampleRate: Int,
         modelReference: String = LocalCohereTranscribeConfiguration.nativeModelRepository,
         language: String = LocalCohereTranscribeConfiguration.fallbackLanguage,
         punctuation: Bool = true,
@@ -146,69 +154,124 @@ actor CohereNativeRuntime {
         guard let eosTokenID else {
             throw CohereNativeModelError.missingModelAssets
         }
-        let noSpeechTokenID = bootstrap.tokenizer.tokenID(for: CohereNativePromptBuilder.noSpeechToken)
+        let eosTokenID32 = Int32(eosTokenID)
+        let noSpeechTokenID32 = bootstrap.tokenizer.tokenID(for: CohereNativePromptBuilder.noSpeechToken).map(Int32.init)
 
-        let loadedAudio = try CohereNativeFeatureExtractor.loadAudioFile(
-            audioURL,
-            sampleRate: bootstrap.config.audioConfiguration.sampleRate
+        return try transcribe(
+            audioSamples: audioSamples,
+            sampleRate: sampleRate,
+            bootstrap: bootstrap,
+            preparedState: preparedState,
+            eosTokenID32: eosTokenID32,
+            noSpeechTokenID32: noSpeechTokenID32,
+            requestedMaxNewTokens: requestedMaxNewTokens
         )
+    }
+
+    private func transcribe(
+        audioSamples: [Float],
+        sampleRate: Int,
+        bootstrap: CohereNativeBootstrap,
+        preparedState: CohereNativePreparedState,
+        eosTokenID32: Int32,
+        noSpeechTokenID32: Int32?,
+        requestedMaxNewTokens: Int?
+    ) throws -> CohereNativeGenerationResult {
+        guard sampleRate == bootstrap.config.audioConfiguration.sampleRate else {
+            throw CohereNativeAudioError.unsupportedFormat
+        }
+
         let maximumSampleCount = Int(
             Double(bootstrap.config.audioConfiguration.sampleRate) * bootstrap.config.audioConfiguration.maxClipDuration
         )
-        let audioWasTruncated = loadedAudio.count > maximumSampleCount
-        let clippedAudio = audioWasTruncated ? Array(loadedAudio.prefix(maximumSampleCount)) : loadedAudio
+        let audioWasTruncated = audioSamples.count > maximumSampleCount
+        let clippedAudio = audioWasTruncated ? Array(audioSamples.prefix(maximumSampleCount)) : audioSamples
 
         let inputFeatures = bootstrap.featureExtractor
             .extractLogMelFeatures(from: clippedAudio)
             .expandedDimensions(axis: 0)
             .asType(preparedState.model.encoder.subsampling.out.weight.dtype)
-        let lengths = [inputFeatures.dim(2)]
         let (encoderHiddenStates, encodedLengths) = preparedState.model.encode(
             inputFeatures: inputFeatures,
-            lengths: lengths
+            lengths: [inputFeatures.dim(2)]
         )
-        eval(encoderHiddenStates)
+        let decoderContext = preparedState.model.prepareDecoderContext(
+            encoderHiddenStates: encoderHiddenStates,
+            encodedLengths: encodedLengths
+        )
+        let decoderContextEvalArrays =
+            [encoderHiddenStates, decoderContext.encoderHiddenStates, decoderContext.crossAttentionMask, decoderContext.decoderHeadWeight] +
+            [decoderContext.decoderHeadBias].compactMap { $0 }
+        eval(decoderContextEvalArrays)
 
-        var decodedTokenIDs = bootstrap.promptTokenIDs
+        let promptTokenIDs = bootstrap.promptTokenIDs32
+        var decodedTokenIDs = promptTokenIDs
         let maxSequenceLength = bootstrap.config.decoder.config.maxSequenceLength
         let availableNewTokens = max(1, maxSequenceLength - decodedTokenIDs.count)
-        let maxNewTokens = min(requestedMaxNewTokens ?? availableNewTokens, availableNewTokens)
+        let defaultMaxNewTokens = Self.recommendedMaxNewTokens(
+            audioSampleCount: clippedAudio.count,
+            sampleRate: bootstrap.config.audioConfiguration.sampleRate,
+            promptTokenCount: decodedTokenIDs.count,
+            maxSequenceLength: maxSequenceLength
+        )
+        let maxNewTokens = min(requestedMaxNewTokens ?? defaultMaxNewTokens, availableNewTokens)
+        decodedTokenIDs.reserveCapacity(promptTokenIDs.count + maxNewTokens)
 
         var stopReason: CohereNativeGenerationStopReason = .maxNewTokens
         var stopTokenID: Int?
         var lastLogitsShape = preparedState.summary.decoderLogitsShape
+        let decoderCache = preparedState.decoderCache
+        decoderCache.resetForTranscription()
+        var currentLogits: MLXArray?
 
-        for _ in 0 ..< maxNewTokens {
-            let inputIDs = MLXArray(decodedTokenIDs, [1, decodedTokenIDs.count]).asType(.int32)
-            let logits = preparedState.model.decode(
-                inputIDs: inputIDs,
-                encoderHiddenStates: encoderHiddenStates,
-                encodedLengths: encodedLengths
-            )
-            eval(logits)
-            lastLogitsShape = logits.shape
+        currentLogits = preparedState.model.prefill(
+            inputIDs: preparedState.promptInputIDs,
+            positions: preparedState.promptPositions,
+            decoderContext: decoderContext,
+            cache: decoderCache,
+            applyLogSoftmax: false
+        )
+        if let currentLogits {
+            eval(currentLogits, decoderCache.arraysForEval())
+            lastLogitsShape = currentLogits.shape
+        }
 
-            let lastLogits = logits[0, logits.dim(1) - 1]
-            let nextToken = lastLogits.argMax(axis: -1)
-            eval(nextToken)
-            let nextTokenID = nextToken.item(Int.self)
+        guard var currentLogits else {
+            throw CohereNativeModelError.missingModelAssets
+        }
 
-            if nextTokenID == eosTokenID {
+        for generationIndex in 0 ..< maxNewTokens {
+            let lastLogits = currentLogits[0, currentLogits.dim(1) - 1]
+            let nextTokenID = lastLogits.argMax(axis: -1).item(Int32.self)
+
+            if nextTokenID == eosTokenID32 {
                 stopReason = .endOfText
-                stopTokenID = nextTokenID
+                stopTokenID = Int(nextTokenID)
                 break
             }
 
-            if let noSpeechTokenID, decodedTokenIDs.count == bootstrap.promptTokenIDs.count, nextTokenID == noSpeechTokenID {
+            if let noSpeechTokenID32, decodedTokenIDs.count == promptTokenIDs.count, nextTokenID == noSpeechTokenID32 {
                 stopReason = .noSpeech
-                stopTokenID = nextTokenID
+                stopTokenID = Int(nextTokenID)
                 break
             }
 
             decodedTokenIDs.append(nextTokenID)
+
+            if generationIndex < maxNewTokens - 1 {
+                currentLogits = preparedState.model.decodeStep(
+                    inputIDs: MLXArray([nextTokenID], [1, 1]),
+                    positions: preparedState.singleStepPositions[decodedTokenIDs.count - 1],
+                    decoderContext: decoderContext,
+                    cache: decoderCache,
+                    applyLogSoftmax: false
+                )
+                eval(currentLogits, decoderCache.arraysForEval())
+                lastLogitsShape = currentLogits.shape
+            }
         }
 
-        let generatedTokenIDs = Array(decodedTokenIDs.dropFirst(bootstrap.promptTokenIDs.count))
+        let generatedTokenIDs = decodedTokenIDs.dropFirst(promptTokenIDs.count).map(Int.init)
         let text = bootstrap.tokenizer.decode(generatedTokenIDs)
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -249,5 +312,23 @@ actor CohereNativeRuntime {
         let loadedPreparedState = try CohereNativeEncoderLoader.loadPreparedState(from: bootstrap)
         preparedStates[cacheKey] = loadedPreparedState
         return loadedPreparedState
+    }
+
+    static func recommendedMaxNewTokens(
+        audioSampleCount: Int,
+        sampleRate: Int,
+        promptTokenCount: Int,
+        maxSequenceLength: Int
+    ) -> Int {
+        let availableNewTokens = max(1, maxSequenceLength - promptTokenCount)
+        guard sampleRate > 0 else {
+            return min(minimumDefaultNewTokens, availableNewTokens)
+        }
+
+        let durationSeconds = Double(audioSampleCount) / Double(sampleRate)
+        let estimatedTokens = Int(ceil(durationSeconds * estimatedTokensPerSecond)) + generationSlackTokens
+        let boundedEstimate = min(maximumDefaultNewTokens, estimatedTokens)
+        let defaultBudget = max(minimumDefaultNewTokens, boundedEstimate)
+        return min(defaultBudget, availableNewTokens)
     }
 }

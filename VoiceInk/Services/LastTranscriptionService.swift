@@ -118,6 +118,13 @@ class LastTranscriptionService: ObservableObject {
             )
             return
         }
+        guard currentModel.supportsAudioFileTranscription else {
+            NotificationManager.shared.showNotification(
+                title: TranscriptionCapabilityError.audioFileInputUnsupported(modelName: currentModel.displayName).localizedDescription,
+                type: .error
+            )
+            return
+        }
 
         let transcriptionService = AudioTranscriptionService(
             modelContext: modelContext,

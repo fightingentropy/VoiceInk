@@ -3,6 +3,7 @@ import MLX
 import Testing
 @testable import VoiceInk
 
+@Suite(.serialized)
 struct CohereNativeFoundationTests {
     @Test
     func promptBuilderMatchesUpstreamFormat() {
@@ -129,5 +130,227 @@ struct CohereNativeFoundationTests {
         #expect(shifted[0, 0, 1, 0].item(Float.self) == 4)
         #expect(shifted[0, 0, 1, 1].item(Float.self) == 5)
         #expect(shifted[0, 0, 1, 2].item(Float.self) == 6)
+    }
+
+    @Test
+    func nativeDecoderStepMatchesFullSequenceDecode() {
+        let configData = Data(
+            """
+            {
+              "vocab_size": 32,
+              "encoder": {
+                "d_model": 8,
+                "ff_expansion_factor": 2,
+                "n_heads": 2,
+                "n_layers": 2,
+                "conv_kernel_size": 5,
+                "dropout": 0,
+                "subsampling_conv_channels": 8,
+                "subsampling_factor": 8,
+                "feat_in": 128,
+                "feat_out": -1,
+                "pos_emb_max_len": 128
+              },
+              "transf_decoder": {
+                "config_dict": {
+                  "hidden_size": 16,
+                  "inner_size": 32,
+                  "num_attention_heads": 4,
+                  "num_layers": 2,
+                  "hidden_act": "relu",
+                  "max_sequence_length": 64
+                }
+              },
+              "head": {
+                "hidden_size": 16,
+                "num_classes": 32,
+                "log_softmax": true
+              },
+              "preprocessor": {
+                "dither": 0,
+                "features": 128,
+                "n_fft": 512,
+                "normalize": "per_feature",
+                "sample_rate": 16000,
+                "window": "hann",
+                "window_size": 0.025,
+                "window_stride": 0.01
+              },
+              "max_audio_clip_s": 35,
+              "overlap_chunk_second": 5,
+              "supported_languages": ["en"]
+            }
+            """.utf8
+        )
+
+        let config = try! JSONDecoder().decode(CohereNativeModelConfig.self, from: configData)
+        let model = CohereNativeConditionalGenerationModel(config: config)
+        model.train(false)
+        eval(model)
+
+        let promptTokenIDs = [3, 5, 7, 9]
+        let inputIDs = MLXArray(promptTokenIDs, [1, promptTokenIDs.count]).asType(.int32)
+        let encoderHiddenStates = (MLXArray(0 ..< 96, [1, 6, 16]).asType(.float32) * 0.01)
+        let encodedLengths = [5]
+
+        let fullLogits = model.decode(
+            inputIDs: inputIDs,
+            encoderHiddenStates: encoderHiddenStates,
+            encodedLengths: encodedLengths
+        )
+
+        let decoderContext = model.prepareDecoderContext(
+            encoderHiddenStates: encoderHiddenStates,
+            encodedLengths: encodedLengths
+        )
+        let decoderCache = model.makeDecoderCache()
+        let prefillCache = model.makeDecoderCache()
+        var stepLogits: MLXArray?
+        let prefillLogits = model.prefill(
+            inputIDs: inputIDs,
+            positions: MLXArray(Array(0 ..< promptTokenIDs.count), [1, promptTokenIDs.count]).asType(.int32),
+            decoderContext: decoderContext,
+            cache: prefillCache
+        )
+        let greedyDecoderCache = model.makeDecoderCache()
+        var greedyStepLogits: MLXArray?
+
+        for (position, tokenID) in promptTokenIDs.enumerated() {
+            stepLogits = model.decodeStep(
+                inputIDs: MLXArray([tokenID], [1, 1]).asType(.int32),
+                positions: MLXArray([position], [1, 1]).asType(.int32),
+                decoderContext: decoderContext,
+                cache: decoderCache
+            )
+            greedyStepLogits = model.decodeStep(
+                inputIDs: MLXArray([tokenID], [1, 1]).asType(.int32),
+                positions: MLXArray([position], [1, 1]).asType(.int32),
+                decoderContext: decoderContext,
+                cache: greedyDecoderCache,
+                applyLogSoftmax: false
+            )
+        }
+
+        guard let stepLogits, let greedyStepLogits else {
+            Issue.record("Cached decoder did not produce logits.")
+            return
+        }
+
+        let fullLastLogits = fullLogits[0, fullLogits.dim(1) - 1].asType(.float32).reshaped([-1])
+        let stepLastLogits = stepLogits[0, 0].asType(.float32).reshaped([-1])
+        let prefillLastLogits = prefillLogits[0, prefillLogits.dim(1) - 1].asType(.float32).reshaped([-1])
+        let greedyLastLogits = greedyStepLogits[0, 0].asType(.float32).reshaped([-1])
+        eval(
+            fullLastLogits,
+            stepLastLogits,
+            prefillLastLogits,
+            greedyLastLogits,
+            decoderCache.arraysForEval(),
+            prefillCache.arraysForEval(),
+            greedyDecoderCache.arraysForEval()
+        )
+
+        var maxDifference: Float = 0
+        for index in 0 ..< fullLastLogits.dim(0) {
+            let difference = abs(fullLastLogits[index].item(Float.self) - stepLastLogits[index].item(Float.self))
+            maxDifference = max(maxDifference, difference)
+        }
+
+        var maxPrefillDifference: Float = 0
+        for index in 0 ..< fullLastLogits.dim(0) {
+            let difference = abs(fullLastLogits[index].item(Float.self) - prefillLastLogits[index].item(Float.self))
+            maxPrefillDifference = max(maxPrefillDifference, difference)
+        }
+
+        let continuedTokenID = Int32(11)
+        let continuedFullLogits = model.decode(
+            inputIDs: MLXArray(promptTokenIDs + [Int(continuedTokenID)], [1, promptTokenIDs.count + 1]).asType(.int32),
+            encoderHiddenStates: encoderHiddenStates,
+            encodedLengths: encodedLengths
+        )
+        let continuedPrefillLogits = model.decodeStep(
+            inputIDs: MLXArray([continuedTokenID], [1, 1]).asType(.int32),
+            positions: MLXArray([promptTokenIDs.count], [1, 1]).asType(.int32),
+            decoderContext: decoderContext,
+            cache: prefillCache
+        )
+        let continuedFullLastLogits = continuedFullLogits[0, continuedFullLogits.dim(1) - 1].asType(.float32).reshaped([-1])
+        let continuedPrefillLastLogits = continuedPrefillLogits[0, 0].asType(.float32).reshaped([-1])
+        eval(continuedFullLastLogits, continuedPrefillLastLogits, prefillCache.arraysForEval())
+
+        var maxContinuationDifference: Float = 0
+        for index in 0 ..< continuedFullLastLogits.dim(0) {
+            let difference = abs(continuedFullLastLogits[index].item(Float.self) - continuedPrefillLastLogits[index].item(Float.self))
+            maxContinuationDifference = max(maxContinuationDifference, difference)
+        }
+
+        #expect(maxDifference < 1e-4)
+        #expect(maxPrefillDifference < 1e-4)
+        #expect(maxContinuationDifference < 1e-4)
+        #expect(fullLastLogits.argMax(axis: -1).item(Int.self) == greedyLastLogits.argMax(axis: -1).item(Int.self))
+    }
+
+    @Test
+    func nativeRuntimeRecommendedTokenBudgetUsesAudioDuration() {
+        let shortClipBudget = CohereNativeRuntime.recommendedMaxNewTokens(
+            audioSampleCount: 2 * 16_000,
+            sampleRate: 16_000,
+            promptTokenCount: 10,
+            maxSequenceLength: 1_024
+        )
+        let mediumClipBudget = CohereNativeRuntime.recommendedMaxNewTokens(
+            audioSampleCount: 20 * 16_000,
+            sampleRate: 16_000,
+            promptTokenCount: 10,
+            maxSequenceLength: 1_024
+        )
+        let longClipBudget = CohereNativeRuntime.recommendedMaxNewTokens(
+            audioSampleCount: 40 * 16_000,
+            sampleRate: 16_000,
+            promptTokenCount: 10,
+            maxSequenceLength: 1_024
+        )
+
+        #expect(shortClipBudget == 48)
+        #expect(mediumClipBudget == 116)
+        #expect(longClipBudget == 192)
+    }
+
+    @Test
+    func nativeRuntimeRecommendedTokenBudgetRespectsSequenceLimit() {
+        let budget = CohereNativeRuntime.recommendedMaxNewTokens(
+            audioSampleCount: 40 * 16_000,
+            sampleRate: 16_000,
+            promptTokenCount: 980,
+            maxSequenceLength: 1_024
+        )
+
+        #expect(budget == 44)
+    }
+
+    @Test
+    func decoderKVCacheResetPreservesSelfAttentionStorage() {
+        let cache = CohereNativeDecoderKVCache(maxSequenceLength: 8)
+        let key = MLXArray.zeros([1, 2, 3, 4], dtype: .float32)
+        let value = MLXArray.zeros([1, 2, 3, 4], dtype: .float32)
+
+        _ = cache.prepare(key: key, value: value)
+
+        #expect(cache.hasAllocatedStorage())
+        #expect(cache.currentVisibleLength() == 3)
+        #expect(cache.currentStorageShape() == [1, 2, 8, 4])
+
+        cache.reset(keepStorage: true)
+
+        #expect(cache.hasAllocatedStorage())
+        #expect(cache.currentVisibleLength() == 0)
+        #expect(cache.currentStorageShape() == [1, 2, 8, 4])
+
+        _ = cache.prepare(key: key, value: value)
+        #expect(cache.currentVisibleLength() == 3)
+
+        cache.reset(keepStorage: false)
+        #expect(!cache.hasAllocatedStorage())
+        #expect(cache.currentVisibleLength() == 0)
     }
 }

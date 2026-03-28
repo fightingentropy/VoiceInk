@@ -14,10 +14,15 @@ struct CohereNativeSmokeTests {
 
         let sample = try benchmarkSample()
         let firstStep = try await firstStepDiagnostic(for: sample)
+        let bootstrap = try await CohereNativeRuntime.shared.prepareBootstrap(autoDownload: true)
+        let audioSamples = try CohereNativeFeatureExtractor.loadAudioFile(
+            sample.audioURL,
+            sampleRate: bootstrap.config.audioConfiguration.sampleRate
+        )
         let result = try await CohereNativeRuntime.shared.transcribe(
-            audioURL: sample.audioURL,
-            autoDownload: true,
-            maxNewTokens: 96
+            audioSamples: audioSamples,
+            sampleRate: bootstrap.config.audioConfiguration.sampleRate,
+            autoDownload: true
         )
 
         let metrics = canonicalMetrics(reference: sample.referenceText, hypothesis: result.text)

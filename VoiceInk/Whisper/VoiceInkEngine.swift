@@ -81,7 +81,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
         if recordingState == .recording {
             partialTranscript = ""
             recordingState = .transcribing
-            recorder.stopRecording()
+            await recorder.stopRecording()
 
             if let recordedFile {
                 if !shouldCancelRecording {
@@ -155,7 +155,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
                             try await self.recorder.startRecording(toOutputFile: permanentURL)
 
                             guard self.recorderUIManager?.isMiniRecorderVisible ?? false, !self.shouldCancelRecording else {
-                                self.recorder.stopRecording()
+                                await self.recorder.stopRecording()
                                 session.cancel()
                                 prepareTask.cancel()
                                 startupForwarder.finish()
@@ -329,10 +329,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
             )
         case .cohereTranscribe:
             guard let cohereModel = model as? LocalCohereTranscribeModel else { return }
-            try await serviceRegistry.cohereTranscribeTranscriptionService.warmup(
-                for: cohereModel,
-                using: audioURL
-            )
+            try await serviceRegistry.cohereTranscribeTranscriptionService.warmup(for: cohereModel)
         default:
             return
         }

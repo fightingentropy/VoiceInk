@@ -34,6 +34,10 @@ extension TranscriptionModel {
     var language: String {
         isMultilingualModel ? "Multilingual" : "English-only"
     }
+
+    var supportsAudioFileTranscription: Bool {
+        provider != .cohereTranscribe && provider != .localVoxtral
+    }
 }
 
 struct LocalVoxtralModel: TranscriptionModel {
