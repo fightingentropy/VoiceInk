@@ -35,6 +35,10 @@ class AudioTranscriptionService: ObservableObject {
     }
     
     func retranscribeAudio(from url: URL, using model: any TranscriptionModel) async throws -> Transcription {
+        guard model.supportsAudioFileTranscription else {
+            throw TranscriptionCapabilityError.audioFileInputUnsupported(modelName: model.displayName)
+        }
+
         guard FileManager.default.fileExists(atPath: url.path) else {
             throw TranscriptionError.noAudioFile
         }

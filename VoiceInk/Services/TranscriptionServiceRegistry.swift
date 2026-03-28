@@ -15,7 +15,6 @@ class TranscriptionServiceRegistry {
     private(set) lazy var cloudTranscriptionService = CloudTranscriptionService()
     private(set) lazy var nativeAppleTranscriptionService = NativeAppleTranscriptionService()
     private(set) lazy var parakeetTranscriptionService = ParakeetTranscriptionService()
-    private(set) lazy var localVoxtralTranscriptionService = LocalVoxtralTranscriptionService()
     private(set) lazy var cohereTranscribeTranscriptionService = CohereTranscribeTranscriptionService()
 
     init(modelProvider: any LocalModelProvider, modelsDirectory: URL) {
@@ -23,18 +22,33 @@ class TranscriptionServiceRegistry {
         self.modelsDirectory = modelsDirectory
     }
 
-    func service(for provider: ModelProvider) -> TranscriptionService {
+    private func fileService(for provider: ModelProvider) -> any TranscriptionService {
         switch provider {
         case .local:
             return localTranscriptionService
-        case .localVoxtral:
-            return localVoxtralTranscriptionService
-        case .cohereTranscribe:
-            return cohereTranscribeTranscriptionService
         case .parakeet:
             return parakeetTranscriptionService
         case .nativeApple:
             return nativeAppleTranscriptionService
+        case .localVoxtral, .cohereTranscribe:
+            preconditionFailure("Streaming-only or recorder-only models do not have file transcription services")
+        default:
+            return cloudTranscriptionService
+        }
+    }
+
+    private func recorderService(for provider: ModelProvider) -> any RecorderTranscriptionService {
+        switch provider {
+        case .cohereTranscribe:
+            return cohereTranscribeTranscriptionService
+        case .local:
+            return localTranscriptionService
+        case .parakeet:
+            return parakeetTranscriptionService
+        case .nativeApple:
+            return nativeAppleTranscriptionService
+        case .localVoxtral:
+            preconditionFailure("Streaming-only models do not create recorder sessions")
         default:
             return cloudTranscriptionService
         }
@@ -42,7 +56,10 @@ class TranscriptionServiceRegistry {
 
     func transcribe(audioURL: URL, model: any TranscriptionModel) async throws -> String {
         let effectiveModel = batchFallbackModel(for: model) ?? model
-        let service = service(for: effectiveModel.provider)
+        guard effectiveModel.supportsAudioFileTranscription else {
+            throw TranscriptionCapabilityError.audioFileInputUnsupported(modelName: effectiveModel.displayName)
+        }
+        let service = fileService(for: effectiveModel.provider)
         logger.debug("Transcribing with \(effectiveModel.displayName, privacy: .public) using \(String(describing: type(of: service)), privacy: .public)")
         let text = try await service.transcribe(audioURL: audioURL, model: effectiveModel)
 
@@ -61,11 +78,16 @@ class TranscriptionServiceRegistry {
             let streamingService = StreamingTranscriptionService(
                 onPartialTranscript: onPartialTranscript
             )
-            let fallback = service(for: model.provider)
-            let fallbackModel = batchFallbackModel(for: model)
-            return StreamingTranscriptionSession(streamingService: streamingService, fallbackService: fallback, fallbackModel: fallbackModel)
+            let fallbackModel = batchFallbackModel(for: model) ?? model
+            let fallbackService = fallbackModel.supportsAudioFileTranscription ? fileService(for: fallbackModel.provider) : nil
+            let effectiveFallbackModel = fallbackService == nil ? nil : fallbackModel
+            return StreamingTranscriptionSession(
+                streamingService: streamingService,
+                fallbackService: fallbackService,
+                fallbackModel: effectiveFallbackModel
+            )
         } else {
-            return FileTranscriptionSession(service: service(for: model.provider))
+            return FileTranscriptionSession(service: recorderService(for: model.provider))
         }
     }
 

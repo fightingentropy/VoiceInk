@@ -13,6 +13,14 @@ struct AudioTranscribeView: View {
     @State private var isAudioFileSelected = false
     @State private var isEnhancementEnabled = false
     @State private var selectedPromptId: UUID?
+
+    private var currentTranscriptionModel: (any TranscriptionModel)? {
+        engine.transcriptionModelManager.currentTranscriptionModel
+    }
+
+    private var canTranscribeSelectedAudioFile: Bool {
+        currentTranscriptionModel?.supportsAudioFileTranscription == true
+    }
     
     var body: some View {
         ZStack {
@@ -65,6 +73,12 @@ struct AudioTranscribeView: View {
                 VStack(spacing: 16) {
                     Text("Audio file selected: \(selectedAudioURL?.lastPathComponent ?? "")")
                         .font(.headline)
+
+                    if !canTranscribeSelectedAudioFile, let currentTranscriptionModel {
+                        Text("\(currentTranscriptionModel.displayName) only supports live recorder transcription.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                     
                     // AI Enhancement Settings
                     VStack(spacing: 16) {
@@ -135,6 +149,7 @@ struct AudioTranscribeView: View {
                             }
                         }
                         .buttonStyle(.borderedProminent)
+                        .disabled(!canTranscribeSelectedAudioFile)
                         
                         Button("Choose Different File") {
                             selectedAudioURL = nil

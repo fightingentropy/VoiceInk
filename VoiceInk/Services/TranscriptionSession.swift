@@ -19,27 +19,56 @@ protocol TranscriptionSession: AnyObject {
 /// File-based session: records to file, uploads after stop.
 @MainActor
 final class FileTranscriptionSession: TranscriptionSession {
-    private let service: TranscriptionService
-    private var model: (any TranscriptionModel)?
+    private static let recorderChunkSampleRate = 16_000
 
-    init(service: TranscriptionService) {
+    private let service: any RecorderTranscriptionService
+    private var model: (any TranscriptionModel)?
+    private let pcmAccumulator = RecordedPCMAccumulator()
+
+    init(service: any RecorderTranscriptionService) {
         self.service = service
     }
 
     func prepare(model: any TranscriptionModel) async throws -> (@Sendable (Data) -> Void)? {
         self.model = model
-        return nil
+        pcmAccumulator.reset()
+
+        guard service is PCMBufferTranscriptionService else {
+            return nil
+        }
+
+        return { [pcmAccumulator] data in
+            pcmAccumulator.append(data)
+        }
     }
 
     func transcribe(audioURL: URL) async throws -> String {
         guard let model = model else {
             throw VoiceInkEngineError.transcriptionFailed
         }
-        return try await service.transcribe(audioURL: audioURL, model: model)
+
+        if let optimizedService = service as? PCMBufferTranscriptionService {
+            let recordedPCMBuffer = pcmAccumulator.drain()
+            guard !recordedPCMBuffer.isEmpty else {
+                throw VoiceInkEngineError.transcriptionFailed
+            }
+
+            return try await optimizedService.transcribe(
+                recordedPCMBuffer: recordedPCMBuffer,
+                sampleRate: Self.recorderChunkSampleRate,
+                model: model
+            )
+        }
+
+        guard let fileService = service as? TranscriptionService else {
+            throw VoiceInkEngineError.transcriptionFailed
+        }
+
+        return try await fileService.transcribe(audioURL: audioURL, model: model)
     }
 
     func cancel() {
-        // No-op for file-based transcription
+        pcmAccumulator.reset()
     }
 }
 
@@ -49,14 +78,17 @@ final class FileTranscriptionSession: TranscriptionSession {
 @MainActor
 final class StreamingTranscriptionSession: TranscriptionSession {
     private let streamingService: StreamingTranscriptionService
-    private let fallbackService: TranscriptionService
-    // Batch-compatible override for streaming-only models rejected by the provider's REST API.
+    private let fallbackService: (any TranscriptionService)?
     private let fallbackModel: (any TranscriptionModel)?
     private var model: (any TranscriptionModel)?
     private var streamingFailed = false
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "StreamingTranscriptionSession")
 
-    init(streamingService: StreamingTranscriptionService, fallbackService: TranscriptionService, fallbackModel: (any TranscriptionModel)? = nil) {
+    init(
+        streamingService: StreamingTranscriptionService,
+        fallbackService: (any TranscriptionService)?,
+        fallbackModel: (any TranscriptionModel)? = nil
+    ) {
         self.streamingService = streamingService
         self.fallbackService = fallbackService
         self.fallbackModel = fallbackModel
@@ -102,11 +134,50 @@ final class StreamingTranscriptionSession: TranscriptionSession {
 
         // Use fallbackModel if set — streaming-only models are rejected by the batch REST API.
         let modelForFallback = fallbackModel ?? model
+        guard let fallbackService else {
+            throw StreamingTranscriptionSessionError.batchFallbackUnavailable(modelName: model.displayName)
+        }
         logger.notice("Using batch fallback for \(model.displayName, privacy: .public) with model \(modelForFallback.displayName, privacy: .public)")
         return try await fallbackService.transcribe(audioURL: audioURL, model: modelForFallback)
     }
 
     func cancel() {
         streamingService.cancel()
+    }
+}
+
+enum StreamingTranscriptionSessionError: LocalizedError {
+    case batchFallbackUnavailable(modelName: String)
+
+    var errorDescription: String? {
+        switch self {
+        case let .batchFallbackUnavailable(modelName):
+            return "\(modelName) is streaming-only. If live transcription startup fails, there is no batch fallback available for this model."
+        }
+    }
+}
+
+private final class RecordedPCMAccumulator: @unchecked Sendable {
+    private let lock = NSLock()
+    private var buffer = Data()
+
+    func append(_ data: Data) {
+        lock.lock()
+        buffer.append(data)
+        lock.unlock()
+    }
+
+    func drain() -> Data {
+        lock.lock()
+        defer { lock.unlock() }
+        let drained = buffer
+        buffer.removeAll(keepingCapacity: false)
+        return drained
+    }
+
+    func reset() {
+        lock.lock()
+        buffer.removeAll(keepingCapacity: false)
+        lock.unlock()
     }
 }
