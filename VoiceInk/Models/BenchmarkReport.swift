@@ -20,7 +20,7 @@ enum BenchmarkCorpusSource: String, Codable, CaseIterable, Identifiable, Sendabl
         case .standard:
             return "Stable synthetic phrases for consistent model-to-model comparisons."
         case .recentRecordings:
-            return "Your most recent completed recordings captured by VoiceInk."
+            return "Your most recent completed VoiceInk recordings. Speed comparisons are meaningful, but accuracy reflects agreement with the saved transcript text for those recordings."
         }
     }
 }

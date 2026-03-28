@@ -561,6 +561,9 @@ extension BenchmarkSuiteStore {
         lines.append("- Device: \(report.device.hardwareModel)")
         lines.append("- OS: \(report.device.operatingSystemVersion)")
         lines.append("- App: \(report.device.appVersion) (\(report.device.appBuild))")
+        if report.corpusSource == .recentRecordings {
+            lines.append("- Accuracy note: Recent Recordings uses the saved transcript text for each recording as the reference. Speed remains useful, but accuracy reflects agreement with those saved transcripts rather than neutral hand-labeled ground truth.")
+        }
         lines.append("")
         lines.append("## Summary")
         lines.append("")
