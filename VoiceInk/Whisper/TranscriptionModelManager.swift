@@ -4,6 +4,8 @@ import os
 
 @MainActor
 class TranscriptionModelManager: ObservableObject {
+    private static let preferredDefaultModelName = "scribe_v2"
+
     @Published var currentTranscriptionModel: (any TranscriptionModel)?
     @Published var allAvailableModels: [any TranscriptionModel] = PredefinedModels.models
 
@@ -82,11 +84,13 @@ class TranscriptionModelManager: ObservableObject {
 
     func loadCurrentTranscriptionModel() {
         guard let savedModelName = UserDefaults.standard.string(forKey: "CurrentTranscriptionModel") else {
+            selectPreferredDefaultModelIfNeeded()
             return
         }
 
         guard let savedModel = allAvailableModels.first(where: { $0.name == savedModelName }) else {
             UserDefaults.standard.removeObject(forKey: "CurrentTranscriptionModel")
+            selectPreferredDefaultModelIfNeeded()
             return
         }
 
@@ -164,5 +168,14 @@ class TranscriptionModelManager: ObservableObject {
 
     deinit {
         cohereAvailabilityObserverTask?.cancel()
+    }
+
+    private func selectPreferredDefaultModelIfNeeded() {
+        guard currentTranscriptionModel == nil else { return }
+        guard let preferredModel = usableModels.first(where: { $0.name == Self.preferredDefaultModelName }) else {
+            return
+        }
+
+        setDefaultTranscriptionModel(preferredModel)
     }
 }
