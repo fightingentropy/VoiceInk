@@ -120,6 +120,7 @@ final class APIKeyManager: @unchecked Sendable {
 
         logger.info("Starting API key migration")
         var migratedCount = 0
+        var hadFailure = false
 
         for (oldKey, newKey) in Self.userDefaultsToKeychainMapping {
             if let value = userDefaults.string(forKey: oldKey), !value.isEmpty {
@@ -128,19 +129,29 @@ final class APIKeyManager: @unchecked Sendable {
                     migratedCount += 1
                 } else {
                     logger.error("Failed to migrate \(oldKey, privacy: .public)")
+                    hadFailure = true
                 }
             }
         }
 
-        migrateCustomModelAPIKeys()
+        if !migrateCustomModelAPIKeys() {
+            hadFailure = true
+        }
+
+        if hadFailure {
+            logger.error("Migration incomplete; will retry on next launch. Migrated \(migratedCount, privacy: .public) keys so far.")
+            return
+        }
+
         userDefaults.set(true, forKey: migrationCompletedKey)
         logger.info("Migration completed. Migrated \(migratedCount, privacy: .public) API keys.")
     }
 
     /// Migrates custom model API keys from UserDefaults.
-    private func migrateCustomModelAPIKeys() {
+    /// Returns `true` on success (including nothing-to-do); `false` if any save failed.
+    private func migrateCustomModelAPIKeys() -> Bool {
         guard let data = userDefaults.data(forKey: "customCloudModels") else {
-            return
+            return true
         }
 
         struct LegacyCustomCloudModel: Codable {
@@ -150,12 +161,18 @@ final class APIKeyManager: @unchecked Sendable {
 
         do {
             let legacyModels = try JSONDecoder().decode([LegacyCustomCloudModel].self, from: data)
+            var allSaved = true
             for model in legacyModels where !model.apiKey.isEmpty {
                 let keyIdentifier = customModelKeyIdentifier(for: model.id)
-                keychain.save(model.apiKey, forKey: keyIdentifier)
+                if !keychain.save(model.apiKey, forKey: keyIdentifier) {
+                    logger.error("Failed to migrate custom model key: \(model.id.uuidString, privacy: .public)")
+                    allSaved = false
+                }
             }
+            return allSaved
         } catch {
             logger.error("Failed to decode legacy custom models: \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 

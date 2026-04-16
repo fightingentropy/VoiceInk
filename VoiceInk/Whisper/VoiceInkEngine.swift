@@ -120,7 +120,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
                                 throw VoiceInkEngineError.transcriptionFailed
                             }
 
-                            let session = self.serviceRegistry.createSession(
+                            let session = try self.serviceRegistry.createSession(
                                 for: model,
                                 onPartialTranscript: { [weak self] partial in
                                     Task { @MainActor in

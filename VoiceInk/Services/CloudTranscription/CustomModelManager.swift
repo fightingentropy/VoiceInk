@@ -1,32 +1,40 @@
 import Foundation
 import os
 
+/// Thread safety: this is an `ObservableObject` with a `@Published` state; all mutations
+/// are marked `@MainActor` so published changes are delivered on the main thread and the
+/// underlying array is only written from a single isolation context. Reads from other
+/// contexts (tests, background services) observe whatever the last committed snapshot
+/// was, which is acceptable for the read paths in this codebase.
 final class CustomModelManager: ObservableObject, @unchecked Sendable {
     static let shared = CustomModelManager()
-    
+
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "CustomModelManager")
     private let userDefaults = UserDefaults.standard
     private let customModelsKey = "customCloudModels"
-    
+
     @Published var customModels: [CustomCloudModel] = []
-    
+
     private init() {
         loadCustomModels()
     }
-    
+
     // MARK: - CRUD Operations
-    
+
+    @MainActor
     func addCustomModel(_ model: CustomCloudModel) {
         customModels.append(model)
         saveCustomModels()
     }
 
+    @MainActor
     func removeCustomModel(withId id: UUID) {
         customModels.removeAll { $0.id == id }
         saveCustomModels()
         APIKeyManager.shared.deleteCustomModelAPIKey(forModelId: id)
     }
 
+    @MainActor
     func updateCustomModel(_ updatedModel: CustomCloudModel) {
         if let index = customModels.firstIndex(where: { $0.id == updatedModel.id }) {
             customModels[index] = updatedModel
@@ -59,39 +67,6 @@ final class CustomModelManager: ObservableObject, @unchecked Sendable {
     }
     
     // MARK: - Validation
-    
-    func validateModel(name: String, displayName: String, apiEndpoint: String, apiKey: String, modelName: String) -> [String] {
-        var errors: [String] = []
-        
-        if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors.append("Name cannot be empty")
-        }
-        
-        if displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors.append("Display name cannot be empty")
-        }
-        
-        if apiEndpoint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors.append("API endpoint cannot be empty")
-        } else if !isValidURL(apiEndpoint) {
-            errors.append("API endpoint must be a valid URL")
-        }
-        
-        if apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors.append("API key cannot be empty")
-        }
-        
-        if modelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors.append("Model name cannot be empty")
-        }
-        
-        // Check for duplicate names
-        if customModels.contains(where: { $0.name == name }) {
-            errors.append("A model with this name already exists")
-        }
-        
-        return errors
-    }
     
     func validateModel(name: String, displayName: String, apiEndpoint: String, apiKey: String, modelName: String, excludingId: UUID? = nil) -> [String] {
         var errors: [String] = []

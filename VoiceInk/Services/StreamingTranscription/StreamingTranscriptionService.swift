@@ -63,7 +63,7 @@ final class StreamingTranscriptionService {
         state = .connecting
         committedSegments = []
 
-        let provider = createProvider(for: model)
+        let provider = try createProvider(for: model)
         self.provider = provider
 
         let selectedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "auto"
@@ -155,14 +155,14 @@ final class StreamingTranscriptionService {
 
     // MARK: - Private
 
-    private func createProvider(for model: any TranscriptionModel) -> StreamingTranscriptionProvider {
+    private func createProvider(for model: any TranscriptionModel) throws -> StreamingTranscriptionProvider {
         switch model.provider {
         case .localVoxtral:
             return VoxtralNativeStreamingProvider()
         case .elevenLabs:
             return ElevenLabsStreamingProvider()
         default:
-            fatalError("Unsupported streaming provider: \(model.provider). Check supportsStreaming() before calling startStreaming().")
+            throw StreamingTranscriptionError.unsupportedProvider(String(describing: model.provider))
         }
     }
 

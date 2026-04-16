@@ -1,9 +1,11 @@
 import SwiftUI
 import SwiftData
 import AppKit
+import os
 
 @MainActor
 class MenuBarManager: ObservableObject {
+    private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "MenuBarManager")
     @Published var isMenuBarOnly: Bool {
         didSet {
             UserDefaults.standard.set(isMenuBarOnly, forKey: "IsMenuBarOnly")
@@ -59,7 +61,7 @@ class MenuBarManager: ObservableObject {
     func focusMainWindow() {
         NSApplication.shared.setActivationPolicy(.regular)
         if WindowManager.shared.showMainWindow() == nil {
-            print("MenuBarManager: Unable to locate main window to focus")
+            logger.warning("Unable to locate main window to focus")
         }
     }
     
@@ -75,30 +77,30 @@ class MenuBarManager: ObservableObject {
     }
     
     func openMainWindowAndNavigate(to destination: String) {
-        print("MenuBarManager: Navigating to \(destination)")
+        logger.debug("Navigating to \(destination, privacy: .public)")
 
         NSApplication.shared.setActivationPolicy(.regular)
 
         guard WindowManager.shared.showMainWindow() != nil else {
-            print("MenuBarManager: Unable to show main window for navigation")
+            logger.warning("Unable to show main window for navigation")
             return
         }
 
         // Post a notification to navigate to the desired destination
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [logger] in
             NotificationCenter.default.post(
                 name: .navigateToDestination,
                 object: nil,
                 userInfo: ["destination": destination]
             )
-            print("MenuBarManager: Posted navigation notification for \(destination)")
+            logger.debug("Posted navigation notification for \(destination, privacy: .public)")
         }
     }
 
     func openHistoryWindow() {
         guard let modelContainer = modelContainer,
               let engine = engine else {
-            print("MenuBarManager: Dependencies not configured")
+            logger.error("Dependencies not configured")
             return
         }
         NSApplication.shared.setActivationPolicy(.regular)

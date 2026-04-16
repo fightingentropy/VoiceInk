@@ -2,11 +2,14 @@ import Foundation
 
 enum TranscriptionCapabilityError: LocalizedError {
     case audioFileInputUnsupported(modelName: String)
+    case recorderUnsupported(modelName: String)
 
     var errorDescription: String? {
         switch self {
         case let .audioFileInputUnsupported(modelName):
             return "\(modelName) only supports live recorder transcription."
+        case let .recorderUnsupported(modelName):
+            return "\(modelName) does not support recorder-based transcription."
         }
     }
 }
