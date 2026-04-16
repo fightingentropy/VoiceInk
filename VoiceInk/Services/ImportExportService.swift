@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 import KeyboardShortcuts
 import LaunchAtLogin
 import SwiftData
+import os
 
 struct GeneralSettings: Codable {
     let toggleMiniRecorderShortcut: KeyboardShortcuts.Shortcut?
@@ -49,6 +50,7 @@ struct VoiceInkExportedSettings: Codable {
 @MainActor
 final class ImportExportService {
     static let shared = ImportExportService()
+    private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "ImportExportService")
     private let currentSettingsVersion: String
     private let dictionaryItemsKey = "CustomVocabularyItems"
     private let wordReplacementsKey = "wordReplacements"
@@ -205,9 +207,9 @@ final class ImportExportService {
                         customModelManager.customModels = modelsToImport
                         customModelManager.saveCustomModels() // Ensure they are persisted
                         transcriptionModelManager.refreshAllAvailableModels() // Refresh the UI
-                        print("Successfully imported \(modelsToImport.count) custom models.")
+                        self.logger.info("Successfully imported \(modelsToImport.count, privacy: .public) custom models.")
                     } else {
-                        print("No custom models found in the imported file.")
+                        self.logger.info("No custom models found in the imported file.")
                     }
 
                     if let customEmojis = importedSettings.customEmojis {
@@ -230,9 +232,9 @@ final class ImportExportService {
                             }
                         }
                         try? modelContext.save()
-                        print("Successfully imported vocabulary words to SwiftData.")
+                        self.logger.info("Successfully imported vocabulary words to SwiftData.")
                     } else {
-                        print("No vocabulary words found in the imported file. Existing items remain unchanged.")
+                        self.logger.info("No vocabulary words found in the imported file. Existing items remain unchanged.")
                     }
 
                     // Import word replacements to SwiftData
@@ -267,9 +269,9 @@ final class ImportExportService {
                             }
                         }
                         try? modelContext.save()
-                        print("Successfully imported word replacements to SwiftData.")
+                        self.logger.info("Successfully imported word replacements to SwiftData.")
                     } else {
-                        print("No word replacements found in the imported file. Existing replacements remain unchanged.")
+                        self.logger.info("No word replacements found in the imported file. Existing replacements remain unchanged.")
                     }
 
                     if let general = importedSettings.generalSettings {

@@ -1,5 +1,8 @@
 import Foundation
 import AppKit
+import os
+
+private let powerModeSessionLogger = Logger(subsystem: "com.fightingentropy.voiceink", category: "PowerModeSessionManager")
 
 struct ApplicationState: Codable {
     var isEnhancementEnabled: Bool
@@ -38,7 +41,7 @@ class PowerModeSessionManager {
 
     func beginSession(with config: PowerModeConfig) async {
         guard let stateProvider = stateProvider, let enhancementService = enhancementService else {
-            print("SessionManager not configured.")
+            powerModeSessionLogger.error("SessionManager not configured.")
             return
         }
 
@@ -190,7 +193,7 @@ class PowerModeSessionManager {
                 do {
                     try await stateProvider.loadModel(localModel)
                 } catch {
-                    print("Power Mode: Failed to load local model '\(localModel.name)': \(error)")
+                    powerModeSessionLogger.error("Failed to load local model '\(localModel.name, privacy: .public)': \(error.localizedDescription, privacy: .public)")
                 }
             }
         case .parakeet:
@@ -202,7 +205,7 @@ class PowerModeSessionManager {
 
     private func recoverSession() {
         guard loadSession() != nil else { return }
-        print("Recovering abandoned Power Mode session.")
+        powerModeSessionLogger.notice("Recovering abandoned Power Mode session.")
         Task { @MainActor in
             await endSession()
         }
@@ -213,7 +216,7 @@ class PowerModeSessionManager {
             let data = try JSONEncoder().encode(session)
             UserDefaults.standard.set(data, forKey: sessionKey)
         } catch {
-            print("Error saving Power Mode session: \(error)")
+            powerModeSessionLogger.error("Error saving Power Mode session: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -222,7 +225,7 @@ class PowerModeSessionManager {
         do {
             return try JSONDecoder().decode(PowerModeSession.self, from: data)
         } catch {
-            print("Error loading Power Mode session: \(error)")
+            powerModeSessionLogger.error("Error loading Power Mode session: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }

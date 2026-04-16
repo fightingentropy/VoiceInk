@@ -19,8 +19,8 @@ class TranscriptionServiceRegistry {
         self.modelProvider = modelProvider
     }
 
-    private func fileService(for provider: ModelProvider) -> any TranscriptionService {
-        switch provider {
+    private func fileService(for model: any TranscriptionModel) throws -> any TranscriptionService {
+        switch model.provider {
         case .local:
             return localTranscriptionService
         case .parakeet:
@@ -28,14 +28,14 @@ class TranscriptionServiceRegistry {
         case .nativeApple:
             return nativeAppleTranscriptionService
         case .localVoxtral, .cohereTranscribe:
-            preconditionFailure("Streaming-only or recorder-only models do not have file transcription services")
+            throw TranscriptionCapabilityError.audioFileInputUnsupported(modelName: model.displayName)
         default:
             return cloudTranscriptionService
         }
     }
 
-    private func recorderService(for provider: ModelProvider) -> any RecorderTranscriptionService {
-        switch provider {
+    private func recorderService(for model: any TranscriptionModel) throws -> any RecorderTranscriptionService {
+        switch model.provider {
         case .cohereTranscribe:
             return cohereTranscribeTranscriptionService
         case .local:
@@ -45,7 +45,7 @@ class TranscriptionServiceRegistry {
         case .nativeApple:
             return nativeAppleTranscriptionService
         case .localVoxtral:
-            preconditionFailure("Streaming-only models do not create recorder sessions")
+            throw TranscriptionCapabilityError.recorderUnsupported(modelName: model.displayName)
         default:
             return cloudTranscriptionService
         }
@@ -55,7 +55,7 @@ class TranscriptionServiceRegistry {
         guard model.supportsAudioFileTranscription else {
             throw TranscriptionCapabilityError.audioFileInputUnsupported(modelName: model.displayName)
         }
-        let service = fileService(for: model.provider)
+        let service = try fileService(for: model)
         logger.debug("Transcribing with \(model.displayName, privacy: .public) using \(String(describing: type(of: service)), privacy: .public)")
         let text = try await service.transcribe(audioURL: audioURL, model: model)
 
@@ -67,18 +67,18 @@ class TranscriptionServiceRegistry {
     }
 
     /// Creates a streaming or file-based session depending on the model's capabilities.
-    func createSession(for model: any TranscriptionModel, onPartialTranscript: (@Sendable (String) -> Void)? = nil) -> TranscriptionSession {
+    func createSession(for model: any TranscriptionModel, onPartialTranscript: (@Sendable (String) -> Void)? = nil) throws -> TranscriptionSession {
         if supportsStreaming(model: model) {
             let streamingService = StreamingTranscriptionService(
                 onPartialTranscript: onPartialTranscript
             )
-            let fallbackService = model.supportsAudioFileTranscription ? fileService(for: model.provider) : nil
+            let fallbackService = model.supportsAudioFileTranscription ? try fileService(for: model) : nil
             return StreamingTranscriptionSession(
                 streamingService: streamingService,
                 fallbackService: fallbackService
             )
         } else {
-            return FileTranscriptionSession(service: recorderService(for: model.provider))
+            return FileTranscriptionSession(service: try recorderService(for: model))
         }
     }
 

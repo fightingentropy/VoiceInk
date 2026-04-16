@@ -2,6 +2,9 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 import AVFoundation
+import os
+
+private let audioTranscribeLogger = Logger(subsystem: "com.fightingentropy.voiceink", category: "AudioTranscribeView")
 
 struct AudioTranscribeView: View {
     @Environment(\.modelContext) private var modelContext
@@ -247,7 +250,7 @@ struct AudioTranscribeView: View {
             if provider.hasItemConformingToTypeIdentifier(typeIdentifier) {
                 provider.loadItem(forTypeIdentifier: typeIdentifier, options: nil) { (item, error) in
                     if let error = error {
-                        print("Error loading dropped file with type \(typeIdentifier): \(error)")
+                        audioTranscribeLogger.error("Error loading dropped file with type \(typeIdentifier, privacy: .public): \(error.localizedDescription, privacy: .public)")
                         return
                     }
                     
@@ -280,14 +283,14 @@ struct AudioTranscribeView: View {
     }
     
     private func validateAndSetAudioFile(_ url: URL) {
-        print("Attempting to validate file: \(url.path)")
-        
+        audioTranscribeLogger.debug("Attempting to validate file: \(url.path, privacy: .private)")
+
         // Check if file exists
         guard FileManager.default.fileExists(atPath: url.path) else {
-            print("File does not exist at path: \(url.path)")
+            audioTranscribeLogger.warning("File does not exist at path: \(url.path, privacy: .private)")
             return
         }
-        
+
         // Try to access security scoped resource
         let accessing = url.startAccessingSecurityScopedResource()
         defer {
@@ -295,11 +298,11 @@ struct AudioTranscribeView: View {
                 url.stopAccessingSecurityScopedResource()
             }
         }
-        
+
         // Validate file type
         guard SupportedMedia.isSupported(url: url) else { return }
-        
-        print("File validated successfully: \(url.lastPathComponent)")
+
+        audioTranscribeLogger.debug("File validated successfully: \(url.lastPathComponent, privacy: .private)")
         selectedAudioURL = url
         isAudioFileSelected = true
     }

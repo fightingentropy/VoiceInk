@@ -9,7 +9,7 @@ Before you begin, ensure you have:
 - Xcode (latest version recommended)
 - Swift command line tools
 
-VoiceInk now resolves its dependencies through Swift Package Manager. There is no separate external speech-runtime build step.
+VoiceInk resolves its dependencies through Swift Package Manager; speech runtimes (WhisperKit, FluidAudio/Parakeet, Voxtral/Cohere MLX) are vendored as SPM packages under `Dependencies/` and build as part of the Xcode project. There is no separate external speech-runtime build step.
 
 ## Quick Start With Makefile
 

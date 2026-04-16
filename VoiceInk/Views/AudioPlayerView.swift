@@ -1,5 +1,8 @@
 import SwiftUI
 import AVFoundation
+import os
+
+private let audioPlayerLogger = Logger(subsystem: "com.fightingentropy.voiceink", category: "AudioPlayerView")
 
 extension TimeInterval {
     func formatTiming() -> String {
@@ -60,7 +63,7 @@ class WaveformGenerator {
             cache.setObject(normalizedSamples as NSArray, forKey: cacheKey)
             return normalizedSamples
         } catch {
-            print("Error reading audio file: \(error)")
+            audioPlayerLogger.error("Error reading audio file: \(error.localizedDescription, privacy: .public)")
             return []
         }
     }
@@ -89,7 +92,7 @@ class AudioPlayerManager: ObservableObject {
                 self.isLoadingWaveform = false
             }
         } catch {
-            print("Error loading audio: \(error.localizedDescription)")
+            audioPlayerLogger.error("Error loading audio: \(error.localizedDescription, privacy: .public)")
         }
     }
     
