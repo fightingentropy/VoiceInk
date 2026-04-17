@@ -4,14 +4,21 @@ import AVFoundation
 import FluidAudio
 import os.log
 
-final class ParakeetTranscriptionService: TranscriptionService, @unchecked Sendable {
+/// Thread-safe Parakeet service.
+///
+/// Previously declared `@unchecked Sendable` with plain-class state, which
+/// violated actor-isolation guarantees when model loads raced with
+/// transcription calls (e.g. user switching models mid-session). Converting
+/// to an `actor` eliminates the data race at the language level while
+/// keeping the public API intact — all methods are naturally `async`.
+actor ParakeetTranscriptionService: TranscriptionService {
     private var asrManager: AsrManager?
     private var activeVersion: AsrModelVersion?
     private var cachedModels: AsrModels?
     private var loadingTask: (version: AsrModelVersion, task: Task<AsrModels, Error>)?
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink.parakeet", category: "ParakeetTranscriptionService")
 
-    private func version(for model: any TranscriptionModel) -> AsrModelVersion {
+    private nonisolated func version(for model: any TranscriptionModel) -> AsrModelVersion {
         model.name.lowercased().contains("v2") ? .v2 : .v3
     }
 
@@ -33,7 +40,7 @@ final class ParakeetTranscriptionService: TranscriptionService, @unchecked Senda
         self.activeVersion = version
     }
 
-    // Returns cached models or loads from disk; deduplicates concurrent loads
+    /// Returns cached models or loads from disk; deduplicates concurrent loads.
     func getOrLoadModels(for version: AsrModelVersion) async throws -> AsrModels {
         if let cached = cachedModels, cached.version == version {
             return cached
@@ -81,7 +88,7 @@ final class ParakeetTranscriptionService: TranscriptionService, @unchecked Senda
             throw ASRError.notInitialized
         }
 
-        let audioSamples = try readAudioSamples(from: audioURL)
+        let audioSamples = try Self.readAudioSamples(from: audioURL)
         var speechAudio = audioSamples
 
         // Pad with 1s of silence to capture final punctuation at sequence boundary
@@ -96,7 +103,9 @@ final class ParakeetTranscriptionService: TranscriptionService, @unchecked Senda
         return result.text
     }
 
-    private func readAudioSamples(from url: URL) throws -> [Float] {
+    // Pure function — no actor state touched. Kept `nonisolated static` so it can
+    // run on whichever executor picks it up without hopping back onto the actor.
+    private nonisolated static func readAudioSamples(from url: URL) throws -> [Float] {
         do {
             let data = try Data(contentsOf: url)
             guard data.count > 44 else {
@@ -116,11 +125,10 @@ final class ParakeetTranscriptionService: TranscriptionService, @unchecked Senda
         }
     }
 
-    // Releases ASR resources but preserves cached models for reuse
+    /// Releases ASR resources but preserves cached models for reuse.
     func cleanup() {
         asrManager?.cleanup()
         asrManager = nil
         activeVersion = nil
     }
-
 }

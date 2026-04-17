@@ -95,9 +95,13 @@ class TranscriptionServiceRegistry {
     }
 
     func cleanup() {
-        parakeetTranscriptionService.cleanup()
+        // Both services are now actor-isolated, so fire their cleanups as
+        // detached tasks. The registry's own callers don't await the result.
+        let parakeet = parakeetTranscriptionService
+        let cohere = cohereTranscribeTranscriptionService
         Task {
-            await cohereTranscribeTranscriptionService.cleanup()
+            await parakeet.cleanup()
+            await cohere.cleanup()
         }
     }
 }
