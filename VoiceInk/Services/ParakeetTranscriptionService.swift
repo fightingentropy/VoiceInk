@@ -28,7 +28,7 @@ actor ParakeetTranscriptionService: TranscriptionService {
         }
 
         // Clean up existing manager but preserve cachedModels for reuse
-        asrManager?.cleanup()
+        await asrManager?.cleanup()
         asrManager = nil
         activeVersion = nil
 
@@ -126,8 +126,8 @@ actor ParakeetTranscriptionService: TranscriptionService {
     }
 
     /// Releases ASR resources but preserves cached models for reuse.
-    func cleanup() {
-        asrManager?.cleanup()
+    func cleanup() async {
+        await asrManager?.cleanup()
         asrManager = nil
         activeVersion = nil
     }
