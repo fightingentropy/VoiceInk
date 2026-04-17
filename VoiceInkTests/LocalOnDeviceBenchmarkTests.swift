@@ -257,7 +257,7 @@ private struct LocalBenchmarkRunner {
         do {
             _ = try await service.transcribe(audioURL: corpus[0].audioURL, model: model)
         } catch {
-            service.cleanup()
+            await service.cleanup()
             return ModelBenchmarkResult(
                 displayName: model.displayName,
                 status: "unavailable",
@@ -281,7 +281,7 @@ private struct LocalBenchmarkRunner {
             samples.append(makeSampleResult(item: item, transcript: transcript, elapsed: elapsed))
         }
 
-        service.cleanup()
+        await service.cleanup()
         return ModelBenchmarkResult(
             displayName: model.displayName,
             status: "ok",

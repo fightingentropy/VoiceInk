@@ -28,6 +28,13 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
     let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "VoiceInkEngine")
 
+    /// Monotonic counter bumped every time the user starts or finishes a
+    /// transcription. The idle-unload task captures the counter at schedule
+    /// time and bails out if it has moved — means another recording raced in
+    /// and we shouldn't evict the model out from under it.
+    private var activityGeneration: UInt64 = 0
+    private var idleUnloadTask: Task<Void, Never>?
+
     init(
         modelContext: ModelContext,
         whisperModelManager: WhisperModelManager,
@@ -101,12 +108,32 @@ class VoiceInkEngine: NSObject, ObservableObject {
             }
         } else {
             logger.notice("toggleRecord: entering start-recording branch")
-            guard transcriptionModelManager.currentTranscriptionModel != nil else {
+            guard let preflightModel = transcriptionModelManager.currentTranscriptionModel else {
                 NotificationManager.shared.showNotification(title: "No AI Model Selected", type: .error)
                 return
             }
+
+            // Thermal / low-power advisory before we spin up heavyweight
+            // local inference (Voxtral, Cohere, Whisper). We only surface
+            // a notification when the advisory recommends a fallback —
+            // softer warnings go to the log to avoid notification spam.
+            let workload = SystemResourceGuard.workload(for: preflightModel.provider)
+            let advisory = SystemResourceGuard.evaluate(workload: workload)
+            if let message = advisory.message {
+                logger.notice("Thermal advisory: \(advisory.logDescription, privacy: .public) — \(message, privacy: .public)")
+                if advisory.recommendedFallback {
+                    NotificationManager.shared.showNotification(title: message, type: .info)
+                }
+            }
+
             shouldCancelRecording = false
             partialTranscript = ""
+
+            // Start of a fresh recording — invalidate any pending idle-unload
+            // so we don't race against ourselves while the user is recording.
+            activityGeneration &+= 1
+            idleUnloadTask?.cancel()
+            idleUnloadTask = nil
 
             requestRecordPermission { [self] granted in
                 if granted {
@@ -197,7 +224,11 @@ class VoiceInkEngine: NSObject, ObservableObject {
                                 }
                             }
 
-                            Task.detached { [weak self] in
+                            // Raise QoS to .userInitiated: this task loads / prewarms the
+                                // model while the user waits with the mini-recorder open. The
+                                // default detached priority is .utility, which lets unrelated
+                                // background work starve this out on a busy Mac.
+                            Task.detached(priority: .userInitiated) { [weak self] in
                                 guard let self else { return }
 
                                 if model.provider == .local {
@@ -261,6 +292,10 @@ class VoiceInkEngine: NSObject, ObservableObject {
             return
         }
 
+        activityGeneration &+= 1
+        idleUnloadTask?.cancel()
+        idleUnloadTask = nil
+
         let session = currentSession
         currentSession = nil
 
@@ -279,6 +314,36 @@ class VoiceInkEngine: NSObject, ObservableObject {
         if recordingState != .idle {
             recordingState = .idle
         }
+
+        scheduleIdleUnloadIfNeeded()
+    }
+
+    /// Schedules a one-shot task that unloads large local models after the
+    /// configured idle threshold on RAM-constrained Macs. No-op on Macs with
+    /// plenty of memory — the cost of reloading the model outweighs the RAM
+    /// we'd save.
+    private func scheduleIdleUnloadIfNeeded() {
+        guard SystemResourceGuard.shouldAutoUnloadIdleModels() else { return }
+
+        let scheduledGeneration = activityGeneration
+        let threshold = SystemResourceGuard.idleUnloadThreshold
+        idleUnloadTask?.cancel()
+        idleUnloadTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(threshold * 1_000_000_000))
+            guard !Task.isCancelled, let self else { return }
+            await self.performIdleUnloadIfStillIdle(expectedGeneration: scheduledGeneration)
+        }
+    }
+
+    private func performIdleUnloadIfStillIdle(expectedGeneration: UInt64) async {
+        // Bail if another recording/transcription happened after we were
+        // scheduled, or if the user is currently recording right now.
+        guard activityGeneration == expectedGeneration,
+              recordingState == .idle else {
+            return
+        }
+        logger.notice("Idle unload: releasing local model resources after \(Int(SystemResourceGuard.idleUnloadThreshold), privacy: .public)s of inactivity")
+        await cleanupResources()
     }
 
     // MARK: - Resource Cleanup
@@ -295,7 +360,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
         }
 
         if model?.provider != .parakeet {
-            serviceRegistry.parakeetTranscriptionService.cleanup()
+            await serviceRegistry.parakeetTranscriptionService.cleanup()
         }
 
         let keptVoxtralModels: Set<String> =

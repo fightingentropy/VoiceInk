@@ -213,11 +213,22 @@ final class CohereNativeModelManager: ObservableObject {
 
     private func purgeObsoleteManagedArtifactsIfNeeded() {
         let fileManager = FileManager.default
-        let obsoleteDirectories = [
+        var obsoleteDirectories = [
             AppStoragePaths.cachesDirectory.appendingPathComponent("CohereTranscribe", isDirectory: true),
             AppStoragePaths.cohereTranscribeDirectory.appendingPathComponent("HuggingFace", isDirectory: true),
             AppStoragePaths.cohereTranscribeDirectory.appendingPathComponent("Runtime", isDirectory: true)
         ]
+
+        // If the user previously downloaded the 4.1 GB fp16 build but is now
+        // on the 4-bit default, reclaim the disk by removing the old artifacts.
+        // Users who pinned the fp16 repo via UserDefaults will skip this branch.
+        let activeRepository = LocalCohereTranscribeConfiguration.nativeModelRepository
+        let legacyFP16Repository = "beshkenadze/cohere-transcribe-03-2026-mlx-fp16"
+        if activeRepository != legacyFP16Repository {
+            obsoleteDirectories.append(
+                CohereNativeModelLocator.appManagedModelDirectory(for: legacyFP16Repository)
+            )
+        }
 
         for directory in obsoleteDirectories where fileManager.fileExists(atPath: directory.path) {
             do {

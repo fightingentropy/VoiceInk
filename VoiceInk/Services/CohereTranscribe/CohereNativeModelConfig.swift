@@ -13,6 +13,16 @@ struct CohereNativeAudioConfiguration: Sendable, Equatable {
 }
 
 struct CohereNativeModelConfig: Decodable, Sendable {
+    struct Quantization: Decodable, Sendable {
+        let bits: Int
+        let groupSize: Int
+
+        private enum CodingKeys: String, CodingKey {
+            case bits
+            case groupSize = "group_size"
+        }
+    }
+
     struct EncoderConfig: Decodable, Sendable {
         let dModel: Int
         let ffExpansionFactor: Int
@@ -109,6 +119,9 @@ struct CohereNativeModelConfig: Decodable, Sendable {
     let maxAudioClipDuration: Double
     let overlapChunkDuration: Double
     let supportedLanguages: [String]
+    // Present when the MLX checkpoint was shipped pre-quantized
+    // (e.g. the 4-bit or 6-bit builds). nil for the fp16 build.
+    let quantization: Quantization?
 
     private enum CodingKeys: String, CodingKey {
         case vocabularySize = "vocab_size"
@@ -119,6 +132,7 @@ struct CohereNativeModelConfig: Decodable, Sendable {
         case maxAudioClipDuration = "max_audio_clip_s"
         case overlapChunkDuration = "overlap_chunk_second"
         case supportedLanguages = "supported_languages"
+        case quantization
     }
 
     var audioConfiguration: CohereNativeAudioConfiguration {

@@ -1366,6 +1366,30 @@ enum CohereNativeEncoderLoader {
         GPU.set(cacheLimit: mlxCacheLimit)
 
         let model = CohereNativeConditionalGenerationModel(config: bootstrap.config)
+
+        // If the checkpoint was shipped pre-quantized (4-bit, 6-bit, 8-bit
+        // MLX builds), swap matching Linear/Embedding layers for their
+        // QuantizedLinear/QuantizedEmbedding counterparts *before* loading
+        // weights, so the packed weights / scales / biases land on the right
+        // parameter names. fp16 builds (quantization == nil) skip this step.
+        if let quantization = bootstrap.config.quantization {
+            quantize(
+                model: model,
+                groupSize: quantization.groupSize,
+                bits: quantization.bits,
+                filter: { _, module in
+                    switch module {
+                    case let linear as Linear:
+                        return linear.weight.dim(-1) % quantization.groupSize == 0
+                    case let embedding as Embedding:
+                        return embedding.weight.dim(-1) % quantization.groupSize == 0
+                    default:
+                        return false
+                    }
+                }
+            )
+        }
+
         let rawWeights = try loadWeights(from: bootstrap.modelDirectory)
         let weights = filterWeights(preprocessCheckpointWeights(rawWeights), for: model)
 

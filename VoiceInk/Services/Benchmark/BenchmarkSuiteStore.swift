@@ -323,21 +323,27 @@ final class BenchmarkSuiteStore: ObservableObject {
         }
 
         let service = ParakeetTranscriptionService()
-        defer { service.cleanup() }
+        // `service` is now an actor; `defer` cannot `await`, so wrap the
+        // cleanup call in a do/catch-style explicit release after the loop.
+        do {
+            _ = try await service.transcribe(audioURL: corpus[0].audioURL, model: model)
 
-        _ = try await service.transcribe(audioURL: corpus[0].audioURL, model: model)
+            var samples: [BenchmarkSampleResult] = []
+            samples.reserveCapacity(corpus.count)
 
-        var samples: [BenchmarkSampleResult] = []
-        samples.reserveCapacity(corpus.count)
+            for sample in corpus {
+                let start = CFAbsoluteTimeGetCurrent()
+                let transcript = try await service.transcribe(audioURL: sample.audioURL, model: model)
+                let elapsed = CFAbsoluteTimeGetCurrent() - start
+                samples.append(makeSampleResult(sample: sample, transcript: transcript, elapsed: elapsed))
+            }
 
-        for sample in corpus {
-            let start = CFAbsoluteTimeGetCurrent()
-            let transcript = try await service.transcribe(audioURL: sample.audioURL, model: model)
-            let elapsed = CFAbsoluteTimeGetCurrent() - start
-            samples.append(makeSampleResult(sample: sample, transcript: transcript, elapsed: elapsed))
+            await service.cleanup()
+            return makeModelResult(for: model, status: .ok, detail: nil, samples: samples)
+        } catch {
+            await service.cleanup()
+            throw error
         }
-
-        return makeModelResult(for: model, status: .ok, detail: nil, samples: samples)
     }
 
     private func benchmarkAppleSpeech(
