@@ -53,8 +53,8 @@ final class VoxtralRotatingKVCache {
 
     private func updateConcat(_ newKeys: MLXArray, _ newValues: MLXArray) -> (MLXArray, MLXArray) {
         if self.keys == nil || self.values == nil {
-            self.keys = newKeys
-            self.values = newValues
+            self.keys = tail(newKeys, count: maxSize, axis: 2)
+            self.values = tail(newValues, count: maxSize, axis: 2)
             offset += newKeys.dim(2)
             index = self.keys?.dim(2) ?? 0
             return (self.keys!, self.values!)
@@ -62,11 +62,9 @@ final class VoxtralRotatingKVCache {
 
         self.keys = temporalOrder(self.keys!)
         self.values = temporalOrder(self.values!)
-        self.index = self.keys!.dim(2)
 
-        let trimSize = self.index - maxSize + 1
-        self.keys = trim(trimSize, from: self.keys!, append: newKeys)
-        self.values = trim(trimSize, from: self.values!, append: newValues)
+        self.keys = tail(concatenated([self.keys!, newKeys], axis: 2), count: maxSize, axis: 2)
+        self.values = tail(concatenated([self.values!, newValues], axis: 2), count: maxSize, axis: 2)
         self.offset += newKeys.dim(2)
         self.index = self.keys?.dim(2) ?? 0
         return (self.keys!, self.values!)

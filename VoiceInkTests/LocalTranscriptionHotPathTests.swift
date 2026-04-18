@@ -1,4 +1,5 @@
 import Foundation
+import MLX
 import Testing
 @testable import VoiceInk
 
@@ -29,6 +30,26 @@ struct LocalTranscriptionHotPathTests {
 
         let drainedBytes = buffer.drain().flatMap { Array($0) }
         #expect(drainedBytes == [12, 13, 14, 15, 16, 17, 18, 19])
+    }
+
+    @Test
+    func voxtralRotatingKVCacheCapsMultiTokenAppendToMaxSize() {
+        let cache = VoxtralRotatingKVCache(maxSize: 4)
+        let initialKeys = MLXArray(0 ..< 4, [1, 1, 4, 1]).asType(.float32)
+        let initialValues = MLXArray(10 ..< 14, [1, 1, 4, 1]).asType(.float32)
+        _ = cache.updateAndFetch(initialKeys, initialValues)
+
+        let appendedKeys = MLXArray([4, 5], [1, 1, 2, 1]).asType(.float32)
+        let appendedValues = MLXArray([14, 15], [1, 1, 2, 1]).asType(.float32)
+        let (keys, values) = cache.updateAndFetch(appendedKeys, appendedValues)
+        eval(keys, values)
+
+        #expect(keys.shape == [1, 1, 4, 1])
+        #expect(values.shape == [1, 1, 4, 1])
+        #expect(keys[0, 0, 0, 0].item(Float.self) == 2)
+        #expect(keys[0, 0, 3, 0].item(Float.self) == 5)
+        #expect(values[0, 0, 0, 0].item(Float.self) == 12)
+        #expect(values[0, 0, 3, 0].item(Float.self) == 15)
     }
 
     @Test
