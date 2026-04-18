@@ -86,6 +86,83 @@ struct LocalTranscriptionHotPathTests {
         #expect(decoded[2] == -1)
     }
 
+    /// Original `stride.map`-based decoder kept around only so the
+    /// benchmark below can prove the replacement is actually faster.
+    private static func decodePCM16MonoLegacy(_ pcm: Data) -> [Float] {
+        guard !pcm.isEmpty else { return [] }
+        return stride(from: 0, to: pcm.count - 1, by: 2).map { offset in
+            pcm[offset ..< offset + 2].withUnsafeBytes { bytes in
+                let short = Int16(littleEndian: bytes.load(as: Int16.self))
+                return max(-1.0, min(Float(short) / 32767.0, 1.0))
+            }
+        }
+    }
+
+    /// Micro-benchmark: decode 30 s of 16 kHz mono PCM16 with the current
+    /// implementation AND the legacy `stride.map` version, then print a
+    /// side-by-side summary with the speedup ratio. Not an assertion.
+    @Test
+    func localWhisperPCMDecoderThroughputBenchmark() {
+        let sampleCount = 16_000 * 30 // 30 seconds of 16 kHz mono audio.
+        var bytes = [UInt8](repeating: 0, count: sampleCount * 2)
+        for i in 0..<sampleCount {
+            let value = Int16(truncatingIfNeeded: (i * 7919) & 0x7FFF) &- 16_384
+            let le = value.littleEndian
+            bytes[i * 2]     = UInt8(truncatingIfNeeded: le)
+            bytes[i * 2 + 1] = UInt8(truncatingIfNeeded: le >> 8)
+        }
+        let pcm = Data(bytes)
+
+        _ = LocalTranscriptionService.decodePCM16Mono(pcm) // warmup
+        _ = Self.decodePCM16MonoLegacy(pcm)
+
+        let iterations = 20
+        let clock = ContinuousClock()
+
+        func measure(_ block: () -> [Float]) -> (median: UInt64, min: UInt64) {
+            var timingsNs: [UInt64] = []
+            timingsNs.reserveCapacity(iterations)
+            for _ in 0..<iterations {
+                let start = clock.now
+                let decoded = block()
+                let elapsed = clock.now - start
+                #expect(decoded.count == sampleCount)
+                let comp = elapsed.components
+                let ns = UInt64(comp.seconds) * 1_000_000_000 + UInt64(comp.attoseconds / 1_000_000_000)
+                timingsNs.append(ns)
+            }
+            timingsNs.sort()
+            return (timingsNs[timingsNs.count / 2], timingsNs.first!)
+        }
+
+        let current = measure { LocalTranscriptionService.decodePCM16Mono(pcm) }
+        let legacy = measure { Self.decodePCM16MonoLegacy(pcm) }
+
+        let speedup = Double(legacy.median) / Double(current.median)
+        let summary = String(format:
+            """
+            [BENCH] decodePCM16Mono (%d samples, %d iterations)
+              current: median=%.2fms  min=%.2fms  (%.1f Msamples/s)
+              legacy:  median=%.2fms  min=%.2fms  (%.1f Msamples/s)
+              speedup: %.2fx
+            """,
+            sampleCount, iterations,
+            Double(current.median) / 1_000_000, Double(current.min) / 1_000_000,
+            1_000.0 / (Double(current.median) / Double(sampleCount)),
+            Double(legacy.median) / 1_000_000, Double(legacy.min) / 1_000_000,
+            1_000.0 / (Double(legacy.median) / Double(sampleCount)),
+            speedup
+        )
+        print(summary)
+        // Stdout from test runners is buffered into the xcresult bundle and not
+        // relayed by `xcodebuild test`, so also drop a file the caller can read.
+        try? summary.write(
+            toFile: "/tmp/voiceink-bench.txt",
+            atomically: true,
+            encoding: .utf8
+        )
+    }
+
     @Test
     func predefinedModelsExposeWhisperTurboPreset() {
         let whisperTurbo = PredefinedModels.models.first { $0.name == "whisper-large-v3-turbo" }
