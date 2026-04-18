@@ -40,7 +40,7 @@ struct LocalVoxtralModelCardView: View {
     private var downloadButtonLabel: String {
         guard isDownloadingModel else { return "Download" }
         let percent = Int((downloadFraction * 100).rounded())
-        return percent > 0 ? "Downloading \(percent)%" : "Downloading..."
+        return "Downloading \(percent)%"
     }
 
     private var modelURL: URL? {

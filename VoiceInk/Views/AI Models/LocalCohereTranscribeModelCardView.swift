@@ -32,7 +32,7 @@ struct LocalCohereTranscribeModelCardView: View {
     private var downloadButtonLabel: String {
         guard isDownloading else { return "Download" }
         let percent = Int((downloadFraction * 100).rounded())
-        return percent > 0 ? "Downloading \(percent)%" : "Downloading..."
+        return "Downloading \(percent)%"
     }
 
     private var modelDirectoryURL: URL? {
