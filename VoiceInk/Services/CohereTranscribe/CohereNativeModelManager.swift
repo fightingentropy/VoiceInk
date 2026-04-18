@@ -212,15 +212,10 @@ final class CohereNativeModelManager: ObservableObject {
             await MainActor.run { self.downloadProgress[progressKey] = 0 }
         }
 
-        let delegate = progressKey.map { key in
-            ModelDownloadProgressDelegate { fraction in
-                Task { @MainActor in
-                    CohereNativeModelManager.shared.downloadProgress[key] = fraction
-                }
-            }
-        }
-
-        let (temporaryURL, response) = try await urlSession.download(for: request, delegate: delegate)
+        let (temporaryURL, response) = try await downloadWithProgress(
+            request: request,
+            progressKey: progressKey
+        )
         guard let httpResponse = response as? HTTPURLResponse else {
             throw CohereNativeModelError.invalidResponse
         }
@@ -234,6 +229,50 @@ final class CohereNativeModelManager: ObservableObject {
 
         try FileManager.default.moveItem(at: temporaryURL, to: destinationURL)
         return destinationURL
+    }
+
+    /// `URLSession.download(for:delegate:)` doesn't reliably deliver
+    /// URLSessionDownloadDelegate.didWriteData on a per-task delegate, so we
+    /// drive progress through Progress KVO on the task itself instead.
+    private func downloadWithProgress(
+        request: URLRequest,
+        progressKey: String?
+    ) async throws -> (URL, URLResponse) {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<(URL, URLResponse), Error>) in
+            var progressObservation: NSKeyValueObservation?
+            let task = urlSession.downloadTask(with: request) { tempURL, response, error in
+                progressObservation?.invalidate()
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                guard let tempURL, let response else {
+                    continuation.resume(throwing: CohereNativeModelError.invalidResponse)
+                    return
+                }
+                // The completion handler deletes tempURL on return, so move
+                // it somewhere stable before the caller gets a chance to act.
+                let stableURL = URL(fileURLWithPath: NSTemporaryDirectory())
+                    .appendingPathComponent("voiceink-cohere-" + UUID().uuidString)
+                do {
+                    try FileManager.default.moveItem(at: tempURL, to: stableURL)
+                    continuation.resume(returning: (stableURL, response))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+
+            if let progressKey {
+                progressObservation = task.progress.observe(\.fractionCompleted, options: [.new]) { progress, _ in
+                    let fraction = progress.fractionCompleted
+                    Task { @MainActor in
+                        CohereNativeModelManager.shared.downloadProgress[progressKey] = max(0, min(1, fraction))
+                    }
+                }
+            }
+
+            task.resume()
+        }
     }
 
     private func syncDownloadState(for modelReference: String = LocalCohereTranscribeConfiguration.nativeModelRepository) {
@@ -278,41 +317,6 @@ final class CohereNativeModelManager: ObservableObject {
         NotificationCenter.default.post(name: .cohereTranscribeAvailabilityDidChange, object: nil)
         NotificationCenter.default.post(name: .AppSettingsDidChange, object: nil)
     }
-}
-
-/// URLSessionDownloadDelegate that forwards per-file byte progress into a
-/// closure. Shared by CohereNativeModelManager and VoxtralNativeModelManager
-/// so the AI Models sidebar can render a real percentage while large
-/// safetensors shards are transferring.
-///
-/// `onProgress` is invoked on the URLSession delegate queue; callers that
-/// mutate `@Published` state must hop to the main actor themselves.
-final class ModelDownloadProgressDelegate: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
-    private let onProgress: @Sendable (Double) -> Void
-
-    init(onProgress: @escaping @Sendable (Double) -> Void) {
-        self.onProgress = onProgress
-    }
-
-    func urlSession(
-        _ session: URLSession,
-        downloadTask: URLSessionDownloadTask,
-        didWriteData bytesWritten: Int64,
-        totalBytesWritten: Int64,
-        totalBytesExpectedToWrite: Int64
-    ) {
-        guard totalBytesExpectedToWrite > 0 else { return }
-        let fraction = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
-        onProgress(max(0.0, min(1.0, fraction)))
-    }
-
-    // The async `download(for:delegate:)` variant handles file-location
-    // routing itself; this stub exists only to satisfy the protocol.
-    func urlSession(
-        _ session: URLSession,
-        downloadTask: URLSessionDownloadTask,
-        didFinishDownloadingTo location: URL
-    ) {}
 }
 
 enum CohereNativeModelError: LocalizedError, Equatable {
