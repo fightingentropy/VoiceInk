@@ -30,11 +30,7 @@ class CursorPaster {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             if UserDefaults.standard.bool(forKey: "useAppleScriptPaste") {
-                if pasteUsingAppleScript() {
-                    Task { @MainActor in
-                        SoundManager.shared.playPasteSound()
-                    }
-                }
+                pasteUsingAppleScript()
             } else {
                 pasteFromClipboard()
             }
@@ -70,19 +66,12 @@ class CursorPaster {
     }()
 
     // Paste via AppleScript. Works with custom keyboard layouts (e.g. Neo2) where CGEvent-based paste fails.
-    private static func pasteUsingAppleScript() -> Bool {
-        guard let pasteScript else {
-            logger.error("AppleScript paste failed: script did not compile")
-            return false
-        }
-
+    private static func pasteUsingAppleScript() {
         var error: NSDictionary?
-        pasteScript.executeAndReturnError(&error)
+        pasteScript?.executeAndReturnError(&error)
         if let error = error {
             logger.error("AppleScript paste failed: \(error, privacy: .public)")
-            return false
         }
-        return true
     }
 
     // MARK: - CGEvent paste
@@ -123,9 +112,6 @@ class CursorPaster {
             cmdUp?.post(tap: .cghidEventTap)
 
             logger.notice("CGEvents posted for Cmd+V")
-            Task { @MainActor in
-                SoundManager.shared.playPasteSound()
-            }
 
             if switched {
                 // Restore the original input source after a short delay so the

@@ -1,133 +1,123 @@
 # Building VoiceInk
 
-This guide covers local development and local signed installs of VoiceInk.
+This guide covers local development builds and self-signed `/Applications` installs. There is **no signed-distribution or auto-update path** in this fork — Sparkle has been removed.
 
 ## Prerequisites
 
-Before you begin, ensure you have:
-- macOS 14.4 or later
-- Xcode (latest version recommended)
-- Swift command line tools
+- macOS **14.4** or later (Apple Silicon strongly recommended for local MLX runtimes)
+- **Xcode 16+** (latest stable is safest)
+- Swift + `xcodebuild` command-line tools (`xcode-select --install`)
+- `rsync` (ships with macOS)
 
-VoiceInk resolves its dependencies through Swift Package Manager; speech runtimes (WhisperKit, FluidAudio/Parakeet, Voxtral/Cohere MLX) are vendored as SPM packages under `Dependencies/` and build as part of the Xcode project. There is no separate external speech-runtime build step.
+VoiceInk pulls all of its runtimes (WhisperKit, FluidAudio/Parakeet, mlx-swift for Voxtral/Cohere) as Swift packages. There is no separate external build step.
 
-## Quick Start With Makefile
+## Quick start
 
 ```bash
 git clone https://github.com/fightingentropy/VoiceInk.git
 cd VoiceInk
 
-# Build the app in Debug
+# First-time only: create the self-signed local codesigning identity
+scripts/create_local_codesigning_identity.sh
+
+# Debug build for development (opens in Xcode's default DerivedData location)
 make build
 
-# Or build a locally signed Release app and install it to /Applications
+# Release build → install → launch at /Applications/VoiceInk.app
 make local
 ```
 
-### Available Makefile Commands
+## Makefile targets
 
-- `make check` or `make healthcheck` - Verify required tools are installed
-- `make resolve-packages` - Resolve Swift package dependencies
-- `make build` - Build the VoiceInk Xcode project in Debug
-- `make local` - Build a local signed Release app and install it to `/Applications/VoiceInk.app`
-- `make run` - Launch the built app
-- `make dev` - Build and run
-- `make all` - Run the default build flow
-- `make clean` - Remove local build artifacts
-- `make help` - Show all available commands
+| Command | What it does |
+| --- | --- |
+| `make check` / `make healthcheck` | Verify `xcodebuild`, `swift`, `rsync` are installed |
+| `make resolve-packages` | Resolve Swift package dependencies |
+| `make build` | Debug build via `xcodebuild` |
+| `make local` | Release build → sign with local `VoiceInk` identity → rsync to `/Applications/VoiceInk.app` → launch |
+| `make run` | Open the installed app, or the Debug build if no install exists |
+| `make dev` | `make build && make run` |
+| `make bump-version` | Increment marketing/build version numbers in `project.pbxproj` |
+| `make clean` | Remove `.codex-build/` |
+| `make help` | Print all targets |
 
-## Local Signed Install
+## How `make local` works
 
-If you do not have an Apple Developer certificate, use `make local`:
+`make local` uses:
 
-```bash
-git clone https://github.com/fightingentropy/VoiceInk.git
-cd VoiceInk
-make local
-open /Applications/VoiceInk.app
-```
+- [`LocalBuild.xcconfig`](LocalBuild.xcconfig) — Overrides signing to use the self-signed local identity, sets manual signing, clears any `DEVELOPMENT_TEAM` / provisioning-profile requirements, and defines the `LOCAL_BUILD` Swift compilation flag.
+- [`VoiceInk/VoiceInk.local.entitlements`](VoiceInk/VoiceInk.local.entitlements) — Minimal entitlements (no iCloud, no push notifications) so the build does not require an Apple Developer provisioning profile.
+- A stable bundle identifier + a stable install path (`/Applications/VoiceInk.app`) so macOS treats rebuilds as the same app and preserves mic / accessibility grants.
+- `rsync -aE --delete` — Replaces the installed bundle atomically and strips stale files.
+- `xattr -cr` on the installed bundle — Removes the quarantine flag Gatekeeper sometimes sets.
 
-This builds VoiceInk with a self-signed local `VoiceInk` identity using `LocalBuild.xcconfig`, then replaces `/Applications/VoiceInk.app` with a clean deletion-aware sync.
+If the `VoiceInk` codesigning identity isn't present, `make local` fails early with a list of available identities.
 
-If you do not already have the local signing identity, create it with:
+### Create the local codesigning identity (first time)
 
 ```bash
 scripts/create_local_codesigning_identity.sh
 ```
 
-That creates a self-signed local code-signing identity named `VoiceInk` in your login keychain.
+That script generates a self-signed certificate named `VoiceInk` in your login keychain and marks it as trusted for code signing. You only need to do this once per machine.
 
-### How It Works
+### Compilation flags
 
-The `make local` flow uses:
-- `LocalBuild.xcconfig` to override signing and entitlements settings
-- `VoiceInk.local.entitlements` for the local install configuration
-- the `LOCAL_BUILD` Swift compilation flag for local-only code paths
-- a stable bundle identifier and stable install path for better macOS permission continuity
+- `LOCAL_BUILD` — Set by `LocalBuild.xcconfig`. Swift code can use `#if LOCAL_BUILD` for local-only paths (e.g. skipping CloudKit init).
 
-## Manual Build Process
+## Manual / Xcode path
 
-If you prefer Xcode directly:
-
-1. Clone the repository:
+If you'd rather work from Xcode or call `xcodebuild` yourself:
 
 ```bash
 git clone https://github.com/fightingentropy/VoiceInk.git
 cd VoiceInk
-```
 
-2. Resolve Swift packages:
-
-```bash
+# Resolve SPM dependencies
 xcodebuild -project VoiceInk.xcodeproj -resolvePackageDependencies
-```
 
-3. Open `VoiceInk.xcodeproj` in Xcode or build from the command line:
+# Open in Xcode
+open VoiceInk.xcodeproj
 
-```bash
+# Or Debug-build from the CLI
 xcodebuild -project VoiceInk.xcodeproj -scheme VoiceInk -configuration Debug build
 ```
 
-## Model Runtime Notes
+If you want to produce your own signed build with an Apple Developer account, you'll need to re-enable iCloud / Push Notifications capabilities on the target and supply your team + provisioning profile. No automation is provided for that path in this fork.
 
-- The built-in Whisper preset now uses native `WhisperKit + Core ML`.
-- Parakeet uses local Core ML via FluidAudio.
-- Voxtral and Cohere use native MLX paths.
-- Downloadable model assets are fetched by the app at runtime and stored under VoiceInk's Application Support directory.
+## Model runtime notes
 
-## Development Setup
+- Whisper assets use `WhisperKit + Core ML`. Downloaded to `~/Library/Application Support/VoiceInk/models/`.
+- Parakeet uses FluidAudio + Core ML.
+- Voxtral and Cohere use the native MLX path (`mlx-swift`). Both download assets on demand; progress is surfaced in the Models UI.
+- Apple Speech uses the system Speech framework and needs no download.
 
-1. **Xcode Configuration**
-   - Use a current Xcode release
-   - Install command line tools if needed
+All model downloads are local; nothing is telemetered.
 
-2. **Dependencies**
-   - Run `xcodebuild -resolvePackageDependencies` or let Xcode resolve packages automatically
-   - Build once before testing local model downloads
+## Development setup
 
-3. **Testing**
-   - Run the test suite before making changes
-   - Ensure all tests pass after your modifications
+1. Open `VoiceInk.xcodeproj` in Xcode.
+2. Let Xcode resolve packages (or run `xcodebuild -resolvePackageDependencies`).
+3. Build once before testing the model downloaders — SPM package resources need to be in place.
+4. For microphone / accessibility testing, use the `/Applications` install (`make local`) rather than the DerivedData Debug build so macOS preserves permissions.
+5. `log stream --predicate 'subsystem == "com.fightingentropy.voiceink"' --level debug` tails logs.
+
+## Tests
+
+```bash
+xcodebuild test -project VoiceInk.xcodeproj -scheme VoiceInk -destination 'platform=macOS'
+```
+
+Or `⌘U` in Xcode. See [`VoiceInkTests/`](VoiceInkTests/) for the available targets — local transcription hot-path tests, benchmark metrics tests, and Cohere/Voxtral smoke tests.
 
 ## Troubleshooting
 
-If you encounter build issues:
+| Symptom | Fix |
+| --- | --- |
+| `make local` fails with "Missing local code signing identity" | Run `scripts/create_local_codesigning_identity.sh`, then retry. |
+| App launches but gets killed with a `CODESIGNING` crash log | Re-run `make local` — the bundle needs to be re-signed as a whole after any modification inside `/Applications/VoiceInk.app`. |
+| Build error: "requires a provisioning profile with the iCloud and Push Notifications features" | You're building Release without `LocalBuild.xcconfig`. Use `make local` or pass `-xcconfig LocalBuild.xcconfig` to `xcodebuild`. |
+| Stale local install build | `make clean && make local` |
+| Xcode package resolution hangs | `rm -rf ~/Library/Developer/Xcode/DerivedData/VoiceInk-*`, then `make resolve-packages`. |
 
-1. Clean the build folder in Xcode
-2. Resolve packages again with `xcodebuild -resolvePackageDependencies`
-3. Check Xcode and macOS versions
-4. Delete `.codex-build/local-install` if a local install build is stale
-
-For more help, check the [issues](https://github.com/fightingentropy/VoiceInk/issues) section or create a new issue.
-
-## Signing And Updates
-
-For a signed distribution build under your own ownership:
-
-1. Open the project in Xcode and select your Apple Developer team in `Signing & Capabilities`.
-2. Keep or change the bundle identifiers now set under `com.fightingentropy.*` if you want a different reverse-DNS namespace.
-3. Create your own Sparkle EdDSA key pair, then add your public key to `VoiceInk/Info.plist`.
-4. Publish your signed DMG and update `appcast.xml` before re-enabling automatic update checks.
-5. Push `announcements.json` from your repo if you want in-app announcement banners.
-
-For the automated GitHub Actions release path, see [RELEASING.md](RELEASING.md).
+For bugs unrelated to the build, open an issue on GitHub.

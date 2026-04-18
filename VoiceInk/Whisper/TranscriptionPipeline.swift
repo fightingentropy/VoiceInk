@@ -13,8 +13,6 @@ class TranscriptionPipeline {
     private let promptDetectionService = PromptDetectionService()
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "TranscriptionPipeline")
 
-    var licenseViewModel: LicenseViewModel
-
     private struct PersistencePayload: Sendable {
         let timestamp: Date
         let text: String
@@ -66,7 +64,6 @@ class TranscriptionPipeline {
         self.modelContext = modelContext
         self.serviceRegistry = serviceRegistry
         self.enhancementService = enhancementService
-        self.licenseViewModel = LicenseViewModel()
     }
 
     /// Run the full pipeline for a given transcription record.
@@ -245,17 +242,8 @@ class TranscriptionPipeline {
 
         if shouldCancel() { await onCleanup(); return }
 
-        if var textToPaste = finalPastedText,
+        if let textToPaste = finalPastedText,
            persistencePayload?.isCompleted == true {
-            #if !LOCAL_BUILD && !OPEN_SOURCE_DISTRIBUTION
-            if case .trialExpired = licenseViewModel.licenseState {
-                textToPaste = """
-                    Your trial has expired. Get the latest VoiceInk release from github.com/fightingentropy/VoiceInk/releases
-                    \n\(textToPaste)
-                    """
-            }
-            #endif
-
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 let appendSpace = UserDefaults.standard.bool(forKey: "AppendTrailingSpace")
                 CursorPaster.pasteAtCursor(textToPaste + (appendSpace ? " " : ""))

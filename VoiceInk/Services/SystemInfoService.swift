@@ -15,7 +15,6 @@ final class SystemInfoService: @unchecked Sendable {
         APP INFORMATION:
         App Version: \(getAppVersion())
         Build Version: \(getBuildVersion())
-        License Status: \(getLicenseStatus())
 
         OPERATING SYSTEM:
         macOS Version: \(ProcessInfo.processInfo.operatingSystemVersionString)
@@ -203,23 +202,6 @@ final class SystemInfoService: @unchecked Sendable {
         @unknown default:
             return "Unknown"
         }
-    }
-
-    private func getLicenseStatus() -> String {
-        #if LOCAL_BUILD || OPEN_SOURCE_DISTRIBUTION
-        return "Open Source Build"
-        #else
-        let licenseManager = LicenseManager.shared
-
-        // Check for existing license key and activation
-        if licenseManager.licenseKey != nil {
-            if licenseManager.activationId != nil || !UserDefaults.standard.bool(forKey: "VoiceInkLicenseRequiresActivation") {
-                return "Licensed (Pro)"
-            }
-        }
-
-        return "Not Licensed"
-        #endif
     }
 
     private func getCurrentLanguage() -> String {

@@ -8,7 +8,6 @@ class SoundManager: ObservableObject {
 
     private var startSound: AVAudioPlayer?
     private var stopSound: AVAudioPlayer?
-    private var pasteSound: AVAudioPlayer?
     private var escSound: AVAudioPlayer?
     private var customStartSound: AVAudioPlayer?
     private var customStopSound: AVAudioPlayer?
@@ -34,11 +33,6 @@ class SoundManager: ObservableObject {
            let escSoundURL = Bundle.main.url(forResource: "esc", withExtension: "wav") {
             try? await loadSounds(start: startSoundURL, stop: stopSoundURL, esc: escSoundURL)
         }
-
-        pasteSound = loadAndPreparePlayer(
-            from: Bundle.main.url(forResource: "pastess", withExtension: "mp3"),
-            volume: 0.35
-        )
 
         await reloadCustomSoundsAsync()
     }
@@ -115,11 +109,6 @@ class SoundManager: ObservableObject {
         }
     }
 
-    func playPasteSound() {
-        guard isSoundFeedbackEnabled else { return }
-        play(pasteSound, volume: 0.35)
-    }
-    
     func playEscSound() {
         guard isSoundFeedbackEnabled else { return }
         play(escSound, volume: 0.3)
