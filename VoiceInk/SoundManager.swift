@@ -8,6 +8,7 @@ class SoundManager: ObservableObject {
 
     private var startSound: AVAudioPlayer?
     private var stopSound: AVAudioPlayer?
+    private var pasteSound: AVAudioPlayer?
     private var escSound: AVAudioPlayer?
     private var customStartSound: AVAudioPlayer?
     private var customStopSound: AVAudioPlayer?
@@ -34,6 +35,11 @@ class SoundManager: ObservableObject {
             try? await loadSounds(start: startSoundURL, stop: stopSoundURL, esc: escSoundURL)
         }
 
+        pasteSound = loadAndPreparePlayer(
+            from: Bundle.main.url(forResource: "pastess", withExtension: "mp3"),
+            volume: 0.35
+        )
+
         await reloadCustomSoundsAsync()
     }
 
@@ -43,12 +49,18 @@ class SoundManager: ObservableObject {
         }
     }
 
-    private func loadAndPreparePlayer(from url: URL?) -> AVAudioPlayer? {
+    private func loadAndPreparePlayer(from url: URL?, volume: Float = 0.4) -> AVAudioPlayer? {
         guard let url = url else { return nil }
         let player = try? AVAudioPlayer(contentsOf: url)
-        player?.volume = 0.4
+        player?.volume = volume
         player?.prepareToPlay()
         return player
+    }
+
+    private func play(_ player: AVAudioPlayer?, volume: Float) {
+        player?.currentTime = 0
+        player?.volume = volume
+        player?.play()
     }
 
     private func reloadCustomSoundsAsync() async {
@@ -87,10 +99,9 @@ class SoundManager: ObservableObject {
         guard isSoundFeedbackEnabled else { return }
 
         if let custom = customStartSound {
-            custom.play()
+            play(custom, volume: 0.4)
         } else {
-            startSound?.volume = 0.4
-            startSound?.play()
+            play(startSound, volume: 0.4)
         }
     }
 
@@ -98,17 +109,20 @@ class SoundManager: ObservableObject {
         guard isSoundFeedbackEnabled else { return }
 
         if let custom = customStopSound {
-            custom.play()
+            play(custom, volume: 0.4)
         } else {
-            stopSound?.volume = 0.4
-            stopSound?.play()
+            play(stopSound, volume: 0.4)
         }
+    }
+
+    func playPasteSound() {
+        guard isSoundFeedbackEnabled else { return }
+        play(pasteSound, volume: 0.35)
     }
     
     func playEscSound() {
         guard isSoundFeedbackEnabled else { return }
-        escSound?.volume = 0.3
-        escSound?.play()
+        play(escSound, volume: 0.3)
     }
     
     var isEnabled: Bool {
