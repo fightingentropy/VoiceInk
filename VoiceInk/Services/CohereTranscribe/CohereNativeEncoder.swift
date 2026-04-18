@@ -249,8 +249,8 @@ final class CohereNativeDecoderCache: @unchecked Sendable {
 }
 
 final class CohereNativeConformerFeedForward: Module {
-    let linear1: Linear
-    let linear2: Linear
+    @ModuleInfo var linear1: Linear
+    @ModuleInfo var linear2: Linear
 
     init(dModel: Int, hiddenDimensions: Int) {
         self.linear1 = Linear(dModel, hiddenDimensions)
@@ -305,9 +305,9 @@ final class CohereNativeConformerConvolution: Module {
 }
 
 final class CohereNativeRelPositionMultiHeadAttention: Module {
-    let qkv_proj: Linear
-    let pos_proj: Linear
-    let out_proj: Linear
+    @ModuleInfo var qkv_proj: Linear
+    @ModuleInfo var pos_proj: Linear
+    @ModuleInfo var out_proj: Linear
     let pos_bias_u: MLXArray
     let pos_bias_v: MLXArray
 
@@ -458,7 +458,7 @@ final class CohereNativeConformerLayer: Module {
 
 final class CohereNativeConvSubsampling: Module {
     let conv: [Module]
-    let out: Linear
+    @ModuleInfo var out: Linear
 
     init(config: CohereNativeModelConfig.EncoderConfig) {
         let convChannels = config.subsamplingConvChannels
@@ -668,8 +668,8 @@ final class CohereNativeFixedPositionalEncoding: Module {
 }
 
 final class CohereNativeDecoderAttention: Module {
-    let qkv_proj: Linear
-    let out_proj: Linear
+    @ModuleInfo var qkv_proj: Linear
+    @ModuleInfo var out_proj: Linear
 
     let hiddenSize: Int
     let headCount: Int
@@ -835,8 +835,8 @@ final class CohereNativeDecoderAttention: Module {
 }
 
 final class CohereNativeDecoderFeedForward: Module {
-    let dense_in: Linear
-    let dense_out: Linear
+    @ModuleInfo var dense_in: Linear
+    @ModuleInfo var dense_out: Linear
     let activationName: String
 
     init(hiddenSize: Int, innerSize: Int, activationName: String) {
@@ -967,7 +967,7 @@ final class CohereNativeTransformerDecoderLayer: Module {
 }
 
 final class CohereNativeTransformerDecoderEmbedding: Module {
-    let token_embedding: Embedding
+    @ModuleInfo var token_embedding: Embedding
     let position_embedding: CohereNativeFixedPositionalEncoding
     let layer_norm: LayerNorm
     private let computeDType: DType = .float32
@@ -1135,9 +1135,9 @@ final class CohereNativeTransformerDecoder: Module {
 
 final class CohereNativeConditionalGenerationModel: Module {
     let encoder: CohereNativeConformerEncoder
-    let bridge_proj: Linear
+    @ModuleInfo var bridge_proj: Linear
     let decoder: CohereNativeTransformerDecoder
-    let lm_head: Linear
+    @ModuleInfo var lm_head: Linear
     let usesLogSoftmax: Bool
 
     init(config: CohereNativeModelConfig) {
