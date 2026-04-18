@@ -455,37 +455,50 @@ final class CohereNativeConformerLayer: Module {
 }
 
 final class CohereNativeConvSubsampling: Module {
-    let conv: [Module]
+    let conv0: Conv2d
+    let conv2: Conv2d
+    let conv3: Conv2d
+    let conv5: Conv2d
+    let conv6: Conv2d
     @ModuleInfo var out: Linear
 
     init(config: CohereNativeModelConfig.EncoderConfig) {
         let convChannels = config.subsamplingConvChannels
         let outputDimensions = config.projectedFeatureCount > 0 ? config.projectedFeatureCount : config.dModel
 
-        self.conv = [
-            Conv2d(inputChannels: 1, outputChannels: convChannels, kernelSize: 3, stride: 2, padding: 1),
-            ReLU(),
-            Conv2d(
-                inputChannels: convChannels,
-                outputChannels: convChannels,
-                kernelSize: 3,
-                stride: 2,
-                padding: 1,
-                groups: convChannels
-            ),
-            Conv2d(inputChannels: convChannels, outputChannels: convChannels, kernelSize: 1),
-            ReLU(),
-            Conv2d(
-                inputChannels: convChannels,
-                outputChannels: convChannels,
-                kernelSize: 3,
-                stride: 2,
-                padding: 1,
-                groups: convChannels
-            ),
-            Conv2d(inputChannels: convChannels, outputChannels: convChannels, kernelSize: 1),
-            ReLU(),
-        ]
+        self.conv0 = Conv2d(
+            inputChannels: 1,
+            outputChannels: convChannels,
+            kernelSize: 3,
+            stride: 2,
+            padding: 1
+        )
+        self.conv2 = Conv2d(
+            inputChannels: convChannels,
+            outputChannels: convChannels,
+            kernelSize: 3,
+            stride: 2,
+            padding: 1,
+            groups: convChannels
+        )
+        self.conv3 = Conv2d(
+            inputChannels: convChannels,
+            outputChannels: convChannels,
+            kernelSize: 1
+        )
+        self.conv5 = Conv2d(
+            inputChannels: convChannels,
+            outputChannels: convChannels,
+            kernelSize: 3,
+            stride: 2,
+            padding: 1,
+            groups: convChannels
+        )
+        self.conv6 = Conv2d(
+            inputChannels: convChannels,
+            outputChannels: convChannels,
+            kernelSize: 1
+        )
 
         self.out = Linear(
             convChannels * (config.featureCount / config.subsamplingFactor),
@@ -494,37 +507,21 @@ final class CohereNativeConvSubsampling: Module {
     }
 
     var computeDType: DType {
-        for layer in conv {
-            if let convolution = layer as? Conv2d {
-                return convolution.weight.dtype
-            }
-        }
-        return .float16
+        conv0.weight.dtype
     }
 
     func callAsFunction(_ x: MLXArray, lengths: [Int]) -> (MLXArray, [Int]) {
         var hiddenStates = x.transposed(0, 2, 1).expandedDimensions(axis: 3)
         var lengths = lengths
 
-        for layer in conv {
-            let mask = Self.makeSubsamplingMask(lengths: lengths, time: hiddenStates.dim(1), dtype: hiddenStates.dtype)
-            hiddenStates = hiddenStates * mask
-
-            switch layer {
-            case let convolution as Conv2d:
-                hiddenStates = convolution(hiddenStates)
-                let kernelSize = convolution.weight.dim(1)
-                let stride = convolution.stride.0
-                let padding = convolution.padding.0
-                if stride > 1 {
-                    lengths = lengths.map { max(1, ($0 + (2 * padding) - kernelSize) / stride + 1) }
-                }
-            case let activation as ReLU:
-                hiddenStates = activation(hiddenStates)
-            default:
-                fatalError("Unsupported Cohere native subsampling layer: \(type(of: layer))")
-            }
-        }
+        hiddenStates = applyStridedConv(conv0, to: hiddenStates, lengths: &lengths)
+        hiddenStates = ReLU()(hiddenStates)
+        hiddenStates = applyStridedConv(conv2, to: hiddenStates, lengths: &lengths)
+        hiddenStates = applyStridedConv(conv3, to: hiddenStates, lengths: &lengths)
+        hiddenStates = ReLU()(hiddenStates)
+        hiddenStates = applyStridedConv(conv5, to: hiddenStates, lengths: &lengths)
+        hiddenStates = applyStridedConv(conv6, to: hiddenStates, lengths: &lengths)
+        hiddenStates = ReLU()(hiddenStates)
 
         let finalMask = Self.makeSubsamplingMask(lengths: lengths, time: hiddenStates.dim(1), dtype: hiddenStates.dtype)
         hiddenStates = hiddenStates * finalMask
@@ -538,6 +535,19 @@ final class CohereNativeConvSubsampling: Module {
             .swappedAxes(2, 3)
             .reshaped([batch, time, channels * features])
         return (out(flattened), lengths)
+    }
+
+    private func applyStridedConv(_ convolution: Conv2d, to input: MLXArray, lengths: inout [Int]) -> MLXArray {
+        let mask = Self.makeSubsamplingMask(lengths: lengths, time: input.dim(1), dtype: input.dtype)
+        let masked = input * mask
+        let output = convolution(masked)
+        let kernelSize = convolution.weight.dim(1)
+        let stride = convolution.stride.0
+        let padding = convolution.padding.0
+        if stride > 1 {
+            lengths = lengths.map { max(1, ($0 + (2 * padding) - kernelSize) / stride + 1) }
+        }
+        return output
     }
 
     private static func makeSubsamplingMask(lengths: [Int], time: Int, dtype: DType) -> MLXArray {
