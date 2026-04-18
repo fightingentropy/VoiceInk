@@ -44,6 +44,10 @@ final class VoxtralNativeModelManager: ObservableObject {
         downloadState(for: modelReference) == .downloading
     }
 
+    var hasActiveDownloads: Bool {
+        downloadStates.values.contains(.downloading)
+    }
+
     func downloadModelIfNeeded(_ modelReference: String) async {
         guard !isDownloading(modelReference) else { return }
         switch availability(for: modelReference) {
@@ -57,6 +61,14 @@ final class VoxtralNativeModelManager: ObservableObject {
         guard let repoID = VoxtralNativeModelLocator.repositoryID(from: modelReference) else {
             downloadStates[modelReference] = .failed("Only Hugging Face repository IDs can be downloaded automatically.")
             return
+        }
+
+        let terminationReason = "Downloading Voxtral model \(modelReference)"
+        ProcessInfo.processInfo.disableAutomaticTermination(terminationReason)
+        ProcessInfo.processInfo.disableSuddenTermination()
+        defer {
+            ProcessInfo.processInfo.enableSuddenTermination()
+            ProcessInfo.processInfo.enableAutomaticTermination(terminationReason)
         }
 
         downloadStates[modelReference] = .downloading

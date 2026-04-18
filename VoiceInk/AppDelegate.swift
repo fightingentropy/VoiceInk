@@ -22,6 +22,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
+    @MainActor
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard CohereNativeModelManager.shared.hasActiveDownloads
+                || VoxtralNativeModelManager.shared.hasActiveDownloads else {
+            return .terminateNow
+        }
+
+        let alert = NSAlert()
+        alert.messageText = "Model download in progress"
+        alert.informativeText = "Quitting now will cancel the download and delete the partial file. Do you want to quit anyway?"
+        alert.addButton(withTitle: "Keep Downloading")
+        alert.addButton(withTitle: "Quit Anyway")
+        alert.alertStyle = .warning
+        let response = alert.runModal()
+        return response == .alertSecondButtonReturn ? .terminateNow : .terminateCancel
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         _ = notification
     }
