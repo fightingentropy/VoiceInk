@@ -105,12 +105,21 @@ final class LocalTranscriptionService: TranscriptionService, PCMBufferTranscript
     }
 
     static func decodePCM16Mono(_ pcm: Data) -> [Float] {
-        guard !pcm.isEmpty else { return [] }
+        let sampleCount = pcm.count / 2
+        guard sampleCount > 0 else { return [] }
 
-        return stride(from: 0, to: pcm.count - 1, by: 2).map { offset in
-            pcm[offset ..< offset + 2].withUnsafeBytes { bytes in
-                let short = Int16(littleEndian: bytes.load(as: Int16.self))
-                return max(-1.0, min(Float(short) / 32767.0, 1.0))
+        return pcm.withUnsafeBytes { rawBuffer -> [Float] in
+            let base = rawBuffer.baseAddress!
+            return [Float](unsafeUninitializedCapacity: sampleCount) { buffer, initializedCount in
+                let scale: Float = 1.0 / 32767.0
+                for i in 0..<sampleCount {
+                    // loadUnaligned tolerates Data backings that aren't 2-byte
+                    // aligned (e.g. slices of read-from-disk WAV payloads).
+                    let raw = base.loadUnaligned(fromByteOffset: i * 2, as: Int16.self)
+                    let sample = Float(Int16(littleEndian: raw)) * scale
+                    buffer[i] = max(-1.0, min(sample, 1.0))
+                }
+                initializedCount = sampleCount
             }
         }
     }

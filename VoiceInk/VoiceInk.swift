@@ -40,6 +40,15 @@ struct VoiceInkApp: App {
     @StateObject private var prewarmService: ModelPrewarmService
 
     init() {
+        // Signpost the full sync init so cold-launch time can be captured in
+        // Instruments (Points of Interest instrument → com.fightingentropy.voiceink.launch).
+        let launchSignpost = OSSignposter(subsystem: "com.fightingentropy.voiceink.launch", category: .pointsOfInterest)
+        let initState = launchSignpost.beginInterval("app-init")
+        defer { launchSignpost.endInterval("app-init", initState) }
+
+        let launchClock = ContinuousClock()
+        let initStartedAt = launchClock.now
+
         AppDefaults.registerDefaults()
 
         if UserDefaults.standard.object(forKey: "powerModeUIFlag") == nil {
@@ -127,12 +136,8 @@ struct VoiceInkApp: App {
         recorderUIManager.configure(engine: engine, recorder: engine.recorder)
         engine.recorderUIManager = recorderUIManager
 
-        // 5. Initialize model state
-        whisperModelManager.createModelsDirectoryIfNeeded()
-        whisperModelManager.loadAvailableModels()
-        transcriptionModelManager.refreshAllAvailableModels()
-        transcriptionModelManager.loadCurrentTranscriptionModel()
-
+        // 5. Publish managers now; populate their caches asynchronously after the
+        // window appears so disk enumeration doesn't block first paint.
         _whisperModelManager = StateObject(wrappedValue: whisperModelManager)
         _parakeetModelManager = StateObject(wrappedValue: parakeetModelManager)
         _transcriptionModelManager = StateObject(wrappedValue: transcriptionModelManager)
@@ -161,6 +166,15 @@ struct VoiceInkApp: App {
             await recorderUIManager.resetOnLaunch()
         }
 
+        // Populate model caches after init returns so directory enumeration and
+        // UserDefaults lookups don't stall first paint on cold launch.
+        Task { @MainActor in
+            whisperModelManager.createModelsDirectoryIfNeeded()
+            whisperModelManager.loadAvailableModels()
+            transcriptionModelManager.refreshAllAvailableModels()
+            transcriptionModelManager.loadCurrentTranscriptionModel()
+        }
+
         AppShortcuts.updateAppShortcutParameters()
 
         let benchmarkModelContext = container.mainContext
@@ -170,6 +184,13 @@ struct VoiceInkApp: App {
 
         // Start cleanup service for the app's lifetime, not tied to window lifecycle
         TranscriptionAutoCleanupService.shared.startMonitoring(modelContext: container.mainContext)
+
+        let initElapsed = launchClock.now - initStartedAt
+        let elapsedComps = initElapsed.components
+        let initElapsedMs =
+            Double(elapsedComps.seconds) * 1_000 +
+            Double(elapsedComps.attoseconds) / 1_000_000_000_000_000
+        logger.notice("🚀 VoiceInkApp.init completed in \(String(format: "%.1f", initElapsedMs), privacy: .public) ms")
     }
 
     // MARK: - Container Creation Helpers

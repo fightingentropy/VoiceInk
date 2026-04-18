@@ -26,6 +26,11 @@ class Recorder: NSObject, ObservableObject {
     private let smoothedValuesLock = NSLock()
     private var smoothedAverage: Float = 0
     private var smoothedPeak: Float = 0
+    /// Last meter snapshot actually published to `audioMeter`. Used to suppress
+    /// no-op @Published writes that would otherwise trigger SwiftUI invalidation
+    /// every tick even when the level barely changed.
+    private var lastPublishedAverage: Double = 0
+    private var lastPublishedPeak: Double = 0
 
     /// Audio chunk callback for streaming. Can be updated while recording;
     /// changes are forwarded to the live CoreAudioRecorder.
@@ -206,6 +211,8 @@ class Recorder: NSObject, ObservableObject {
         }
 
         audioMeter = AudioMeter(averagePower: 0, peakPower: 0)
+        lastPublishedAverage = 0
+        lastPublishedPeak = 0
 
         audioRestorationTask = Task {
             await mediaController.unmuteSystemAudio()
@@ -236,7 +243,7 @@ class Recorder: NSObject, ObservableObject {
 
             while !Task.isCancelled {
                 self.updateAudioMeter()
-                try? await Task.sleep(for: .milliseconds(17))
+                try? await Task.sleep(for: .milliseconds(33))
             }
         }
     }
@@ -277,14 +284,21 @@ class Recorder: NSObject, ObservableObject {
         let newAudioMeter = AudioMeter(averagePower: Double(smoothedAverage), peakPower: Double(smoothedPeak))
         smoothedValuesLock.unlock()
 
-        // Dispatch to main queue for UI updates (more efficient than Task)
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            if !self.hasDetectedAudioInCurrentSession && newAudioMeter.averagePower > 0.01 {
-                self.hasDetectedAudioInCurrentSession = true
-            }
-            self.audioMeter = newAudioMeter
+        if !hasDetectedAudioInCurrentSession && newAudioMeter.averagePower > 0.01 {
+            hasDetectedAudioInCurrentSession = true
         }
+
+        // Skip @Published writes when the smoothed level hasn't moved enough to
+        // be visible — SwiftUI would otherwise re-lay-out the waveform every
+        // tick for sub-pixel deltas.
+        let epsilon = 0.005
+        if abs(newAudioMeter.averagePower - lastPublishedAverage) < epsilon,
+           abs(newAudioMeter.peakPower - lastPublishedPeak) < epsilon {
+            return
+        }
+        lastPublishedAverage = newAudioMeter.averagePower
+        lastPublishedPeak = newAudioMeter.peakPower
+        audioMeter = newAudioMeter
     }
     
     // MARK: - Cleanup
