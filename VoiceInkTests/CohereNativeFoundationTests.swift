@@ -96,25 +96,37 @@ struct CohereNativeFoundationTests {
     }
 
     @Test
-    func nativeEncoderPreprocessTransposesConvolutionWeights() {
-        let conv1D = MLXArray(0 ..< 24, [4, 2, 3]).asType(.float32)
-        let conv2D = MLXArray(0 ..< 108, [4, 3, 3, 3]).asType(.float32)
+    func nativeEncoderPreprocessHandlesConvolutionWeightLayouts() {
+        let pytorchConv1D = MLXArray(0 ..< 12, [4, 1, 3]).asType(.float32)
+        let mlxConv1D = MLXArray(0 ..< 12, [4, 3, 1]).asType(.float32)
+        let pytorchConv2D = MLXArray(0 ..< 60, [4, 1, 3, 5]).asType(.float32)
+        let mlxConv2D = MLXArray(0 ..< 60, [4, 3, 5, 1]).asType(.float32)
 
         let processed = CohereNativeEncoderLoader.preprocessCheckpointWeights([
-            "encoder.layers.0.conv.depthwise_conv.weight": conv1D,
-            "encoder.subsampling.conv.0.weight": conv2D,
+            "encoder.layers.0.conv.depthwise_conv.weight": pytorchConv1D,
+            "encoder.layers.1.conv.depthwise_conv.weight": mlxConv1D,
+            "encoder.subsampling.conv.0.weight": pytorchConv2D,
+            "encoder.subsampling.conv0.weight": mlxConv2D,
         ])
 
-        let processedConv1D = processed["encoder.layers.0.conv.depthwise_conv.weight"]!
-        let processedConv2D = processed["encoder.subsampling.conv.0.weight"]!
+        let processedPyTorchConv1D = processed["encoder.layers.0.conv.depthwise_conv.weight"]!
+        let processedMLXConv1D = processed["encoder.layers.1.conv.depthwise_conv.weight"]!
+        let processedPyTorchConv2D = processed["encoder.subsampling.conv.0.weight"]!
+        let processedMLXConv2D = processed["encoder.subsampling.conv0.weight"]!
 
-        #expect(processedConv1D.shape == [4, 3, 2])
-        #expect(processedConv1D[0, 0, 0].item(Float.self) == 0)
-        #expect(processedConv1D[0, 2, 1].item(Float.self) == 5)
+        #expect(processedPyTorchConv1D.shape == [4, 3, 1])
+        #expect(processedPyTorchConv1D[0, 0, 0].item(Float.self) == 0)
+        #expect(processedPyTorchConv1D[0, 2, 0].item(Float.self) == 2)
 
-        #expect(processedConv2D.shape == [4, 3, 3, 3])
-        #expect(processedConv2D[0, 0, 0, 0].item(Float.self) == 0)
-        #expect(processedConv2D[0, 2, 2, 2].item(Float.self) == 26)
+        #expect(processedMLXConv1D.shape == [4, 3, 1])
+        #expect(processedMLXConv1D[0, 2, 0].item(Float.self) == 2)
+
+        #expect(processedPyTorchConv2D.shape == [4, 3, 5, 1])
+        #expect(processedPyTorchConv2D[0, 0, 0, 0].item(Float.self) == 0)
+        #expect(processedPyTorchConv2D[0, 2, 4, 0].item(Float.self) == 14)
+
+        #expect(processedMLXConv2D.shape == [4, 3, 5, 1])
+        #expect(processedMLXConv2D[0, 2, 4, 0].item(Float.self) == 14)
     }
 
     @Test

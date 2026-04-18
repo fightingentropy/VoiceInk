@@ -1455,9 +1455,9 @@ enum CohereNativeEncoderLoader {
                 continue
             }
 
-            if name.hasSuffix(".weight"), value.ndim == 3 {
+            if name.hasSuffix(".weight"), value.ndim == 3, shouldTransposeConv1DWeight(named: name, shape: value.shape) {
                 processed[name] = contiguous(value.transposed(0, 2, 1))
-            } else if name.hasSuffix(".weight"), value.ndim == 4 {
+            } else if name.hasSuffix(".weight"), value.ndim == 4, shouldTransposeConv2DWeight(named: name, shape: value.shape) {
                 processed[name] = contiguous(value.transposed(0, 2, 3, 1))
             } else {
                 processed[name] = value
@@ -1465,6 +1465,45 @@ enum CohereNativeEncoderLoader {
         }
 
         return processed
+    }
+
+    private static func shouldTransposeConv1DWeight(named name: String, shape: [Int]) -> Bool {
+        guard shape.count == 3 else { return false }
+
+        if name.contains("depthwise_conv") {
+            if shape[2] == 1, shape[1] > 1 {
+                return false
+            }
+            return shape[1] <= shape[2]
+        }
+
+        if name.contains("pointwise_conv") {
+            if shape[1] == 1, shape[2] > 1 {
+                return false
+            }
+            return shape[2] == 1
+        }
+
+        return false
+    }
+
+    private static func shouldTransposeConv2DWeight(named name: String, shape: [Int]) -> Bool {
+        guard shape.count == 4 else { return false }
+
+        if shape[3] == 1, shape[1] > 1, shape[2] > 1 {
+            return false
+        }
+        if shape[1] == 1, shape[2] == 1, shape[3] > 1 {
+            return false
+        }
+        if shape[1] == 1, shape[2] > 1, shape[3] > 1 {
+            return true
+        }
+        if shape[2] == 1, shape[3] == 1, shape[1] > 1 {
+            return true
+        }
+
+        return name.contains("subsampling.conv.")
     }
 
     private static func filterWeights(
