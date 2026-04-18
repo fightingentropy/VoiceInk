@@ -25,6 +25,16 @@ struct LocalCohereTranscribeModelCardView: View {
         downloadState == .downloading
     }
 
+    private var downloadFraction: Double {
+        nativeModelManager.downloadProgress[LocalCohereTranscribeConfiguration.nativeModelRepository] ?? 0
+    }
+
+    private var downloadButtonLabel: String {
+        guard isDownloading else { return "Download" }
+        let percent = Int((downloadFraction * 100).rounded())
+        return percent > 0 ? "Downloading \(percent)%" : "Downloading..."
+    }
+
     private var modelDirectoryURL: URL? {
         switch availability {
         case .appManaged(let url), .externalLocalPath(let url):
@@ -53,7 +63,16 @@ struct LocalCohereTranscribeModelCardView: View {
 
                 actionSection
             }
-            .padding(16)
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, isDownloading ? 8 : 16)
+
+            if isDownloading {
+                ProgressView(value: downloadFraction)
+                    .progressViewStyle(LinearProgressViewStyle())
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+            }
 
             if let errorMessage = downloadState.errorMessage {
                 Divider()
@@ -177,7 +196,7 @@ struct LocalCohereTranscribeModelCardView: View {
                             Image(systemName: "arrow.down.circle")
                                 .font(.system(size: 12, weight: .medium))
                         }
-                        Text(isDownloading ? "Downloading..." : "Download")
+                        Text(downloadButtonLabel)
                             .font(.system(size: 12, weight: .medium))
                     }
                     .foregroundColor(.white)

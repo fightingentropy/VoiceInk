@@ -21,6 +21,10 @@ final class CohereNativeModelManager: ObservableObject {
     }
 
     @Published private(set) var downloadStates: [String: DownloadState] = [:]
+    /// Fractional progress (0.0-1.0) of the single file currently being
+    /// fetched. Reset to 0 at the start of each file so large shards don't
+    /// appear to jump backwards when smaller siblings finish.
+    @Published private(set) var downloadProgress: [String: Double] = [:]
 
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "CohereNativeModelManager")
     private let urlSession = URLSession(configuration: .default)
@@ -69,15 +73,18 @@ final class CohereNativeModelManager: ObservableObject {
         }
 
         downloadStates[modelReference] = .downloading
+        downloadProgress[modelReference] = 0
 
         do {
-            _ = try await materializeRepository(repositoryID)
+            _ = try await materializeRepository(repositoryID, progressKey: modelReference)
             downloadStates[modelReference] = .completed
+            downloadProgress[modelReference] = 1
             postAvailabilityDidChange()
         } catch {
             let message = error.localizedDescription
             logger.error("Native Cohere MLX asset download failed: \(message, privacy: .public)")
             downloadStates[modelReference] = .failed(message)
+            downloadProgress[modelReference] = nil
         }
     }
 
@@ -93,7 +100,7 @@ final class CohereNativeModelManager: ObservableObject {
                   let repositoryID = CohereNativeModelLocator.repositoryID(from: modelReference) else {
                 throw CohereNativeModelError.missingModelAssets
             }
-            return try await materializeRepository(repositoryID)
+            return try await materializeRepository(repositoryID, progressKey: modelReference)
         }
     }
 
@@ -114,16 +121,16 @@ final class CohereNativeModelManager: ObservableObject {
         }
     }
 
-    private func materializeRepository(_ repositoryID: String) async throws -> URL {
+    private func materializeRepository(_ repositoryID: String, progressKey: String? = nil) async throws -> URL {
         let destinationDirectory = CohereNativeModelLocator.appManagedModelDirectory(for: repositoryID)
         if CohereNativeModelLocator.isModelDirectoryComplete(destinationDirectory) {
             return destinationDirectory
         }
 
-        return try await downloadRepository(repositoryID)
+        return try await downloadRepository(repositoryID, progressKey: progressKey)
     }
 
-    private func downloadRepository(_ repositoryID: String) async throws -> URL {
+    private func downloadRepository(_ repositoryID: String, progressKey: String? = nil) async throws -> URL {
         let fileManager = FileManager.default
         let destinationDirectory = CohereNativeModelLocator.appManagedModelDirectory(for: repositoryID)
         let temporaryDirectory = destinationDirectory.appendingPathExtension("download")
@@ -135,7 +142,7 @@ final class CohereNativeModelManager: ObservableObject {
         try fileManager.createDirectory(at: temporaryDirectory, withIntermediateDirectories: true)
 
         do {
-            try await downloadRequiredFiles(for: repositoryID, into: temporaryDirectory)
+            try await downloadRequiredFiles(for: repositoryID, into: temporaryDirectory, progressKey: progressKey)
             if fileManager.fileExists(atPath: destinationDirectory.path) {
                 try fileManager.removeItem(at: destinationDirectory)
             }
@@ -147,7 +154,7 @@ final class CohereNativeModelManager: ObservableObject {
         }
     }
 
-    private func downloadRequiredFiles(for repositoryID: String, into directory: URL) async throws {
+    private func downloadRequiredFiles(for repositoryID: String, into directory: URL, progressKey: String? = nil) async throws {
         let requiredFiles = [
             "config.json",
             "tokenizer.model",
@@ -158,7 +165,7 @@ final class CohereNativeModelManager: ObservableObject {
         ]
 
         for filename in requiredFiles {
-            try await downloadFile(named: filename, from: repositoryID, into: directory)
+            try await downloadFile(named: filename, from: repositoryID, into: directory, progressKey: progressKey)
         }
 
         let optionalFiles = [
@@ -167,12 +174,12 @@ final class CohereNativeModelManager: ObservableObject {
         ]
 
         for filename in optionalFiles {
-            _ = try? await downloadFile(named: filename, from: repositoryID, into: directory)
+            _ = try? await downloadFile(named: filename, from: repositoryID, into: directory, progressKey: progressKey)
         }
     }
 
     @discardableResult
-    private func downloadFile(named filename: String, from repositoryID: String, into directory: URL) async throws -> URL {
+    private func downloadFile(named filename: String, from repositoryID: String, into directory: URL, progressKey: String? = nil) async throws -> URL {
         let destinationURL = directory.appendingPathComponent(filename)
         if FileManager.default.fileExists(atPath: destinationURL.path) {
             return destinationURL
@@ -187,7 +194,21 @@ final class CohereNativeModelManager: ObservableObject {
         request.timeoutInterval = 600
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
 
-        let (temporaryURL, response) = try await urlSession.download(for: request)
+        // Reset per-file progress so large files don't inherit a completed
+        // fraction from a smaller sibling that just finished.
+        if let progressKey {
+            await MainActor.run { self.downloadProgress[progressKey] = 0 }
+        }
+
+        let delegate = progressKey.map { key in
+            ModelDownloadProgressDelegate { fraction in
+                Task { @MainActor in
+                    CohereNativeModelManager.shared.downloadProgress[key] = fraction
+                }
+            }
+        }
+
+        let (temporaryURL, response) = try await urlSession.download(for: request, delegate: delegate)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw CohereNativeModelError.invalidResponse
         }
@@ -245,6 +266,41 @@ final class CohereNativeModelManager: ObservableObject {
         NotificationCenter.default.post(name: .cohereTranscribeAvailabilityDidChange, object: nil)
         NotificationCenter.default.post(name: .AppSettingsDidChange, object: nil)
     }
+}
+
+/// URLSessionDownloadDelegate that forwards per-file byte progress into a
+/// closure. Shared by CohereNativeModelManager and VoxtralNativeModelManager
+/// so the AI Models sidebar can render a real percentage while large
+/// safetensors shards are transferring.
+///
+/// `onProgress` is invoked on the URLSession delegate queue; callers that
+/// mutate `@Published` state must hop to the main actor themselves.
+final class ModelDownloadProgressDelegate: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
+    private let onProgress: @Sendable (Double) -> Void
+
+    init(onProgress: @escaping @Sendable (Double) -> Void) {
+        self.onProgress = onProgress
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didWriteData bytesWritten: Int64,
+        totalBytesWritten: Int64,
+        totalBytesExpectedToWrite: Int64
+    ) {
+        guard totalBytesExpectedToWrite > 0 else { return }
+        let fraction = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
+        onProgress(max(0.0, min(1.0, fraction)))
+    }
+
+    // The async `download(for:delegate:)` variant handles file-location
+    // routing itself; this stub exists only to satisfy the protocol.
+    func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didFinishDownloadingTo location: URL
+    ) {}
 }
 
 enum CohereNativeModelError: LocalizedError, Equatable {

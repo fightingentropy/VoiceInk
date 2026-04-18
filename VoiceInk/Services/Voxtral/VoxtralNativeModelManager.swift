@@ -20,6 +20,10 @@ final class VoxtralNativeModelManager: ObservableObject {
     }
 
     @Published private(set) var downloadStates: [String: DownloadState] = [:]
+    /// Fractional progress (0.0-1.0) of the single file currently being
+    /// fetched. Reset to 0 at the start of each file so large shards don't
+    /// appear to jump backwards when smaller siblings finish.
+    @Published private(set) var downloadProgress: [String: Double] = [:]
 
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "VoxtralNativeModelManager")
     private let urlSession = URLSession(configuration: .default)
@@ -56,14 +60,17 @@ final class VoxtralNativeModelManager: ObservableObject {
         }
 
         downloadStates[modelReference] = .downloading
+        downloadProgress[modelReference] = 0
 
         do {
-            _ = try await materializeRepository(repoID)
+            _ = try await materializeRepository(repoID, progressKey: modelReference)
             downloadStates[modelReference] = .completed
+            downloadProgress[modelReference] = 1
         } catch {
             let message = error.localizedDescription
             logger.error("Native Voxtral asset download failed: \(message, privacy: .public)")
             downloadStates[modelReference] = .failed(message)
+            downloadProgress[modelReference] = nil
         }
     }
 
@@ -75,7 +82,7 @@ final class VoxtralNativeModelManager: ObservableObject {
             guard autoDownload, let repoID = VoxtralNativeModelLocator.repositoryID(from: modelReference) else {
                 throw VoxtralNativeModelError.missingModelAssets
             }
-            return try await materializeRepository(repoID)
+            return try await materializeRepository(repoID, progressKey: modelReference)
         }
     }
 
@@ -92,7 +99,7 @@ final class VoxtralNativeModelManager: ObservableObject {
         }
     }
 
-    private func materializeRepository(_ repoID: String) async throws -> URL {
+    private func materializeRepository(_ repoID: String, progressKey: String? = nil) async throws -> URL {
         migrateLegacyStorageIfNeeded()
 
         let destinationDirectory = VoxtralNativeModelLocator.appManagedModelDirectory(for: repoID)
@@ -100,10 +107,10 @@ final class VoxtralNativeModelManager: ObservableObject {
             return destinationDirectory
         }
 
-        return try await downloadRepository(repoID)
+        return try await downloadRepository(repoID, progressKey: progressKey)
     }
 
-    private func downloadRepository(_ repoID: String) async throws -> URL {
+    private func downloadRepository(_ repoID: String, progressKey: String? = nil) async throws -> URL {
         let fileManager = FileManager.default
         let destinationDirectory = VoxtralNativeModelLocator.appManagedModelDirectory(for: repoID)
         let temporaryDirectory = destinationDirectory.appendingPathExtension("download")
@@ -123,7 +130,7 @@ final class VoxtralNativeModelManager: ObservableObject {
         )
 
         do {
-            try await downloadRequiredFiles(for: repoID, into: temporaryDirectory)
+            try await downloadRequiredFiles(for: repoID, into: temporaryDirectory, progressKey: progressKey)
 
             if fileManager.fileExists(atPath: destinationDirectory.path) {
                 try fileManager.removeItem(at: destinationDirectory)
@@ -204,13 +211,13 @@ final class VoxtralNativeModelManager: ObservableObject {
         try fileManager.removeItem(at: directory)
     }
 
-    private func downloadRequiredFiles(for repoID: String, into directory: URL) async throws {
+    private func downloadRequiredFiles(for repoID: String, into directory: URL, progressKey: String? = nil) async throws {
         let baseFiles = ["config.json", "tekken.json"]
         for filename in baseFiles {
-            try await downloadFile(named: filename, from: repoID, into: directory)
+            try await downloadFile(named: filename, from: repoID, into: directory, progressKey: progressKey)
         }
 
-        let indexWasDownloaded = try await downloadOptionalFile(named: "model.safetensors.index.json", from: repoID, into: directory)
+        let indexWasDownloaded = try await downloadOptionalFile(named: "model.safetensors.index.json", from: repoID, into: directory, progressKey: progressKey)
         let shardFiles: [String]
         if indexWasDownloaded,
            let indexData = try? Data(contentsOf: directory.appendingPathComponent("model.safetensors.index.json")),
@@ -221,20 +228,20 @@ final class VoxtralNativeModelManager: ObservableObject {
         }
 
         for filename in shardFiles {
-            try await downloadFile(named: filename, from: repoID, into: directory)
+            try await downloadFile(named: filename, from: repoID, into: directory, progressKey: progressKey)
         }
     }
 
-    private func downloadOptionalFile(named filename: String, from repoID: String, into directory: URL) async throws -> Bool {
+    private func downloadOptionalFile(named filename: String, from repoID: String, into directory: URL, progressKey: String? = nil) async throws -> Bool {
         do {
-            try await downloadFile(named: filename, from: repoID, into: directory)
+            try await downloadFile(named: filename, from: repoID, into: directory, progressKey: progressKey)
             return true
         } catch let error as VoxtralNativeModelError where error == .fileNotFound(filename) {
             return false
         }
     }
 
-    private func downloadFile(named filename: String, from repoID: String, into directory: URL) async throws {
+    private func downloadFile(named filename: String, from repoID: String, into directory: URL, progressKey: String? = nil) async throws {
         let destinationURL = directory.appendingPathComponent(filename)
         if FileManager.default.fileExists(atPath: destinationURL.path) {
             return
@@ -248,7 +255,19 @@ final class VoxtralNativeModelManager: ObservableObject {
         request.timeoutInterval = 600
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
 
-        let (temporaryURL, response) = try await urlSession.download(for: request)
+        if let progressKey {
+            await MainActor.run { self.downloadProgress[progressKey] = 0 }
+        }
+
+        let delegate = progressKey.map { key in
+            ModelDownloadProgressDelegate { fraction in
+                Task { @MainActor in
+                    VoxtralNativeModelManager.shared.downloadProgress[key] = fraction
+                }
+            }
+        }
+
+        let (temporaryURL, response) = try await urlSession.download(for: request, delegate: delegate)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw VoxtralNativeModelError.invalidResponse
         }

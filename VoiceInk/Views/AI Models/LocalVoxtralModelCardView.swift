@@ -33,6 +33,16 @@ struct LocalVoxtralModelCardView: View {
         downloadState == .downloading
     }
 
+    private var downloadFraction: Double {
+        nativeModelManager.downloadProgress[modelReference] ?? 0
+    }
+
+    private var downloadButtonLabel: String {
+        guard isDownloadingModel else { return "Download" }
+        let percent = Int((downloadFraction * 100).rounded())
+        return percent > 0 ? "Downloading \(percent)%" : "Downloading..."
+    }
+
     private var modelURL: URL? {
         modelAvailability.directoryURL
     }
@@ -138,7 +148,7 @@ struct LocalVoxtralModelCardView: View {
     private var progressSection: some View {
         Group {
             if isDownloadingModel {
-                ProgressView()
+                ProgressView(value: downloadFraction)
                     .progressViewStyle(LinearProgressViewStyle())
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 8)
@@ -168,7 +178,7 @@ struct LocalVoxtralModelCardView: View {
                     }
                 }) {
                     HStack(spacing: 4) {
-                        Text(isDownloadingModel ? "Downloading..." : "Download")
+                        Text(downloadButtonLabel)
                             .font(.system(size: 12, weight: .medium))
                         Image(systemName: "arrow.down.circle")
                             .font(.system(size: 12, weight: .medium))
