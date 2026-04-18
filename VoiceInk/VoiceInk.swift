@@ -5,9 +5,6 @@ import OSLog
 import AppIntents
 import FluidAudio
 import Security
-#if !LOCAL_BUILD
-import Sparkle
-#endif
 
 @main
 struct VoiceInkApp: App {
@@ -21,7 +18,6 @@ struct VoiceInkApp: App {
     @StateObject private var transcriptionModelManager: TranscriptionModelManager
     @StateObject private var recorderUIManager: RecorderUIManager
     @StateObject private var hotkeyManager: HotkeyManager
-    @StateObject private var updaterViewModel: UpdaterViewModel
     @StateObject private var menuBarManager: MenuBarManager
     @StateObject private var aiService = AIService()
     @StateObject private var enhancementService: AIEnhancementService
@@ -106,9 +102,6 @@ struct VoiceInkApp: App {
         // Initialize services with proper sharing of instances
         let aiService = AIService()
         _aiService = StateObject(wrappedValue: aiService)
-
-        let updaterViewModel = UpdaterViewModel()
-        _updaterViewModel = StateObject(wrappedValue: updaterViewModel)
 
         let enhancementService = AIEnhancementService(aiService: aiService, modelContext: container.mainContext)
         _enhancementService = StateObject(wrappedValue: enhancementService)
@@ -330,7 +323,6 @@ struct VoiceInkApp: App {
                     .environmentObject(transcriptionModelManager)
                     .environmentObject(recorderUIManager)
                     .environmentObject(hotkeyManager)
-                    .environmentObject(updaterViewModel)
                     .environmentObject(menuBarManager)
                     .environmentObject(aiService)
                     .environmentObject(enhancementService)
@@ -352,7 +344,6 @@ struct VoiceInkApp: App {
                         // Migrate dictionary data from UserDefaults to SwiftData (one-time operation)
                         DictionaryMigrationService.shared.migrateIfNeeded(context: container.mainContext)
 
-                        updaterViewModel.silentlyCheckForUpdates()
                         if enableAnnouncements {
                             AnnouncementsService.shared.start()
                         }
@@ -404,12 +395,6 @@ struct VoiceInkApp: App {
         .windowResizability(.contentSize)
         .commands {
             CommandGroup(replacing: .newItem) { }
-
-            #if !LOCAL_BUILD
-            CommandGroup(after: .appInfo) {
-                CheckForUpdatesView(updaterViewModel: updaterViewModel)
-            }
-            #endif
         }
 
         MenuBarExtra(isInserted: $showMenuBarIcon) {
@@ -421,7 +406,6 @@ struct VoiceInkApp: App {
                 .environmentObject(recorderUIManager)
                 .environmentObject(hotkeyManager)
                 .environmentObject(menuBarManager)
-                .environmentObject(updaterViewModel)
                 .environmentObject(aiService)
                 .environmentObject(enhancementService)
         } label: {
@@ -443,61 +427,6 @@ struct VoiceInkApp: App {
             }
         }
         #endif
-    }
-}
-
-@MainActor
-class UpdaterViewModel: ObservableObject {
-    #if LOCAL_BUILD
-    @Published var canCheckForUpdates = false
-
-    init() { }
-
-    func toggleAutoUpdates(_ value: Bool) { }
-
-    func checkForUpdates() { }
-
-    func silentlyCheckForUpdates() { }
-    #else
-    @AppStorage("autoUpdateCheck") private var autoUpdateCheck = true
-
-    private let updaterController: SPUStandardUpdaterController
-
-    @Published var canCheckForUpdates = false
-
-    init() {
-        updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
-
-        // Enable automatic update checking
-        updaterController.updater.automaticallyChecksForUpdates = autoUpdateCheck
-        updaterController.updater.updateCheckInterval = 24 * 60 * 60
-
-        updaterController.updater.publisher(for: \.canCheckForUpdates)
-            .assign(to: &$canCheckForUpdates)
-    }
-
-    func toggleAutoUpdates(_ value: Bool) {
-        updaterController.updater.automaticallyChecksForUpdates = value
-    }
-
-    func checkForUpdates() {
-        // This is for manual checks - will show UI
-        updaterController.checkForUpdates(nil)
-    }
-
-    func silentlyCheckForUpdates() {
-        // This checks for updates in the background without showing UI unless an update is found
-        updaterController.updater.checkForUpdatesInBackground()
-    }
-    #endif
-}
-
-struct CheckForUpdatesView: View {
-    @ObservedObject var updaterViewModel: UpdaterViewModel
-
-    var body: some View {
-        Button("Check for Updates…", action: updaterViewModel.checkForUpdates)
-            .disabled(!updaterViewModel.canCheckForUpdates)
     }
 }
 

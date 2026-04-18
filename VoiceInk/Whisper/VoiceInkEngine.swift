@@ -406,18 +406,5 @@ class VoiceInkEngine: NSObject, ObservableObject {
         }
     }
 
-    // MARK: - Notification Handling
-
-    func setupNotifications() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleLicenseStatusChanged),
-            name: .licenseStatusChanged,
-            object: nil
-        )
-    }
-
-    @objc func handleLicenseStatusChanged() {
-        pipeline.licenseViewModel = LicenseViewModel()
-    }
+    func setupNotifications() {}
 }
