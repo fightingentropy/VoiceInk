@@ -51,8 +51,6 @@ final class CohereNativePreparedState: @unchecked Sendable {
 struct CohereNativeDecoderContext: @unchecked Sendable {
     let encoderHiddenStates: MLXArray
     let crossAttentionMask: MLXArray
-    let decoderHeadWeight: MLXArray
-    let decoderHeadBias: MLXArray?
 }
 
 final class CohereNativeDecoderKVCache: @unchecked Sendable {
@@ -495,6 +493,15 @@ final class CohereNativeConvSubsampling: Module {
         )
     }
 
+    var computeDType: DType {
+        for layer in conv {
+            if let convolution = layer as? Conv2d {
+                return convolution.weight.dtype
+            }
+        }
+        return .float16
+    }
+
     func callAsFunction(_ x: MLXArray, lengths: [Int]) -> (MLXArray, [Int]) {
         var hiddenStates = x.transposed(0, 2, 1).expandedDimensions(axis: 3)
         var lengths = lengths
@@ -599,7 +606,7 @@ final class CohereNativeConformerEncoder: Module {
     }
 
     func callAsFunction(_ inputFeatures: MLXArray, lengths: [Int]) -> (MLXArray, [Int]) {
-        let expectedDType = subsampling.out.weight.dtype
+        let expectedDType = subsampling.computeDType
         let inputFeatures = inputFeatures.dtype == expectedDType ? inputFeatures : inputFeatures.asType(expectedDType)
 
         var (hiddenStates, lengths) = subsampling(inputFeatures, lengths: lengths)
@@ -1212,11 +1219,7 @@ final class CohereNativeConditionalGenerationModel: Module {
             crossAttentionMask: crossAttentionMask
         )
 
-        let logits = Self.applyLinear(
-            decoderHiddenStates.asType(decoderComputeDType),
-            weight: lm_head.weight.asType(decoderComputeDType),
-            bias: lm_head.bias?.asType(decoderComputeDType)
-        )
+        let logits = lm_head(decoderHiddenStates).asType(decoderComputeDType)
         return usesLogSoftmax ? logSoftmax(logits, axis: -1) : logits
     }
 
@@ -1240,9 +1243,7 @@ final class CohereNativeConditionalGenerationModel: Module {
         )
         return CohereNativeDecoderContext(
             encoderHiddenStates: decoderEncoderHiddenStates,
-            crossAttentionMask: crossAttentionMask,
-            decoderHeadWeight: lm_head.weight.asType(decoderComputeDType),
-            decoderHeadBias: lm_head.bias?.asType(decoderComputeDType)
+            crossAttentionMask: crossAttentionMask
         )
     }
 
@@ -1260,11 +1261,7 @@ final class CohereNativeConditionalGenerationModel: Module {
             crossAttentionMask: decoderContext.crossAttentionMask,
             cache: cache
         )
-        let logits = Self.applyLinear(
-            decoderHiddenStates,
-            weight: decoderContext.decoderHeadWeight,
-            bias: decoderContext.decoderHeadBias
-        )
+        let logits = lm_head(decoderHiddenStates)
         if usesLogSoftmax && applyLogSoftmax {
             return logSoftmax(logits, axis: -1)
         }
@@ -1293,24 +1290,12 @@ final class CohereNativeConditionalGenerationModel: Module {
             crossAttentionMask: decoderContext.crossAttentionMask,
             cache: cache
         )
-        let logits = Self.applyLinear(
-            decoderHiddenStates,
-            weight: decoderContext.decoderHeadWeight,
-            bias: decoderContext.decoderHeadBias
-        )
+        let logits = lm_head(decoderHiddenStates)
         if usesLogSoftmax && applyLogSoftmax {
             return logSoftmax(logits, axis: -1)
         }
 
         return logits
-    }
-
-    private static func applyLinear(_ x: MLXArray, weight: MLXArray, bias: MLXArray?) -> MLXArray {
-        if let bias {
-            return addMM(bias, x, weight.T)
-        }
-
-        return matmul(x, weight.T)
     }
 
     private static func makeSelfAttentionMask(batchSize: Int, targetLength: Int, dtype: DType) -> MLXArray {
@@ -1405,7 +1390,7 @@ enum CohereNativeEncoderLoader {
         let features = bootstrap.featureExtractor
             .extractLogMelFeatures(from: silence)
             .expandedDimensions(axis: 0)
-            .asType(model.encoder.subsampling.out.weight.dtype)
+            .asType(model.encoder.subsampling.computeDType)
         let (encoderHiddenStates, encodedLengths) = model.encode(
             inputFeatures: features,
             lengths: [features.dim(2)]

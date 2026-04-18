@@ -190,7 +190,7 @@ actor CohereNativeRuntime {
         let inputFeatures = bootstrap.featureExtractor
             .extractLogMelFeatures(from: clippedAudio)
             .expandedDimensions(axis: 0)
-            .asType(preparedState.model.encoder.subsampling.out.weight.dtype)
+            .asType(preparedState.model.encoder.subsampling.computeDType)
         let (encoderHiddenStates, encodedLengths) = preparedState.model.encode(
             inputFeatures: inputFeatures,
             lengths: [inputFeatures.dim(2)]
@@ -200,8 +200,7 @@ actor CohereNativeRuntime {
             encodedLengths: encodedLengths
         )
         let decoderContextEvalArrays =
-            [encoderHiddenStates, decoderContext.encoderHiddenStates, decoderContext.crossAttentionMask, decoderContext.decoderHeadWeight] +
-            [decoderContext.decoderHeadBias].compactMap { $0 }
+            [encoderHiddenStates, decoderContext.encoderHiddenStates, decoderContext.crossAttentionMask]
         eval(decoderContextEvalArrays)
 
         let promptTokenIDs = bootstrap.promptTokenIDs32
