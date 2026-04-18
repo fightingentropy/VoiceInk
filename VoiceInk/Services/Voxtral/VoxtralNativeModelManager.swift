@@ -223,6 +223,48 @@ final class VoxtralNativeModelManager: ObservableObject {
         try fileManager.removeItem(at: directory)
     }
 
+    /// `URLSession.download(for:delegate:)` doesn't reliably deliver
+    /// URLSessionDownloadDelegate.didWriteData on a per-task delegate, so we
+    /// drive progress through Progress KVO on the task itself instead.
+    private func downloadWithProgress(
+        request: URLRequest,
+        progressKey: String?
+    ) async throws -> (URL, URLResponse) {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<(URL, URLResponse), Error>) in
+            var progressObservation: NSKeyValueObservation?
+            let task = urlSession.downloadTask(with: request) { tempURL, response, error in
+                progressObservation?.invalidate()
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                guard let tempURL, let response else {
+                    continuation.resume(throwing: VoxtralNativeModelError.invalidResponse)
+                    return
+                }
+                let stableURL = URL(fileURLWithPath: NSTemporaryDirectory())
+                    .appendingPathComponent("voiceink-voxtral-" + UUID().uuidString)
+                do {
+                    try FileManager.default.moveItem(at: tempURL, to: stableURL)
+                    continuation.resume(returning: (stableURL, response))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+
+            if let progressKey {
+                progressObservation = task.progress.observe(\.fractionCompleted, options: [.new]) { progress, _ in
+                    let fraction = progress.fractionCompleted
+                    Task { @MainActor in
+                        VoxtralNativeModelManager.shared.downloadProgress[progressKey] = max(0, min(1, fraction))
+                    }
+                }
+            }
+
+            task.resume()
+        }
+    }
+
     private func downloadRequiredFiles(for repoID: String, into directory: URL, progressKey: String? = nil) async throws {
         let baseFiles = ["config.json", "tekken.json"]
         for filename in baseFiles {
@@ -271,15 +313,10 @@ final class VoxtralNativeModelManager: ObservableObject {
             await MainActor.run { self.downloadProgress[progressKey] = 0 }
         }
 
-        let delegate = progressKey.map { key in
-            ModelDownloadProgressDelegate { fraction in
-                Task { @MainActor in
-                    VoxtralNativeModelManager.shared.downloadProgress[key] = fraction
-                }
-            }
-        }
-
-        let (temporaryURL, response) = try await urlSession.download(for: request, delegate: delegate)
+        let (temporaryURL, response) = try await downloadWithProgress(
+            request: request,
+            progressKey: progressKey
+        )
         guard let httpResponse = response as? HTTPURLResponse else {
             throw VoxtralNativeModelError.invalidResponse
         }
