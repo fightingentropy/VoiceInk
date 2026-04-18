@@ -55,6 +55,10 @@ final class CohereNativeModelManager: ObservableObject {
         return downloadStates[modelReference] ?? .idle
     }
 
+    var hasActiveDownloads: Bool {
+        downloadStates.values.contains(.downloading)
+    }
+
     func downloadModelIfNeeded(_ modelReference: String = LocalCohereTranscribeConfiguration.nativeModelRepository) async {
         guard downloadState(for: modelReference) != .downloading else { return }
 
@@ -70,6 +74,14 @@ final class CohereNativeModelManager: ObservableObject {
         guard let repositoryID = CohereNativeModelLocator.repositoryID(from: modelReference) else {
             downloadStates[modelReference] = .failed("Only Hugging Face repository IDs can be downloaded automatically.")
             return
+        }
+
+        let terminationReason = "Downloading Cohere MLX model \(modelReference)"
+        ProcessInfo.processInfo.disableAutomaticTermination(terminationReason)
+        ProcessInfo.processInfo.disableSuddenTermination()
+        defer {
+            ProcessInfo.processInfo.enableSuddenTermination()
+            ProcessInfo.processInfo.enableAutomaticTermination(terminationReason)
         }
 
         downloadStates[modelReference] = .downloading
