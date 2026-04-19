@@ -15,13 +15,16 @@ final class APIKeyManager: @unchecked Sendable {
     private static let providerToKeychainKey: [String: String] = [
         "elevenlabs": "elevenLabsAPIKey",
         "huggingface": "huggingFaceAccessToken",
-        "openai": "openAIAPIKey"
+        "openai": "openAIAPIKey",
+        "xai": "xAIAPIKey"
     ]
 
     /// Legacy UserDefaults to Keychain key mapping for migration.
     private static let userDefaultsToKeychainMapping: [String: String] = [
         "ElevenLabsAPIKey": "elevenLabsAPIKey",
-        "OpenAIAPIKey": "openAIAPIKey"
+        "OpenAIAPIKey": "openAIAPIKey",
+        "XAIAPIKey": "xAIAPIKey",
+        "xAIAPIKey": "xAIAPIKey"
     ]
 
     private init() {
@@ -194,6 +197,8 @@ final class APIKeyManager: @unchecked Sendable {
             return "ElevenLabsAPIKey"
         case "openai":
             return "OpenAIAPIKey"
+        case "xai":
+            return "xAIAPIKey"
         default:
             return "\(provider)APIKey"
         }

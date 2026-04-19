@@ -65,7 +65,7 @@ struct ModelCardRowView: View {
                         setDefaultAction: setDefaultAction
                     )
                 }
-            case .elevenLabs:
+            case .elevenLabs, .xAI:
                 if let cloudModel = model as? CloudModel {
                     CloudModelCardView(
                         model: cloudModel,

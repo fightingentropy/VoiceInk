@@ -161,6 +161,8 @@ final class StreamingTranscriptionService {
             return VoxtralNativeStreamingProvider()
         case .elevenLabs:
             return ElevenLabsStreamingProvider()
+        case .xAI:
+            return XAIStreamingProvider()
         default:
             throw StreamingTranscriptionError.unsupportedProvider(String(describing: model.provider))
         }

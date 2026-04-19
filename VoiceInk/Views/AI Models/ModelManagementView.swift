@@ -176,7 +176,9 @@ struct ModelManagementView: View {
             "parakeet-tdt-0.6b-v2",
             "parakeet-tdt-0.6b-v3",
             "voxtral-mini-realtime-local",
-            "cohere-transcribe-03-2026-local"
+            "cohere-transcribe-03-2026-local",
+            "scribe_v2",
+            "xai-stt"
         ]
         let currentModelName = transcriptionModelManager.currentTranscriptionModel?.name
         

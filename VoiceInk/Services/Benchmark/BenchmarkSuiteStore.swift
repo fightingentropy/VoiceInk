@@ -199,7 +199,7 @@ final class BenchmarkSuiteStore: ObservableObject {
                     return makeFailureResult(for: model, detail: "Unsupported Apple Speech model.")
                 }
                 return try await benchmarkAppleSpeech(nativeAppleModel, corpus: corpus)
-            case .elevenLabs, .custom:
+            case .elevenLabs, .xAI, .custom:
                 return makeUnavailableResult(for: model, detail: "Cloud models are excluded from on-device benchmarks.")
             }
         } catch {

@@ -89,6 +89,8 @@ class TranscriptionServiceRegistry {
             return model.name == "voxtral-mini-realtime-local"
         case .elevenLabs:
             return model.name == "scribe_v2"
+        case .xAI:
+            return model.name == "xai-stt"
         default:
             return false
         }

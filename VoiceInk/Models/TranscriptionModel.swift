@@ -7,9 +7,23 @@ enum ModelProvider: String, Codable, Hashable, CaseIterable, Sendable {
     case cohereTranscribe = "Cohere Transcribe"
     case parakeet = "Parakeet"
     case elevenLabs = "ElevenLabs"
+    case xAI = "xAI"
     case custom = "Custom"
     case nativeApple = "Native Apple"
     // Future providers can be added here
+}
+
+extension ModelProvider {
+    var apiKeyProviderName: String {
+        switch self {
+        case .elevenLabs:
+            return "ElevenLabs"
+        case .xAI:
+            return "xAI"
+        default:
+            return rawValue
+        }
+    }
 }
 
 enum BenchmarkExecutionMode: String, Codable, Hashable, Sendable {
@@ -56,7 +70,7 @@ extension TranscriptionModel {
             return .streamingPCM
         case .cohereTranscribe:
             return .recorderPCM
-        case .elevenLabs, .custom:
+        case .elevenLabs, .xAI, .custom:
             return nil
         }
     }

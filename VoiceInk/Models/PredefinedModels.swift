@@ -13,6 +13,9 @@ import Foundation
             if provider == .cohereTranscribe {
                 return cohereTranscribeLanguages
             }
+            if provider == .xAI {
+                return xAILanguages
+            }
             return allLanguages
         }
     }
@@ -92,6 +95,34 @@ import Foundation
         "vi": "Vietnamese",
         "zh": "Chinese"
     ]
+
+    static let xAILanguages = [
+        "ar": "Arabic",
+        "cs": "Czech",
+        "da": "Danish",
+        "de": "German",
+        "en": "English",
+        "es": "Spanish",
+        "fa": "Persian",
+        "fil": "Filipino",
+        "fr": "French",
+        "hi": "Hindi",
+        "id": "Indonesian",
+        "it": "Italian",
+        "ja": "Japanese",
+        "ko": "Korean",
+        "mk": "Macedonian",
+        "ms": "Malay",
+        "nl": "Dutch",
+        "pl": "Polish",
+        "pt": "Portuguese",
+        "ro": "Romanian",
+        "ru": "Russian",
+        "sv": "Swedish",
+        "th": "Thai",
+        "tr": "Turkish",
+        "vi": "Vietnamese"
+    ]
     
     static var models: [any TranscriptionModel] {
         return predefinedModels + CustomModelManager.shared.customModels
@@ -170,6 +201,16 @@ import Foundation
            accuracy: 0.98,
            isMultilingual: true,
            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .elevenLabs)
+       ),
+       CloudModel(
+           name: "xai-stt",
+           displayName: "xAI Speech-to-Text",
+           description: "xAI's cloud speech-to-text provider with realtime streaming and file transcription fallback.",
+           provider: .xAI,
+           speed: 0.98,
+           accuracy: 0.98,
+           isMultilingual: true,
+           supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .xAI)
        ),
      ]
  
