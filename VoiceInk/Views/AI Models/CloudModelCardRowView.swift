@@ -21,7 +21,27 @@ struct CloudModelCardView: View {
     }
     
     private var isConfigured: Bool {
-        APIKeyManager.shared.hasAPIKey(forProvider: "ElevenLabs")
+        APIKeyManager.shared.hasAPIKey(forProvider: providerKey)
+    }
+
+    private var providerKey: String {
+        model.provider.apiKeyProviderName
+    }
+
+    private var verifiesAPIKeyRemotely: Bool {
+        model.provider == .elevenLabs
+    }
+
+    private var primaryConfigurationButtonTitle: String {
+        if isVerifying {
+            return "Verifying..."
+        }
+
+        return verifiesAPIKeyRemotely ? "Verify" : "Save"
+    }
+
+    private var successMessage: String {
+        verifiesAPIKeyRemotely ? "API key verified successfully!" : "API key saved."
     }
     
     var body: some View {
@@ -206,7 +226,7 @@ struct CloudModelCardView: View {
                     .textFieldStyle(.roundedBorder)
                     .disabled(isVerifying)
                 
-                Button(action: verifyAPIKey) {
+                Button(action: saveOrVerifyAPIKey) {
                     HStack(spacing: 4) {
                         if isVerifying {
                             ProgressView()
@@ -216,7 +236,7 @@ struct CloudModelCardView: View {
                             Image(systemName: verificationStatus == .success ? "checkmark" : "checkmark.shield")
                                 .font(.system(size: 12, weight: .medium))
                         }
-                        Text(isVerifying ? "Verifying..." : "Verify")
+                        Text(primaryConfigurationButtonTitle)
                             .font(.system(size: 12, weight: .medium))
                     }
                     .foregroundColor(.white)
@@ -242,7 +262,7 @@ struct CloudModelCardView: View {
                         .foregroundColor(Color(.systemRed))
                 }
             } else if verificationStatus == .success {
-                Text("API key verified successfully!")
+                Text(successMessage)
                     .font(.caption)
                     .foregroundColor(Color(.systemGreen))
             }
@@ -250,14 +270,26 @@ struct CloudModelCardView: View {
     }
     
     private func loadSavedAPIKey() {
-        if let savedKey = APIKeyManager.shared.getAPIKey(forProvider: "ElevenLabs") {
+        if let savedKey = APIKeyManager.shared.getAPIKey(forProvider: providerKey) {
             apiKey = savedKey
             verificationStatus = .success
         }
     }
     
-    private func verifyAPIKey() {
+    private func saveOrVerifyAPIKey() {
         guard !apiKey.isEmpty else { return }
+
+        if !verifiesAPIKeyRemotely {
+            APIKeyManager.shared.saveAPIKey(apiKey, forProvider: providerKey)
+            verificationStatus = .success
+            verificationError = nil
+            isConfiguredState = true
+
+            withAnimation(.easeInOut(duration: 0.3)) {
+                isExpanded = false
+            }
+            return
+        }
         
         isVerifying = true
         verificationStatus = .verifying
@@ -269,7 +301,7 @@ struct CloudModelCardView: View {
                 if result.isValid {
                     verificationStatus = .success
                     verificationError = nil
-                    APIKeyManager.shared.saveAPIKey(apiKey, forProvider: "ElevenLabs")
+                    APIKeyManager.shared.saveAPIKey(apiKey, forProvider: providerKey)
                     isConfiguredState = true
 
                     withAnimation(.easeInOut(duration: 0.3)) {
@@ -284,7 +316,7 @@ struct CloudModelCardView: View {
     }
     
     private func clearAPIKey() {
-        APIKeyManager.shared.deleteAPIKey(forProvider: "ElevenLabs")
+        APIKeyManager.shared.deleteAPIKey(forProvider: providerKey)
         apiKey = ""
         verificationStatus = .none
         verificationError = nil

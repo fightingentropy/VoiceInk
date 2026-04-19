@@ -35,6 +35,7 @@ enum CloudTranscriptionError: Error, LocalizedError {
 
 final class CloudTranscriptionService: TranscriptionService, @unchecked Sendable {
     private lazy var openAICompatibleService = OpenAICompatibleTranscriptionService()
+    private lazy var xAITranscriptionService = XAITranscriptionService()
 
     init() {}
 
@@ -46,12 +47,21 @@ final class CloudTranscriptionService: TranscriptionService, @unchecked Sendable
         do {
             switch model.provider {
             case .elevenLabs:
-                let apiKey = try requireAPIKey(forProvider: "ElevenLabs")
+                let apiKey = try requireAPIKey(forProvider: model.provider.apiKeyProviderName)
                 return try await ElevenLabsClient.transcribe(
                     audioData: audioData,
                     fileName: fileName,
                     apiKey: apiKey,
                     model: model.name,
+                    language: language
+                )
+
+            case .xAI:
+                let apiKey = try requireAPIKey(forProvider: model.provider.apiKeyProviderName)
+                return try await xAITranscriptionService.transcribe(
+                    audioData: audioData,
+                    fileName: fileName,
+                    apiKey: apiKey,
                     language: language
                 )
 
