@@ -12,7 +12,6 @@ extension KeyboardShortcuts.Name {
     static let toggleMiniRecorder = Self("toggleMiniRecorder")
     static let toggleMiniRecorder2 = Self("toggleMiniRecorder2")
     static let pasteLastTranscription = Self("pasteLastTranscription")
-    static let pasteLastEnhancement = Self("pasteLastEnhancement")
     static let retryLastTranscription = Self("retryLastTranscription")
     static let openHistoryWindow = Self("openHistoryWindow")
 }
@@ -50,11 +49,10 @@ class HotkeyManager: ObservableObject {
     private var engine: VoiceInkEngine
     private var recorderUIManager: RecorderUIManager
     private var miniRecorderShortcutManager: MiniRecorderShortcutManager
-    private var powerModeShortcutManager: PowerModeShortcutManager
 
     // MARK: - Helper Properties
     private var canProcessHotkeyAction: Bool {
-        engine.recordingState != .transcribing && engine.recordingState != .enhancing && engine.recordingState != .busy
+        engine.recordingState != .transcribing && engine.recordingState != .busy
     }
     
     // NSEvent monitoring for modifier keys
@@ -136,19 +134,11 @@ class HotkeyManager: ObservableObject {
         self.engine = engine
         self.recorderUIManager = recorderUIManager
         self.miniRecorderShortcutManager = MiniRecorderShortcutManager(engine: engine, recorderUIManager: recorderUIManager)
-        self.powerModeShortcutManager = PowerModeShortcutManager(engine: engine)
 
         KeyboardShortcuts.onKeyUp(for: .pasteLastTranscription) { [weak self] in
             guard let self = self else { return }
             Task { @MainActor in
                 LastTranscriptionService.pasteLastTranscription(from: self.engine.modelContext)
-            }
-        }
-
-        KeyboardShortcuts.onKeyUp(for: .pasteLastEnhancement) { [weak self] in
-            guard let self = self else { return }
-            Task { @MainActor in
-                LastTranscriptionService.pasteLastEnhancement(from: self.engine.modelContext)
             }
         }
 
@@ -158,8 +148,7 @@ class HotkeyManager: ObservableObject {
                 LastTranscriptionService.retryLastTranscription(
                     from: self.engine.modelContext,
                     transcriptionModelManager: self.engine.transcriptionModelManager,
-                    serviceRegistry: self.engine.serviceRegistry,
-                    enhancementService: self.engine.enhancementService
+                    serviceRegistry: self.engine.serviceRegistry
                 )
             }
         }

@@ -107,7 +107,7 @@ class ParakeetModelManager: ObservableObject {
     }
 
     private func parakeetVersion(for modelName: String) -> AsrModelVersion {
-        modelName.lowercased().contains("v2") ? .v2 : .v3
+        .v2
     }
 
     private func parakeetCacheDirectory(for version: AsrModelVersion) -> URL {

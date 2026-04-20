@@ -42,93 +42,12 @@ struct TranscriptionMetadataView: View {
                         }
                     }
 
-                    if let aiModel = transcription.aiEnhancementModelName {
-                        Divider()
-                        metadataRow(
-                            icon: "sparkles",
-                            label: "Enhancement Model",
-                            value: aiModel
-                        )
-
-                        if let duration = transcription.enhancementDuration {
-                            Divider()
-                            metadataRow(
-                                icon: "clock.fill",
-                                label: "Enhancement Time",
-                                value: duration.formatTiming()
-                            )
-                        }
-                    }
-
-                    if let promptName = transcription.promptName {
-                        Divider()
-                        metadataRow(
-                            icon: "text.bubble.fill",
-                            label: "Prompt",
-                            value: promptName
-                        )
-                    }
-
-                    if let powerModeValue = powerModeDisplay(
-                        name: transcription.powerModeName,
-                        emoji: transcription.powerModeEmoji
-                    ) {
-                        Divider()
-                        metadataRow(
-                            icon: "bolt.fill",
-                            label: "Power Mode",
-                            value: powerModeValue
-                        )
-                    }
                 }
                 .padding(14)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(.thinMaterial)
                 )
-
-                if transcription.aiRequestSystemMessage != nil || transcription.aiRequestUserMessage != nil {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("AI Request")
-                            .font(.system(size: 14, weight: .semibold))
-
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 12) {
-                                if let systemMsg = transcription.aiRequestSystemMessage, !systemMsg.isEmpty {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text("System Prompt")
-                                            .font(.system(size: 11, weight: .semibold))
-                                            .foregroundColor(.secondary)
-                                        Text(systemMsg)
-                                            .font(.system(size: 11, weight: .regular, design: .monospaced))
-                                            .lineSpacing(2)
-                                            .textSelection(.enabled)
-                                            .foregroundColor(.primary)
-                                    }
-                                }
-
-                                if let userMsg = transcription.aiRequestUserMessage, !userMsg.isEmpty {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text("User Message")
-                                            .font(.system(size: 11, weight: .semibold))
-                                            .foregroundColor(.secondary)
-                                        Text(userMsg)
-                                            .font(.system(size: 11, weight: .regular, design: .monospaced))
-                                            .lineSpacing(2)
-                                            .textSelection(.enabled)
-                                            .foregroundColor(.primary)
-                                    }
-                                }
-                            }
-                            .padding(14)
-                        }
-                        .frame(minHeight: 250, maxHeight: 500)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(.thinMaterial)
-                        )
-                    }
-                }
             }
             .padding(12)
         }
@@ -152,21 +71,6 @@ struct TranscriptionMetadataView: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.primary)
                 .lineLimit(1)
-        }
-    }
-
-    private func powerModeDisplay(name: String?, emoji: String?) -> String? {
-        guard name != nil || emoji != nil else { return nil }
-
-        switch (emoji?.trimmingCharacters(in: .whitespacesAndNewlines), name?.trimmingCharacters(in: .whitespacesAndNewlines)) {
-        case let (.some(emojiValue), .some(nameValue)) where !emojiValue.isEmpty && !nameValue.isEmpty:
-            return "\(emojiValue) \(nameValue)"
-        case let (.some(emojiValue), _) where !emojiValue.isEmpty:
-            return emojiValue
-        case let (_, .some(nameValue)) where !nameValue.isEmpty:
-            return nameValue
-        default:
-            return nil
         }
     }
 }

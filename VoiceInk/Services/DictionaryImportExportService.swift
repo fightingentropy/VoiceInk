@@ -5,7 +5,6 @@ import SwiftData
 
 struct DictionaryExportData: Codable {
     let version: String
-    let vocabularyWords: [String]
     let wordReplacements: [String: String]
     let exportDate: Date
 }
@@ -17,13 +16,6 @@ final class DictionaryImportExportService {
     private init() {}
 
     func exportDictionary(from context: ModelContext) {
-        // Fetch vocabulary words from SwiftData
-        var dictionaryWords: [String] = []
-        let vocabularyDescriptor = FetchDescriptor<VocabularyWord>(sortBy: [SortDescriptor(\VocabularyWord.word)])
-        if let items = try? context.fetch(vocabularyDescriptor) {
-            dictionaryWords = items.map { $0.word }
-        }
-
         // Fetch word replacements from SwiftData
         var wordReplacements: [String: String] = [:]
         let replacementsDescriptor = FetchDescriptor<WordReplacement>()
@@ -36,7 +28,6 @@ final class DictionaryImportExportService {
 
         let exportData = DictionaryExportData(
             version: version,
-            vocabularyWords: dictionaryWords,
             wordReplacements: wordReplacements,
             exportDate: Date()
         )
@@ -52,7 +43,7 @@ final class DictionaryImportExportService {
             savePanel.allowedContentTypes = [UTType.json]
             savePanel.nameFieldStringValue = "VoiceInk_Dictionary.json"
             savePanel.title = "Export Dictionary Data"
-            savePanel.message = "Choose a location to save your vocabulary and word replacements."
+            savePanel.message = "Choose a location to save your word replacements."
 
             if savePanel.runModal() == .OK {
                 if let url = savePanel.url {
@@ -91,22 +82,6 @@ final class DictionaryImportExportService {
                 let decoder = JSONDecoder()
                 decoder.dateDecodingStrategy = .iso8601
                 let importedData = try decoder.decode(DictionaryExportData.self, from: jsonData)
-
-                // Fetch existing vocabulary words from SwiftData
-                let vocabularyDescriptor = FetchDescriptor<VocabularyWord>()
-                let existingItems = (try? context.fetch(vocabularyDescriptor)) ?? []
-                let existingWordsLower = Set(existingItems.map { $0.word.lowercased() })
-                let originalExistingCount = existingItems.count
-                var newWordsAdded = 0
-
-                // Import vocabulary words
-                for importedWord in importedData.vocabularyWords {
-                    if !existingWordsLower.contains(importedWord.lowercased()) {
-                        let newWord = VocabularyWord(word: importedWord)
-                        context.insert(newWord)
-                        newWordsAdded += 1
-                    }
-                }
 
                 // Fetch existing word replacements from SwiftData
                 let replacementsDescriptor = FetchDescriptor<WordReplacement>()
@@ -151,7 +126,6 @@ final class DictionaryImportExportService {
                 try context.save()
 
                 var message = "Dictionary data imported successfully from \(url.lastPathComponent).\n\n"
-                message += "Vocabulary Words: \(newWordsAdded) added, \(originalExistingCount) kept\n"
                 message += "Word Replacements: \(addedCount) added, \(updatedCount) updated"
 
                 self.showAlert(title: "Import Successful", message: message)

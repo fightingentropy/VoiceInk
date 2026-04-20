@@ -31,14 +31,7 @@ class LastTranscriptionService: ObservableObject {
             return
         }
         
-        // Prefer enhanced text; fallback to original text
-        let textToCopy: String = {
-            if let enhancedText = lastTranscription.enhancedText, !enhancedText.isEmpty {
-                return enhancedText
-            } else {
-                return lastTranscription.text
-            }
-        }()
+        let textToCopy = lastTranscription.text
         
         let success = ClipboardManager.copyToClipboard(textToCopy)
         
@@ -75,33 +68,8 @@ class LastTranscriptionService: ObservableObject {
         }
     }
     
-    static func pasteLastEnhancement(from modelContext: ModelContext) {
-        guard let lastTranscription = getLastTranscription(from: modelContext) else {
-            Task { @MainActor in
-                NotificationManager.shared.showNotification(
-                    title: "No transcription available",
-                    type: .error
-                )
-            }
-            return
-        }
-        
-        // Prefer enhanced text; if unavailable, fallback to original text (which may contain an error message)
-        let textToPaste: String = {
-            if let enhancedText = lastTranscription.enhancedText, !enhancedText.isEmpty {
-                return enhancedText
-            } else {
-                return lastTranscription.text
-            }
-        }()
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            CursorPaster.pasteAtCursor(textToPaste)
-        }
-    }
-    
     @MainActor
-    static func retryLastTranscription(from modelContext: ModelContext, transcriptionModelManager: TranscriptionModelManager, serviceRegistry: TranscriptionServiceRegistry, enhancementService: AIEnhancementService?) {
+    static func retryLastTranscription(from modelContext: ModelContext, transcriptionModelManager: TranscriptionModelManager, serviceRegistry: TranscriptionServiceRegistry) {
         guard let lastTranscription = getLastTranscription(from: modelContext),
               let audioURLString = lastTranscription.audioFileURL,
               let audioURL = URL(string: audioURLString),
@@ -130,16 +98,14 @@ class LastTranscriptionService: ObservableObject {
 
         let transcriptionService = AudioTranscriptionService(
             modelContext: modelContext,
-            serviceRegistry: serviceRegistry,
-            enhancementService: enhancementService
+            serviceRegistry: serviceRegistry
         )
 
         Task {
             do {
                 let newTranscription = try await transcriptionService.retranscribeAudio(from: audioURL, using: currentModel)
 
-                let textToCopy = newTranscription.enhancedText?.isEmpty == false ? newTranscription.enhancedText! : newTranscription.text
-                _ = ClipboardManager.copyToClipboard(textToCopy)
+                _ = ClipboardManager.copyToClipboard(newTranscription.text)
 
                 NotificationManager.shared.showNotification(
                     title: "Copied to clipboard",

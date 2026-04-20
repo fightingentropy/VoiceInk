@@ -14,7 +14,6 @@ struct GeneralSettings: Codable {
     let selectedHotkey2RawValue: String?
     let launchAtLoginEnabled: Bool?
     let isMenuBarOnly: Bool?
-    let recorderType: String?
     let isTranscriptionCleanupEnabled: Bool?
     let transcriptionRetentionMinutes: Int?
     let isAudioCleanupEnabled: Bool?
@@ -31,19 +30,10 @@ struct GeneralSettings: Codable {
     let useAppleScriptPaste: Bool?
 }
 
-// Simple codable struct for vocabulary words (for export/import only)
-struct VocabularyWordData: Codable {
-    let word: String
-}
-
 struct VoiceInkExportedSettings: Codable {
     let version: String
-    let customPrompts: [CustomPrompt]
-    let powerModeConfigs: [PowerModeConfig]
-    let vocabularyWords: [VocabularyWordData]?
     let wordReplacements: [String: String]?
     let generalSettings: GeneralSettings?
-    let customEmojis: [String]?
     let customCloudModels: [CustomCloudModel]?
 }
 
@@ -52,7 +42,6 @@ final class ImportExportService {
     static let shared = ImportExportService()
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "ImportExportService")
     private let currentSettingsVersion: String
-    private let dictionaryItemsKey = "CustomVocabularyItems"
     private let wordReplacementsKey = "wordReplacements"
 
 
@@ -76,23 +65,9 @@ final class ImportExportService {
     }
 
     @MainActor
-    func exportSettings(enhancementService: AIEnhancementService, whisperPrompt: WhisperPrompt, hotkeyManager: HotkeyManager, menuBarManager: MenuBarManager, mediaController: MediaController, playbackController: PlaybackController, soundManager: SoundManager, recorderUIManager: RecorderUIManager, modelContext: ModelContext) {
-        let powerModeManager = PowerModeManager.shared
-        let emojiManager = EmojiManager.shared
-
-        let exportablePrompts = enhancementService.customPrompts.filter { !$0.isPredefined }
-
-        let powerConfigs = powerModeManager.configurations
-
+    func exportSettings(whisperPrompt: WhisperPrompt, hotkeyManager: HotkeyManager, menuBarManager: MenuBarManager, mediaController: MediaController, playbackController: PlaybackController, soundManager: SoundManager, modelContext: ModelContext) {
         // Export custom models
         let customModels = CustomModelManager.shared.customModels
-
-        // Fetch vocabulary words from SwiftData
-        var exportedDictionaryItems: [VocabularyWordData]? = nil
-        let vocabularyDescriptor = FetchDescriptor<VocabularyWord>()
-        if let items = try? modelContext.fetch(vocabularyDescriptor), !items.isEmpty {
-            exportedDictionaryItems = items.map { VocabularyWordData(word: $0.word) }
-        }
 
         // Fetch word replacements from SwiftData
         var exportedWordReplacements: [String: String]? = nil
@@ -109,7 +84,6 @@ final class ImportExportService {
             selectedHotkey2RawValue: hotkeyManager.selectedHotkey2.rawValue,
             launchAtLoginEnabled: LaunchAtLogin.isEnabled,
             isMenuBarOnly: menuBarManager.isMenuBarOnly,
-            recorderType: recorderUIManager.recorderType,
             isTranscriptionCleanupEnabled: UserDefaults.standard.bool(forKey: keyIsTranscriptionCleanupEnabled),
             transcriptionRetentionMinutes: UserDefaults.standard.integer(forKey: keyTranscriptionRetentionMinutes),
             isAudioCleanupEnabled: UserDefaults.standard.bool(forKey: keyIsAudioCleanupEnabled),
@@ -128,12 +102,8 @@ final class ImportExportService {
 
         let exportedSettings = VoiceInkExportedSettings(
             version: currentSettingsVersion,
-            customPrompts: exportablePrompts,
-            powerModeConfigs: powerConfigs,
-            vocabularyWords: exportedDictionaryItems,
             wordReplacements: exportedWordReplacements,
             generalSettings: generalSettingsToExport,
-            customEmojis: emojiManager.customEmojis,
             customCloudModels: customModels
         )
 
@@ -169,14 +139,14 @@ final class ImportExportService {
     }
 
     @MainActor
-    func importSettings(enhancementService: AIEnhancementService, whisperPrompt: WhisperPrompt, hotkeyManager: HotkeyManager, menuBarManager: MenuBarManager, mediaController: MediaController, playbackController: PlaybackController, soundManager: SoundManager, recorderUIManager: RecorderUIManager, modelContext: ModelContext, transcriptionModelManager: TranscriptionModelManager) {
+    func importSettings(whisperPrompt: WhisperPrompt, hotkeyManager: HotkeyManager, menuBarManager: MenuBarManager, mediaController: MediaController, playbackController: PlaybackController, soundManager: SoundManager, modelContext: ModelContext, transcriptionModelManager: TranscriptionModelManager) {
         let openPanel = NSOpenPanel()
         openPanel.allowedContentTypes = [UTType.json]
         openPanel.canChooseFiles = true
         openPanel.canChooseDirectories = false
         openPanel.allowsMultipleSelection = false
         openPanel.title = "Import VoiceInk Settings"
-        openPanel.message = "Choose a settings file to import. This will overwrite ALL settings (prompts, power modes, dictionary, general app settings)."
+        openPanel.message = "Choose a settings file to import. This will overwrite settings, dictionary, and custom models."
 
         DispatchQueue.main.async {
             if openPanel.runModal() == .OK {
@@ -194,13 +164,6 @@ final class ImportExportService {
                         self.showAlert(title: "Version Mismatch", message: "The imported settings file (version \(importedSettings.version)) is from a different version than your application (version \(self.currentSettingsVersion)). Proceeding with import, but be aware of potential incompatibilities.")
                     }
 
-                    let predefinedPrompts = enhancementService.customPrompts.filter { $0.isPredefined }
-                    enhancementService.customPrompts = predefinedPrompts + importedSettings.customPrompts
-                    
-                    let powerModeManager = PowerModeManager.shared
-                    powerModeManager.configurations = importedSettings.powerModeConfigs
-                    powerModeManager.saveConfigurations()
-
                     // Import Custom Models
                     if let modelsToImport = importedSettings.customCloudModels {
                         let customModelManager = CustomModelManager.shared
@@ -210,31 +173,6 @@ final class ImportExportService {
                         self.logger.info("Successfully imported \(modelsToImport.count, privacy: .public) custom models.")
                     } else {
                         self.logger.info("No custom models found in the imported file.")
-                    }
-
-                    if let customEmojis = importedSettings.customEmojis {
-                        let emojiManager = EmojiManager.shared
-                        for emoji in customEmojis {
-                            _ = emojiManager.addCustomEmoji(emoji)
-                        }
-                    }
-
-                    // Import vocabulary words to SwiftData
-                    if let itemsToImport = importedSettings.vocabularyWords {
-                        let vocabularyDescriptor = FetchDescriptor<VocabularyWord>()
-                        let existingWords = (try? modelContext.fetch(vocabularyDescriptor)) ?? []
-                        let existingWordsSet = Set(existingWords.map { $0.word.lowercased() })
-
-                        for item in itemsToImport {
-                            if !existingWordsSet.contains(item.word.lowercased()) {
-                                let newWord = VocabularyWord(word: item.word)
-                                modelContext.insert(newWord)
-                            }
-                        }
-                        try? modelContext.save()
-                        self.logger.info("Successfully imported vocabulary words to SwiftData.")
-                    } else {
-                        self.logger.info("No vocabulary words found in the imported file. Existing items remain unchanged.")
                     }
 
                     // Import word replacements to SwiftData
@@ -298,9 +236,6 @@ final class ImportExportService {
                         if let menuOnly = general.isMenuBarOnly {
                             menuBarManager.isMenuBarOnly = menuOnly
                         }
-                        if let recType = general.recorderType {
-                            recorderUIManager.recorderType = recType
-                        }
 
                         if let transcriptionCleanup = general.isTranscriptionCleanupEnabled {
                             UserDefaults.standard.set(transcriptionCleanup, forKey: self.keyIsTranscriptionCleanupEnabled)
@@ -347,7 +282,7 @@ final class ImportExportService {
                         }
                     }
 
-                    self.showRestartAlert(message: "Settings imported successfully from \(url.lastPathComponent). All settings (including general app settings) have been applied.")
+                    self.showRestartAlert(message: "Settings imported successfully from \(url.lastPathComponent). All settings have been applied.")
 
                 } catch {
                     self.showAlert(title: "Import Error", message: "Error importing settings: \(error.localizedDescription). The file might be corrupted or not in the correct format.")
@@ -373,19 +308,10 @@ final class ImportExportService {
         DispatchQueue.main.async {
             let alert = NSAlert()
             alert.messageText = "Import Successful"
-            alert.informativeText = message + "\n\nIMPORTANT: If you were using AI enhancement features, please make sure to reconfigure your API keys in the Enhancement section.\n\nIt is recommended to restart VoiceInk for all changes to take full effect."
+            alert.informativeText = message + "\n\nIt is recommended to restart VoiceInk for all changes to take full effect."
             alert.alertStyle = .informational
             alert.addButton(withTitle: "OK")
-            alert.addButton(withTitle: "Configure API Keys")
-            
-            let response = alert.runModal()
-            if response == .alertSecondButtonReturn {
-                NotificationCenter.default.post(
-                    name: .navigateToDestination,
-                    object: nil,
-                    userInfo: ["destination": "Enhancement"]
-                )
-            }
+            alert.runModal()
         }
     }
 }

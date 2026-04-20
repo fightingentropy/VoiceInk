@@ -61,7 +61,7 @@ struct LocalOnDeviceBenchmarkTests {
             "Please schedule a follow up with Sarah for next Thursday at two PM.",
             "The quarterly revenue was one hundred twenty three point four million dollars.",
             "Mistral Voxtral runs locally on Apple Silicon.",
-            "Parakeet version three is faster, but Voxtral feels more accurate in practice.",
+            "Parakeet version two is fast, but Voxtral feels more accurate in practice.",
             "Deepgram Nova three and ElevenLabs Scribe version two are cloud transcription models.",
             "The benchmark compares speed against accuracy for every local model."
         ]
@@ -187,7 +187,6 @@ private struct LocalBenchmarkRunner {
         var results: [ModelBenchmarkResult] = []
         results.append(try await benchmarkVoxtralNative())
         results.append(try await benchmarkParakeet(named: "parakeet-tdt-0.6b-v2"))
-        results.append(try await benchmarkParakeet(named: "parakeet-tdt-0.6b-v3"))
         results.append(try await benchmarkAppleSpeech())
 
         return BenchmarkReport(

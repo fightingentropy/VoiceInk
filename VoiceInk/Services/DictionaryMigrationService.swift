@@ -7,7 +7,6 @@ final class DictionaryMigrationService: @unchecked Sendable {
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "DictionaryMigration")
 
     private let migrationCompletedKey = "HasMigratedDictionaryToSwiftData_v2"
-    private let vocabularyKey = "CustomVocabularyItems"
     private let wordReplacementsKey = "wordReplacements"
 
     private init() {}
@@ -23,31 +22,7 @@ final class DictionaryMigrationService: @unchecked Sendable {
 
         logger.info("Starting dictionary migration from UserDefaults to SwiftData")
 
-        var vocabularyMigrated = 0
         var replacementsMigrated = 0
-
-        // Migrate vocabulary words
-        if let data = UserDefaults.standard.data(forKey: vocabularyKey) {
-            do {
-                // Decode old vocabulary structure
-                let decoder = JSONDecoder()
-                let oldVocabulary = try decoder.decode([OldVocabularyWord].self, from: data)
-
-                logger.info("Found \(oldVocabulary.count, privacy: .public) vocabulary words to migrate")
-
-                for oldWord in oldVocabulary {
-                    let newWord = VocabularyWord(word: oldWord.word)
-                    context.insert(newWord)
-                    vocabularyMigrated += 1
-                }
-
-                logger.info("Successfully migrated \(vocabularyMigrated, privacy: .public) vocabulary words")
-            } catch {
-                logger.error("Failed to migrate vocabulary words: \(error.localizedDescription, privacy: .public)")
-            }
-        } else {
-            logger.info("No vocabulary words found to migrate")
-        }
 
         // Migrate word replacements
         if let replacements = UserDefaults.standard.dictionary(forKey: wordReplacementsKey) as? [String: String] {
@@ -78,22 +53,5 @@ final class DictionaryMigrationService: @unchecked Sendable {
         } catch {
             logger.error("Failed to save migrated data: \(error.localizedDescription, privacy: .public)")
         }
-    }
-}
-
-// Legacy structure for decoding old vocabulary data
-private struct OldVocabularyWord: Decodable {
-    let word: String
-
-    private enum CodingKeys: String, CodingKey {
-        case id, word, dateAdded
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        word = try container.decode(String.self, forKey: .word)
-        // Ignore other fields that may exist in old format
-        _ = try? container.decodeIfPresent(UUID.self, forKey: .id)
-        _ = try? container.decodeIfPresent(Date.self, forKey: .dateAdded)
     }
 }

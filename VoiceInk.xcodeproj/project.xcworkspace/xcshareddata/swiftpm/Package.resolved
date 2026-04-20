@@ -2,15 +2,6 @@
   "originHash" : "3391c567ef91ecb3de527d74eb8a240e0739f199bd6aa282460d474966f6c483",
   "pins" : [
     {
-      "identity" : "axswift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/tisfeng/AXSwift.git",
-      "state" : {
-        "revision" : "2efa201fa18184de98674165592fd1ecb0c00a6d",
-        "version" : "0.3.6"
-      }
-    },
-    {
       "identity" : "eventsource",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mattt/EventSource.git",
@@ -34,15 +25,6 @@
       "state" : {
         "revision" : "1aef85578fdd4f9eaeeb8d53b7b4fc31bf08fe27",
         "version" : "2.4.0"
-      }
-    },
-    {
-      "identity" : "keysender",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/jordanbaird/KeySender",
-      "state" : {
-        "revision" : "99584bf1a03ab600cc44be89a2dcd98b2dbeb9de",
-        "version" : "0.0.5"
       }
     },
     {
@@ -79,15 +61,6 @@
       "state" : {
         "revision" : "072b684acaae80b6a463abab3a103732f33774bf",
         "version" : "0.29.1"
-      }
-    },
-    {
-      "identity" : "selectedtextkit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/tisfeng/SelectedTextKit",
-      "state" : {
-        "revision" : "ecbf46d8be541b54296a0836b7ae2f60c0416b72",
-        "version" : "2.6.2"
       }
     },
     {

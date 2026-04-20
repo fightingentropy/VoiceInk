@@ -6,25 +6,6 @@ import os
 class RecorderUIManager: ObservableObject {
     @Published var miniRecorderError: String?
 
-    @Published var recorderType: String = UserDefaults.standard.string(forKey: "RecorderType") ?? "mini" {
-        didSet {
-            if isMiniRecorderVisible {
-                if oldValue == "notch" {
-                    notchWindowManager?.hide()
-                    notchWindowManager = nil
-                } else {
-                    miniWindowManager?.hide()
-                    miniWindowManager = nil
-                }
-                Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 50_000_000)
-                    showRecorderPanel()
-                }
-            }
-            UserDefaults.standard.set(recorderType, forKey: "RecorderType")
-        }
-    }
-
     @Published var isMiniRecorderVisible = false {
         didSet {
             Task { @MainActor in
@@ -37,7 +18,6 @@ class RecorderUIManager: ObservableObject {
         }
     }
 
-    var notchWindowManager: NotchWindowManager?
     var miniWindowManager: MiniWindowManager?
 
     private weak var engine: VoiceInkEngine?
@@ -58,39 +38,28 @@ class RecorderUIManager: ObservableObject {
 
     func showRecorderPanel() {
         guard let engine = engine, let recorder = recorder else { return }
-        logger.notice("Showing \(self.recorderType, privacy: .public) recorder")
+        logger.notice("Showing mini recorder")
 
-        if recorderType == "notch" {
-            if notchWindowManager == nil {
-                notchWindowManager = NotchWindowManager(engine: engine, recorder: recorder)
-            }
-            notchWindowManager?.show()
-        } else {
-            if miniWindowManager == nil {
-                miniWindowManager = MiniWindowManager(engine: engine, recorder: recorder)
-            }
-            miniWindowManager?.show()
+        if miniWindowManager == nil {
+            miniWindowManager = MiniWindowManager(engine: engine, recorder: recorder)
         }
+        miniWindowManager?.show()
     }
 
     func hideRecorderPanel() {
-        if recorderType == "notch" {
-            notchWindowManager?.hide()
-        } else {
-            miniWindowManager?.hide()
-        }
+        miniWindowManager?.hide()
     }
 
     // MARK: - Mini Recorder Management
 
-    func toggleMiniRecorder(powerModeId: UUID? = nil) async {
+    func toggleMiniRecorder() async {
         guard let engine = engine else { return }
         logger.notice("toggleMiniRecorder called – visible=\(self.isMiniRecorderVisible, privacy: .public), state=\(String(describing: engine.recordingState), privacy: .public)")
 
         if isMiniRecorderVisible {
             if engine.recordingState == .recording {
                 logger.notice("toggleMiniRecorder: stopping recording (was recording)")
-                await engine.toggleRecord(powerModeId: powerModeId)
+                await engine.toggleRecord()
             } else {
                 logger.notice("toggleMiniRecorder: cancelling (was not recording)")
                 await cancelRecording()
@@ -98,7 +67,7 @@ class RecorderUIManager: ObservableObject {
         } else {
             SoundManager.shared.playStartSound()
             await MainActor.run { isMiniRecorderVisible = true }
-            await engine.toggleRecord(powerModeId: powerModeId)
+            await engine.toggleRecord()
         }
     }
 
@@ -127,13 +96,6 @@ class RecorderUIManager: ObservableObject {
 
         hideRecorderPanel()
 
-        // Clear captured context when the recorder is dismissed
-        if let enhancementService = engine.enhancementService {
-            await MainActor.run {
-                enhancementService.clearCapturedContexts()
-            }
-        }
-
         await MainActor.run {
             isMiniRecorderVisible = false
         }
@@ -142,13 +104,6 @@ class RecorderUIManager: ObservableObject {
         await engine.retainOnlyLocalModelResources(for: retainedModel)
         if retainedModel != nil {
             NotificationCenter.default.post(name: .localModelDidUse, object: nil)
-        }
-
-        if UserDefaults.standard.bool(forKey: PowerModeDefaults.autoRestoreKey) {
-            await PowerModeSessionManager.shared.endSession()
-            await MainActor.run {
-                PowerModeManager.shared.setActiveConfiguration(nil)
-            }
         }
 
         await MainActor.run {

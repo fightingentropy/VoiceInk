@@ -5,18 +5,35 @@ struct AudioVisualizer: View {
     let color: Color
     let isActive: Bool
 
-    private let barCount = 15
-    private let barWidth: CGFloat = 3
-    private let barSpacing: CGFloat = 2
-    private let minHeight: CGFloat = 4
-    private let maxHeight: CGFloat = 28
+    private let barCount: Int
+    private let barWidth: CGFloat
+    private let barSpacing: CGFloat
+    private let minHeight: CGFloat
+    private let maxHeight: CGFloat
+    private let opacity: Double
 
     private let phases: [Double]
 
-    init(audioMeter: AudioMeter, color: Color, isActive: Bool) {
+    init(
+        audioMeter: AudioMeter,
+        color: Color,
+        isActive: Bool,
+        barCount: Int = 15,
+        barWidth: CGFloat = 3,
+        barSpacing: CGFloat = 2,
+        minHeight: CGFloat = 4,
+        maxHeight: CGFloat = 28,
+        opacity: Double = 0.85
+    ) {
         self.audioMeter = audioMeter
         self.color = color
         self.isActive = isActive
+        self.barCount = barCount
+        self.barWidth = barWidth
+        self.barSpacing = barSpacing
+        self.minHeight = minHeight
+        self.maxHeight = maxHeight
+        self.opacity = opacity
 
         // Create smooth wave phases
         self.phases = (0..<barCount).map { Double($0) * 0.4 }
@@ -28,7 +45,7 @@ struct AudioVisualizer: View {
             HStack(spacing: barSpacing) {
                 ForEach(0..<barCount, id: \.self) { index in
                     RoundedRectangle(cornerRadius: barWidth / 2)
-                        .fill(color.opacity(0.85))
+                        .fill(color.opacity(opacity))
                         .frame(width: barWidth, height: calculateHeight(for: index, at: context.date))
                 }
             }
@@ -56,62 +73,80 @@ struct AudioVisualizer: View {
 }
 
 struct StaticVisualizer: View {
-    // Match AudioVisualizer dimensions
-    private let barCount = 15
-    private let barWidth: CGFloat = 3
-    private let staticHeight: CGFloat = 4
-    private let barSpacing: CGFloat = 2
+    private let barCount: Int
+    private let barWidth: CGFloat
+    private let staticHeight: CGFloat
+    private let barSpacing: CGFloat
+    private let opacity: Double
     let color: Color
+
+    init(
+        color: Color,
+        barCount: Int = 15,
+        barWidth: CGFloat = 3,
+        staticHeight: CGFloat = 4,
+        barSpacing: CGFloat = 2,
+        opacity: Double = 0.5
+    ) {
+        self.color = color
+        self.barCount = barCount
+        self.barWidth = barWidth
+        self.staticHeight = staticHeight
+        self.barSpacing = barSpacing
+        self.opacity = opacity
+    }
 
     var body: some View {
         HStack(spacing: barSpacing) {
             ForEach(0..<barCount, id: \.self) { _ in
                 RoundedRectangle(cornerRadius: barWidth / 2)
-                    .fill(color.opacity(0.5))
+                    .fill(color.opacity(opacity))
                     .frame(width: barWidth, height: staticHeight)
             }
         }
     }
 }
 
-// MARK: - Processing Status Display (Transcribing/Enhancing states)
+// MARK: - Processing Status Display
 struct ProcessingStatusDisplay: View {
     enum Mode {
         case transcribing
-        case enhancing
     }
 
     let mode: Mode
     let color: Color
+    let isCompact: Bool
+
+    init(mode: Mode, color: Color, isCompact: Bool = false) {
+        self.mode = mode
+        self.color = color
+        self.isCompact = isCompact
+    }
 
     private var label: String {
-        switch mode {
-        case .transcribing:
-            return "Transcribing"
-        case .enhancing:
-            return "Enhancing"
-        }
+        "Transcribing"
     }
 
     private var animationSpeed: Double {
-        switch mode {
-        case .transcribing:
-            return 0.18
-        case .enhancing:
-            return 0.22
-        }
+        0.18
     }
 
     var body: some View {
-        VStack(spacing: 4) {
-            Text(label)
-                .foregroundColor(color)
-                .font(.system(size: 11, weight: .medium))
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
+        Group {
+            if isCompact {
+                ProgressAnimation(color: color.opacity(0.8), animationSpeed: animationSpeed)
+            } else {
+                VStack(spacing: 4) {
+                    Text(label)
+                        .foregroundColor(color)
+                        .font(.system(size: 11, weight: .medium))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
 
-            ProgressAnimation(color: color, animationSpeed: animationSpeed)
+                    ProgressAnimation(color: color, animationSpeed: animationSpeed)
+                }
+            }
         }
-        .frame(height: 28) // Match AudioVisualizer maxHeight for no layout shift
+        .frame(height: isCompact ? 18 : 28)
     }
 }

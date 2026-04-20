@@ -2,6 +2,8 @@ import Foundation
 
 enum AppDefaults {
     static func registerDefaults() {
+        clearRemovedFeatureValues()
+
         UserDefaults.standard.register(defaults: [
             // Onboarding & General
             "hasCompletedOnboarding": false,
@@ -34,18 +36,38 @@ enum AppDefaults {
 
             // UI & Behavior
             "IsMenuBarOnly": false,
-            "powerModeAutoRestoreEnabled": false,
             // Hotkey
             "isMiddleClickToggleEnabled": false,
             "middleClickActivationDelay": 200,
-
-            // Enhancement
-            "isToggleEnhancementShortcutEnabled": true,
 
             // Model
             "PrewarmModelOnWake": true,
             "LocalModelWarmRetentionSeconds": LocalModelWarmRetention.fifteenMinutes.rawValue,
             "LocalVoxtralModelName": LocalVoxtralConfiguration.defaultModelName,
         ])
+    }
+
+    private static func clearRemovedFeatureValues() {
+        let keys = [
+            "isAIEnhancementEnabled",
+            "useClipboardContext",
+            "useScreenCaptureContext",
+            "customPrompts",
+            "selectedPromptId",
+            "selectedAIProvider",
+            "OpenAISelectedModel",
+            "isToggleEnhancementShortcutEnabled",
+            "powerModeAutoRestoreEnabled",
+            "powerModeUIFlag",
+            "powerModeConfigurationsV2",
+            "powerModeActiveSession.v1",
+            "customPowerModeEmojis",
+            "CustomVocabularyItems",
+            "RecorderType"
+        ]
+
+        for key in keys {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
     }
 }

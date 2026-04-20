@@ -17,18 +17,10 @@ struct TranscriptionDetailView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     MessageBubble(
-                        label: "Original",
+                        label: "Transcription",
                         text: transcription.text,
-                        isEnhanced: false
+                        isTrailing: false
                     )
-
-                    if let enhancedText = transcription.enhancedText {
-                        MessageBubble(
-                            label: "Enhanced",
-                            text: enhancedText,
-                            isEnhanced: true
-                        )
-                    }
                 }
                 .padding(16)
             }
@@ -58,14 +50,12 @@ struct TranscriptionDetailView: View {
 private struct MessageBubble: View {
     let label: String
     let text: String
-    let isEnhanced: Bool
+    let isTrailing: Bool
     @State private var justCopied = false
 
     var body: some View {
         HStack(alignment: .bottom) {
-            if isEnhanced { Spacer(minLength: 60) }
-
-            VStack(alignment: isEnhanced ? .leading : .trailing, spacing: 4) {
+            VStack(alignment: isTrailing ? .trailing : .leading, spacing: 4) {
                 Text(label)
                     .font(.system(size: 9, weight: .medium))
                     .foregroundColor(.secondary.opacity(0.7))
@@ -81,17 +71,12 @@ private struct MessageBubble: View {
                 }
                 .frame(maxHeight: 350)
                 .background {
-                    if isEnhanced {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(Color.accentColor.opacity(0.2))
-                    } else {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(.thinMaterial)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5)
-                            )
-                    }
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(.thinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5)
+                        )
                 }
                 .overlay(alignment: .bottomTrailing) {
                     Button(action: {
@@ -110,7 +95,7 @@ private struct MessageBubble: View {
                 }
             }
 
-            if !isEnhanced { Spacer(minLength: 60) }
+            Spacer(minLength: 60)
         }
     }
 

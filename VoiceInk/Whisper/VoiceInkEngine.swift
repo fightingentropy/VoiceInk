@@ -23,7 +23,6 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
     let modelContext: ModelContext
     internal let serviceRegistry: TranscriptionServiceRegistry
-    let enhancementService: AIEnhancementService?
     private let pipeline: TranscriptionPipeline
 
     let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "VoiceInkEngine")
@@ -38,13 +37,11 @@ class VoiceInkEngine: NSObject, ObservableObject {
     init(
         modelContext: ModelContext,
         whisperModelManager: WhisperModelManager,
-        transcriptionModelManager: TranscriptionModelManager,
-        enhancementService: AIEnhancementService? = nil
+        transcriptionModelManager: TranscriptionModelManager
     ) {
         self.modelContext = modelContext
         self.whisperModelManager = whisperModelManager
         self.transcriptionModelManager = transcriptionModelManager
-        self.enhancementService = enhancementService
 
         self.recordingsDirectory = AppStoragePaths.recordingsDirectory
 
@@ -53,15 +50,10 @@ class VoiceInkEngine: NSObject, ObservableObject {
         )
         self.pipeline = TranscriptionPipeline(
             modelContext: modelContext,
-            serviceRegistry: serviceRegistry,
-            enhancementService: enhancementService
+            serviceRegistry: serviceRegistry
         )
 
         super.init()
-
-        if let enhancementService {
-            PowerModeSessionManager.shared.configure(engine: self, enhancementService: enhancementService)
-        }
 
         setupNotifications()
         createRecordingsDirectoryIfNeeded()
@@ -75,13 +67,9 @@ class VoiceInkEngine: NSObject, ObservableObject {
         }
     }
 
-    func getEnhancementService() -> AIEnhancementService? {
-        return enhancementService
-    }
-
     // MARK: - Toggle Record
 
-    func toggleRecord(powerModeId: UUID? = nil) async {
+    func toggleRecord() async {
         logger.notice("toggleRecord called – state=\(String(describing: self.recordingState), privacy: .public)")
 
         if recordingState == .recording {
@@ -193,8 +181,6 @@ class VoiceInkEngine: NSObject, ObservableObject {
                             self.recordingState = .recording
                             self.logger.notice("toggleRecord: recording started successfully, state=recording")
 
-                            await ActiveWindowService.shared.applyConfiguration(powerModeId: powerModeId)
-
                             Task { @MainActor [weak self] in
                                 let realCallback = await prepareTask.value
 
@@ -255,12 +241,6 @@ class VoiceInkEngine: NSObject, ObservableObject {
                                     try? await self.serviceRegistry.cohereTranscribeTranscriptionService.prepareModel(for: cohereModel)
                                 }
 
-                                if let enhancementService = self.enhancementService {
-                                    await MainActor.run {
-                                        enhancementService.captureClipboardContext()
-                                    }
-                                    await enhancementService.captureScreenContext()
-                                }
                             }
 
                         } catch {

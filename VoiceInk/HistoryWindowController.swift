@@ -34,7 +34,6 @@ class HistoryWindowController: NSObject, NSWindowDelegate {
         let historyView = TranscriptionHistoryView()
             .modelContainer(modelContainer)
             .environmentObject(engine)
-            .environmentObject(engine.enhancementService!)
             .frame(minWidth: 1000, minHeight: 700)
 
         let hostingController = NSHostingController(rootView: historyView)

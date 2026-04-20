@@ -9,13 +9,10 @@ private let audioTranscribeLogger = Logger(subsystem: "com.fightingentropy.voice
 struct AudioTranscribeView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var engine: VoiceInkEngine
-    @EnvironmentObject private var enhancementService: AIEnhancementService
     @StateObject private var transcriptionManager = AudioTranscriptionManager.shared
     @State private var isDropTargeted = false
     @State private var selectedAudioURL: URL?
     @State private var isAudioFileSelected = false
-    @State private var isEnhancementEnabled = false
-    @State private var selectedPromptId: UUID?
 
     private var currentTranscriptionModel: (any TranscriptionModel)? {
         engine.transcriptionModelManager.currentTranscriptionModel
@@ -83,63 +80,6 @@ struct AudioTranscribeView: View {
                             .foregroundStyle(.secondary)
                     }
                     
-                    // AI Enhancement Settings
-                    VStack(spacing: 16) {
-                            // AI Enhancement and Prompt in the same row
-                            HStack(spacing: 16) {
-                                Toggle("AI Enhancement", isOn: $isEnhancementEnabled)
-                                    .toggleStyle(.switch)
-                                    .onChange(of: isEnhancementEnabled) { oldValue, newValue in
-                                        enhancementService.isEnhancementEnabled = newValue
-                                    }
-                                
-                                if isEnhancementEnabled {
-                                    Divider()
-                                        .frame(height: 20)
-                                    
-                                    // Prompt Selection
-                                    HStack(spacing: 8) {
-                                        Text("Prompt:")
-                                            .font(.subheadline)
-                                        
-                                        if enhancementService.allPrompts.isEmpty {
-                                            Text("No prompts available")
-                                                .foregroundColor(.secondary)
-                                                .italic()
-                                                .font(.caption)
-                                        } else {
-                                            let promptBinding = Binding<UUID>(
-                                                get: {
-                                                    selectedPromptId ?? enhancementService.allPrompts.first?.id ?? UUID()
-                                                },
-                                                set: { newValue in
-                                                    selectedPromptId = newValue
-                                                    enhancementService.selectedPromptId = newValue
-                                                }
-                                            )
-                                            
-                                            Picker("", selection: promptBinding) {
-                                                ForEach(enhancementService.allPrompts) { prompt in
-                                                    Text(prompt.title).tag(prompt.id)
-                                                }
-                                            }
-                                            .labelsHidden()
-                                            .fixedSize()
-                                        }
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                                        .background(CardBackground(isSelected: false))
-                        }
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .onAppear {
-                            // Initialize local state from enhancement service
-                            isEnhancementEnabled = enhancementService.isEnhancementEnabled
-                            selectedPromptId = enhancementService.selectedPromptId
-                        }
-
                     // Action Buttons in a row
                     HStack(spacing: 12) {
                         Button("Start Transcription") {
