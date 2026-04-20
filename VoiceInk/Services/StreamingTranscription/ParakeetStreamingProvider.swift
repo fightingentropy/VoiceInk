@@ -4,7 +4,7 @@ import Foundation
 import os
 
 /// On-device streaming transcription provider using FluidAudio's StreamingAsrManager
-/// with Parakeet TDT models (v2/v3).
+/// with Parakeet TDT v2.
 final class ParakeetStreamingProvider: StreamingTranscriptionProvider, @unchecked Sendable {
 
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "ParakeetStreaming")
@@ -26,8 +26,7 @@ final class ParakeetStreamingProvider: StreamingTranscriptionProvider, @unchecke
     }
 
     func connect(model: any TranscriptionModel, language: String?) async throws {
-        let version: AsrModelVersion = model.name.lowercased().contains("v2") ? .v2 : .v3
-        let models = try await parakeetService.getOrLoadModels(for: version)
+        let models = try await parakeetService.getOrLoadModels(for: .v2)
 
         let manager = StreamingAsrManager(config: .streaming)
         try await manager.start(models: models)

@@ -273,9 +273,7 @@ struct AudioPlayerView: View {
     @State private var showRetranscribeSuccess = false
     @State private var showRetranscribeError = false
     @State private var errorMessage = ""
-    @State private var showPromptPopover = false
     @EnvironmentObject private var engine: VoiceInkEngine
-    @EnvironmentObject private var enhancementService: AIEnhancementService
     @Environment(\.modelContext) private var modelContext
 
     private var transcriptionService: AudioTranscriptionService {
@@ -346,26 +344,6 @@ struct AudioPlayerView: View {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             isHovering = hovering
                         }
-                    }
-
-                    Button(action: {
-                        showPromptPopover.toggle()
-                    }) {
-                        Circle()
-                            .fill(Color.primary.opacity(0.06))
-                            .frame(width: 32, height: 32)
-                            .overlay(
-                                Image(systemName: enhancementService.activePrompt?.icon ?? "sparkles")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(.primary)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .opacity(enhancementService.isEnhancementEnabled ? 1.0 : 0.4)
-                    .help("Select enhancement prompt")
-                    .popover(isPresented: $showPromptPopover, arrowEdge: .bottom) {
-                        EnhancementPromptPopover()
-                            .environmentObject(enhancementService)
                     }
 
                     Button(action: retranscribeAudio) {

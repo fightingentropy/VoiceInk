@@ -22,7 +22,6 @@ class AudioTranscriptionManager: ObservableObject {
         case loading
         case processingAudio
         case transcribing
-        case enhancing
         case completed
         
         var message: String {
@@ -35,8 +34,6 @@ class AudioTranscriptionManager: ObservableObject {
                 return "Processing audio file for transcription..."
             case .transcribing:
                 return "Transcribing audio..."
-            case .enhancing:
-                return "Enhancing transcription with AI..."
             case .completed:
                 return "Transcription completed!"
             }
@@ -88,80 +85,24 @@ class AudioTranscriptionManager: ObservableObject {
                 text = TranscriptionOutputFilter.filter(text)
                 text = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
-                let powerModeManager = PowerModeManager.shared
-                let activePowerModeConfig = powerModeManager.currentActiveConfiguration
-                let powerModeName = (activePowerModeConfig?.isEnabled == true) ? activePowerModeConfig?.name : nil
-                let powerModeEmoji = (activePowerModeConfig?.isEnabled == true) ? activePowerModeConfig?.emoji : nil
-
                 if UserDefaults.standard.bool(forKey: "IsTextFormattingEnabled") {
                     text = WhisperTextFormatter.format(text)
                 }
 
                 text = WordReplacementService.shared.applyReplacements(to: text, using: modelContext)
-                
-                // Handle enhancement if enabled
-                if let enhancementService = engine.enhancementService,
-                   enhancementService.isEnhancementEnabled,
-                   enhancementService.isConfigured {
-                    processingPhase = .enhancing
-                    do {
-                        // inside the enhancement success path where transcription is created
-                        let (enhancedText, enhancementDuration, promptName) = try await enhancementService.enhance(text)
-                        let transcription = Transcription(
-                            text: text,
-                            duration: duration,
-                            enhancedText: enhancedText,
-                            audioFileURL: permanentURL.absoluteString,
-                            transcriptionModelName: currentModel.displayName,
-                            aiEnhancementModelName: enhancementService.getAIService()?.currentModel,
-                            promptName: promptName,
-                            transcriptionDuration: transcriptionDuration,
-                            enhancementDuration: enhancementDuration,
-                            aiRequestSystemMessage: enhancementService.lastSystemMessageSent,
-                            aiRequestUserMessage: enhancementService.lastUserMessageSent,
-                            powerModeName: powerModeName,
-                            powerModeEmoji: powerModeEmoji
-                        )
-                        modelContext.insert(transcription)
-                        try modelContext.save()
-                        NotificationCenter.default.post(name: .transcriptionCreated, object: transcription)
-                        NotificationCenter.default.post(name: .transcriptionCompleted, object: transcription)
-                        currentTranscription = transcription
-                    } catch {
-                        logger.error("❌ Enhancement failed: \(error.localizedDescription, privacy: .public)")
-                        let transcription = Transcription(
-                            text: text,
-                            duration: duration,
-                            audioFileURL: permanentURL.absoluteString,
-                            transcriptionModelName: currentModel.displayName,
-                            promptName: nil,
-                            transcriptionDuration: transcriptionDuration,
-                            powerModeName: powerModeName,
-                            powerModeEmoji: powerModeEmoji
-                        )
-                        modelContext.insert(transcription)
-                        try modelContext.save()
-                        NotificationCenter.default.post(name: .transcriptionCreated, object: transcription)
-                        NotificationCenter.default.post(name: .transcriptionCompleted, object: transcription)
-                        currentTranscription = transcription
-                    }
-                } else {
-                    let transcription = Transcription(
-                        text: text,
-                        duration: duration,
-                        audioFileURL: permanentURL.absoluteString,
-                        transcriptionModelName: currentModel.displayName,
-                        promptName: nil,
-                        transcriptionDuration: transcriptionDuration,
-                        powerModeName: powerModeName,
-                        powerModeEmoji: powerModeEmoji
-                    )
-                    modelContext.insert(transcription)
-                    try modelContext.save()
-                    NotificationCenter.default.post(name: .transcriptionCreated, object: transcription)
-                    NotificationCenter.default.post(name: .transcriptionCompleted, object: transcription)
-                    currentTranscription = transcription
-                }
+
+                let transcription = Transcription(
+                    text: text,
+                    duration: duration,
+                    audioFileURL: permanentURL.absoluteString,
+                    transcriptionModelName: currentModel.displayName,
+                    transcriptionDuration: transcriptionDuration
+                )
+                modelContext.insert(transcription)
+                try modelContext.save()
+                NotificationCenter.default.post(name: .transcriptionCreated, object: transcription)
+                NotificationCenter.default.post(name: .transcriptionCompleted, object: transcription)
+                currentTranscription = transcription
                 
                 processingPhase = .completed
                 try? await Task.sleep(nanoseconds: 1_500_000_000)

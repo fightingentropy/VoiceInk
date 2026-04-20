@@ -37,9 +37,6 @@ final class SystemInfoService: @unchecked Sendable {
         TRANSCRIPTION SETTINGS:
         Selected Model: \(getCurrentTranscriptionModel())
         Selected Language: \(getCurrentLanguage())
-        AI Enhancement: \(getAIEnhancementStatus())
-        AI Provider: \(getAIProvider())
-        AI Model: \(getAIModel())
 
         UI SETTINGS:
         Menu Bar Only: \(UserDefaults.standard.bool(forKey: "IsMenuBarOnly"))
@@ -49,10 +46,6 @@ final class SystemInfoService: @unchecked Sendable {
         Clipboard Restore Delay: \(UserDefaults.standard.double(forKey: "clipboardRestoreDelay"))s
         Use AppleScript Paste: \(UserDefaults.standard.bool(forKey: "useAppleScriptPaste"))
 
-        POWER MODE:
-        Power Mode Enabled: \(UserDefaults.standard.bool(forKey: "powerModeUIFlag"))
-        Auto-Restore Enabled: \(UserDefaults.standard.bool(forKey: "powerModeAutoRestoreEnabled"))
-
         DATA CLEANUP SETTINGS:
         Auto-Delete Transcriptions: \(UserDefaults.standard.bool(forKey: "IsTranscriptionCleanupEnabled"))
         Transcription Retention: \(UserDefaults.standard.integer(forKey: "TranscriptionRetentionMinutes")) minutes
@@ -61,7 +54,6 @@ final class SystemInfoService: @unchecked Sendable {
 
         PERMISSIONS:
         Accessibility: \(getAccessibilityStatus())
-        Screen Recording: \(getScreenRecordingStatus())
         Microphone: \(getMicrophoneStatus())
         """
 
@@ -159,34 +151,8 @@ final class SystemInfoService: @unchecked Sendable {
         return "No model selected"
     }
 
-    private func getAIEnhancementStatus() -> String {
-        let enhancementEnabled = UserDefaults.standard.bool(forKey: "isAIEnhancementEnabled")
-        return enhancementEnabled ? "Enabled" : "Disabled"
-    }
-
-    private func getAIProvider() -> String {
-        if let providerRaw = UserDefaults.standard.string(forKey: "selectedAIProvider") {
-            return providerRaw
-        }
-        return "None selected"
-    }
-
-    private func getAIModel() -> String {
-        if let providerRaw = UserDefaults.standard.string(forKey: "selectedAIProvider") {
-            let modelKey = "\(providerRaw)SelectedModel"
-            if let savedModel = UserDefaults.standard.string(forKey: modelKey), !savedModel.isEmpty {
-                return savedModel
-            }
-            return "Default (\(providerRaw))"
-        }
-        return "None selected"
-    }
     private func getAccessibilityStatus() -> String {
         return AXIsProcessTrusted() ? "Granted" : "Not Granted"
-    }
-
-    private func getScreenRecordingStatus() -> String {
-        return CGPreflightScreenCaptureAccess() ? "Granted" : "Not Granted"
     }
 
     private func getMicrophoneStatus() -> String {

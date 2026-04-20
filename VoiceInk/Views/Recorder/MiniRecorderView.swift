@@ -4,48 +4,29 @@ struct MiniRecorderView<S: RecorderStateProvider & ObservableObject>: View {
     @ObservedObject var stateProvider: S
     @ObservedObject var recorder: Recorder
     @EnvironmentObject var windowManager: MiniWindowManager
-    @EnvironmentObject private var enhancementService: AIEnhancementService
-
-    @State private var activePopover: ActivePopoverState = .none
 
     // MARK: - Design Constants
-    private let mainContentHeight: CGFloat = 40
-    private let width: CGFloat = 184
-    private let cornerRadius: CGFloat = 20
+    private let mainContentHeight: CGFloat = 32
+    private let width: CGFloat = 76
+    private let cornerRadius: CGFloat = 16
 
     private var contentLayout: some View {
         HStack(spacing: 0) {
-            RecorderPromptButton(
-                activePopover: $activePopover,
-                buttonSize: 22,
-                padding: EdgeInsets()
-            )
-            .padding(.leading, 12)
-
-            Spacer(minLength: 0)
-
             RecorderStatusDisplay(
                 currentState: stateProvider.recordingState,
-                audioMeter: recorder.audioMeter
+                audioMeter: recorder.audioMeter,
+                style: .compact
             )
-
-            Spacer(minLength: 0)
-
-            RecorderPowerModeButton(
-                activePopover: $activePopover,
-                buttonSize: 22,
-                padding: EdgeInsets()
-            )
-            .padding(.trailing, 12)
         }
         .frame(height: mainContentHeight)
+        .padding(.horizontal, 10)
     }
 
     var body: some View {
         if windowManager.isVisible {
             contentLayout
                 .frame(width: width)
-                .background(Color.black)
+                .background(Color.black.opacity(0.9))
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }

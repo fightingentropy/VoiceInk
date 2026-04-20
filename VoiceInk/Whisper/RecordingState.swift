@@ -5,6 +5,5 @@ enum RecordingState: Equatable {
     case starting
     case recording
     case transcribing
-    case enhancing
     case busy
 }

@@ -19,9 +19,6 @@ struct VoiceInkApp: App {
     @StateObject private var recorderUIManager: RecorderUIManager
     @StateObject private var hotkeyManager: HotkeyManager
     @StateObject private var menuBarManager: MenuBarManager
-    @StateObject private var aiService = AIService()
-    @StateObject private var enhancementService: AIEnhancementService
-    @StateObject private var activeWindowService = ActiveWindowService.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("enableAnnouncements") private var enableAnnouncements = true
     @State private var showMenuBarIcon = true
@@ -47,11 +44,6 @@ struct VoiceInkApp: App {
 
         AppDefaults.registerDefaults()
 
-        if UserDefaults.standard.object(forKey: "powerModeUIFlag") == nil {
-            let hasEnabledPowerModes = PowerModeManager.shared.configurations.contains { $0.isEnabled }
-            UserDefaults.standard.set(hasEnabledPowerModes, forKey: "powerModeUIFlag")
-        }
-
         let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "Initialization")
         do {
             try AppStoragePaths.migrateLegacyApplicationSupportIfNeeded()
@@ -60,7 +52,6 @@ struct VoiceInkApp: App {
         }
         let schema = Schema([
             Transcription.self,
-            VocabularyWord.self,
             WordReplacement.self
         ])
         var initializationFailed = false
@@ -99,13 +90,6 @@ struct VoiceInkApp: App {
 
         containerInitializationFailed = initializationFailed
 
-        // Initialize services with proper sharing of instances
-        let aiService = AIService()
-        _aiService = StateObject(wrappedValue: aiService)
-
-        let enhancementService = AIEnhancementService(aiService: aiService, modelContext: container.mainContext)
-        _enhancementService = StateObject(wrappedValue: enhancementService)
-
         // 1. Create model managers
         let whisperModelManager = WhisperModelManager()
         let parakeetModelManager = ParakeetModelManager()
@@ -121,8 +105,7 @@ struct VoiceInkApp: App {
         let engine = VoiceInkEngine(
             modelContext: container.mainContext,
             whisperModelManager: whisperModelManager,
-            transcriptionModelManager: transcriptionModelManager,
-            enhancementService: enhancementService
+            transcriptionModelManager: transcriptionModelManager
         )
 
         // 4. Configure circular deps
@@ -144,10 +127,6 @@ struct VoiceInkApp: App {
         let menuBarManager = MenuBarManager()
         _menuBarManager = StateObject(wrappedValue: menuBarManager)
         menuBarManager.configure(modelContainer: container, engine: engine)
-
-        let activeWindowService = ActiveWindowService.shared
-        activeWindowService.configure(with: enhancementService)
-        _activeWindowService = StateObject(wrappedValue: activeWindowService)
 
         let prewarmService = ModelPrewarmService(engine: engine)
         _prewarmService = StateObject(wrappedValue: prewarmService)
@@ -210,7 +189,7 @@ struct VoiceInkApp: App {
             )
 
             // Dictionary configuration
-            let dictionarySchema = Schema([VocabularyWord.self, WordReplacement.self])
+            let dictionarySchema = Schema([WordReplacement.self])
             let dictionaryCloudKit = dictionaryCloudKitDatabase(logger: logger)
             let dictionaryConfig = ModelConfiguration(
                 "dictionary",
@@ -241,7 +220,7 @@ struct VoiceInkApp: App {
             )
 
             // Dictionary configuration
-            let dictionarySchema = Schema([VocabularyWord.self, WordReplacement.self])
+            let dictionarySchema = Schema([WordReplacement.self])
             let dictionaryConfig = ModelConfiguration(
                 "dictionary",
                 schema: dictionarySchema,
@@ -324,8 +303,6 @@ struct VoiceInkApp: App {
                     .environmentObject(recorderUIManager)
                     .environmentObject(hotkeyManager)
                     .environmentObject(menuBarManager)
-                    .environmentObject(aiService)
-                    .environmentObject(enhancementService)
                     .modelContainer(container)
                     .onAppear {
                         // Check if container initialization failed
@@ -380,8 +357,6 @@ struct VoiceInkApp: App {
                     .environmentObject(parakeetModelManager)
                     .environmentObject(transcriptionModelManager)
                     .environmentObject(recorderUIManager)
-                    .environmentObject(aiService)
-                    .environmentObject(enhancementService)
                     .frame(minWidth: 880, minHeight: 780)
                     .background(WindowAccessor { window in
                         if window.identifier == nil || window.identifier != NSUserInterfaceItemIdentifier("com.fightingentropy.voiceink.onboardingWindow") {
@@ -406,8 +381,6 @@ struct VoiceInkApp: App {
                 .environmentObject(recorderUIManager)
                 .environmentObject(hotkeyManager)
                 .environmentObject(menuBarManager)
-                .environmentObject(aiService)
-                .environmentObject(enhancementService)
         } label: {
             let image: NSImage = {
                 let ratio = $0.size.height / $0.size.width

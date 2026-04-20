@@ -8,9 +8,7 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var menuBarManager: MenuBarManager
     @EnvironmentObject private var hotkeyManager: HotkeyManager
-    @EnvironmentObject private var recorderUIManager: RecorderUIManager
     @EnvironmentObject private var transcriptionModelManager: TranscriptionModelManager
-    @EnvironmentObject private var enhancementService: AIEnhancementService
     @StateObject private var deviceManager = AudioDeviceManager.shared
     @ObservedObject private var soundManager = SoundManager.shared
     @ObservedObject private var mediaController = MediaController.shared
@@ -79,11 +77,6 @@ struct SettingsView: View {
             Section("Additional Shortcuts") {
                 LabeledContent("Paste Last Transcription (Original)") {
                     KeyboardShortcuts.Recorder(for: .pasteLastTranscription)
-                        .controlSize(.small)
-                }
-
-                LabeledContent("Paste Last Transcription (Enhanced)") {
-                    KeyboardShortcuts.Recorder(for: .pasteLastEnhancement)
                         .controlSize(.small)
                 }
 
@@ -185,19 +178,6 @@ struct SettingsView: View {
                 }
             }
 
-            // MARK: - Power Mode
-            PowerModeSection()
-
-            // MARK: - Interface
-            Section("Interface") {
-                Picker("Recorder Style", selection: $recorderUIManager.recorderType) {
-                    Text("Notch").tag("notch")
-                    Text("Mini").tag("mini")
-                }
-                .pickerStyle(.segmented)
-
-            }
-
             // MARK: - Experimental
             ExperimentalSection()
 
@@ -237,14 +217,12 @@ struct SettingsView: View {
                 LabeledContent("Export Settings") {
                     Button("Export") {
                         ImportExportService.shared.exportSettings(
-                            enhancementService: enhancementService,
                             whisperPrompt: WhisperPrompt(),
                             hotkeyManager: hotkeyManager,
                             menuBarManager: menuBarManager,
                             mediaController: mediaController,
                             playbackController: playbackController,
                             soundManager: soundManager,
-                            recorderUIManager: recorderUIManager,
                             modelContext: modelContext
                         )
                     }
@@ -253,14 +231,12 @@ struct SettingsView: View {
                 LabeledContent("Import Settings") {
                     Button("Import") {
                         ImportExportService.shared.importSettings(
-                            enhancementService: enhancementService,
                             whisperPrompt: WhisperPrompt(),
                             hotkeyManager: hotkeyManager,
                             menuBarManager: menuBarManager,
                             mediaController: mediaController,
                             playbackController: playbackController,
                             soundManager: soundManager,
-                            recorderUIManager: recorderUIManager,
                             modelContext: modelContext,
                             transcriptionModelManager: transcriptionModelManager
                         )
@@ -269,7 +245,7 @@ struct SettingsView: View {
             } header: {
                 Text("Backup")
             } footer: {
-                Text("Export or import all your settings, prompts, power modes, dictionary, and custom models.")
+                Text("Export or import settings, dictionary, and custom models.")
             }
 
             // MARK: - Diagnostics
@@ -378,57 +354,6 @@ struct ExpandableSettingsRow<Content: View>: View {
     }
 }
 
-// MARK: - Power Mode Section
-
-struct PowerModeSection: View {
-    @ObservedObject private var powerModeManager = PowerModeManager.shared
-    @AppStorage("powerModeUIFlag") private var powerModeUIFlag = false
-    @AppStorage(PowerModeDefaults.autoRestoreKey) private var powerModeAutoRestoreEnabled = false
-    @State private var showDisableAlert = false
-    @State private var isExpanded = false
-
-    var body: some View {
-        Section {
-            ExpandableSettingsRow(
-                isExpanded: $isExpanded,
-                isEnabled: toggleBinding,
-                label: "Power Mode",
-                infoMessage: "Apply custom settings based on active app or website.",
-                infoURL: "https://github.com/fightingentropy/VoiceInk#readme"
-            ) {
-                Toggle(isOn: $powerModeAutoRestoreEnabled) {
-                    HStack(spacing: 4) {
-                        Text("Auto-Restore Preferences")
-                        InfoTip("After each recording session, revert preferences to what was configured before Power Mode was activated.")
-                    }
-                }
-            }
-        } header: {
-            Text("Power Mode")
-        }
-        .alert("Power Mode Still Active", isPresented: $showDisableAlert) {
-            Button("Got it", role: .cancel) { }
-        } message: {
-            Text("Disable or remove your Power Modes first.")
-        }
-    }
-
-    private var toggleBinding: Binding<Bool> {
-        Binding(
-            get: { powerModeUIFlag },
-            set: { newValue in
-                if newValue {
-                    powerModeUIFlag = true
-                } else if powerModeManager.configurations.allSatisfy({ !$0.isEnabled }) {
-                    powerModeUIFlag = false
-                } else {
-                    showDisableAlert = true
-                }
-            }
-        )
-    }
-}
-
 // MARK: - Experimental Section
 
 struct ExperimentalSection: View {
@@ -468,10 +393,4 @@ extension Text {
             .foregroundColor(.secondary)
             .fixedSize(horizontal: false, vertical: true)
     }
-}
-
-// MARK: - Power Mode Defaults
-
-enum PowerModeDefaults {
-    static let autoRestoreKey = "powerModeAutoRestoreEnabled"
 }

@@ -19,12 +19,12 @@ struct ModelManagementView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 16) {
                 defaultModelSection
                 languageSelectionSection
                 availableModelsSection
             }
-            .padding(40)
+            .padding(24)
         }
         .frame(minWidth: 600, minHeight: 500)
         .background(Color(NSColor.controlBackgroundColor))
@@ -39,15 +39,17 @@ struct ModelManagementView: View {
     }
     
     private var defaultModelSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        HStack(spacing: 8) {
             Text("Default Model")
-                .font(.headline)
+                .font(.subheadline)
                 .foregroundColor(.secondary)
+            Spacer()
             Text(transcriptionModelManager.currentTranscriptionModel?.displayName ?? "No model selected")
-                .font(.title2)
-                .fontWeight(.bold)
+                .font(.subheadline)
+                .fontWeight(.semibold)
         }
-        .padding()
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(CardBackground(isSelected: false))
         .cornerRadius(10)
@@ -174,7 +176,6 @@ struct ModelManagementView: View {
             "apple-speech",
             "whisper-large-v3-turbo",
             "parakeet-tdt-0.6b-v2",
-            "parakeet-tdt-0.6b-v3",
             "voxtral-mini-realtime-local",
             "cohere-transcribe-03-2026-local",
             "scribe_v2",

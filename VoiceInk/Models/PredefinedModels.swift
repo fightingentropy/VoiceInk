@@ -149,16 +149,6 @@ import Foundation
             ramUsage: 0.8,
             supportedLanguages: getLanguageDictionary(isMultilingual: false, provider: .parakeet)
         ),
-        ParakeetModel(
-            name: "parakeet-tdt-0.6b-v3",
-            displayName: "Parakeet V3",
-            description: "NVIDIA's Parakeet V3 model with multilingual support across English and 25 European languages",
-            size: "494 MB",
-            speed: 0.99,
-            accuracy: 0.94,
-            ramUsage: 0.8,
-            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .parakeet)
-        ),
         LocalModel(
             name: "whisper-large-v3-turbo",
             displayName: "Whisper Large v3 Turbo",

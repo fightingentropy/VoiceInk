@@ -101,88 +101,50 @@ struct LanguageSelectionView: View {
 
     // The original full view layout for settings page
     private var fullView: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            languageSelectionSection
-        }
-        .onAppear {
-            ensureSupportedLanguageSelection()
-        }
-        .onChange(of: transcriptionModelManager.currentTranscriptionModel?.name) { _, _ in
-            ensureSupportedLanguageSelection()
-        }
+        languageSelectionSection
+            .onAppear {
+                ensureSupportedLanguageSelection()
+            }
+            .onChange(of: transcriptionModelManager.currentTranscriptionModel?.name) { _, _ in
+                ensureSupportedLanguageSelection()
+            }
     }
     
     private var languageSelectionSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Transcription Language")
-                .font(.headline)
+        HStack(spacing: 8) {
+            Text("Language")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            Spacer()
 
-            if let currentModel = transcriptionModelManager.currentTranscriptionModel
-            {
+            if let currentModel = transcriptionModelManager.currentTranscriptionModel {
                 if languageSelectionDisabled() {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Language: Autodetected")
-                            .font(.subheadline)
-                            .foregroundColor(.primary)
-
-                        Text("Current model: \(currentModel.displayName)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        Text("The transcription language is automatically detected by the model.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .disabled(true)
+                    Text("Autodetected")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
                 } else if isMultilingualModel() {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Picker("Select Language", selection: $selectedLanguage) {
-                            ForEach(
-                                currentModel.supportedLanguages.sorted(by: {
-                                    if $0.key == "auto" { return true }
-                                    if $1.key == "auto" { return false }
-                                    return $0.value < $1.value
-                                }), id: \.key
-                            ) { key, value in
-                                Text(value).tag(key)
-                            }
+                    Picker("", selection: $selectedLanguage) {
+                        ForEach(
+                            currentModel.supportedLanguages.sorted(by: {
+                                if $0.key == "auto" { return true }
+                                if $1.key == "auto" { return false }
+                                return $0.value < $1.value
+                            }), id: \.key
+                        ) { key, value in
+                            Text(value).tag(key)
                         }
-                        .pickerStyle(MenuPickerStyle())
-                        .onChange(of: selectedLanguage) { oldValue, newValue in
-                            updateLanguage(newValue)
-                        }
-
-                        Text("Current model: \(currentModel.displayName)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        Text(
-                            "This model supports multiple languages. Select a specific language or auto-detect(if available)"
-                        )
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    }
+                    .labelsHidden()
+                    .pickerStyle(MenuPickerStyle())
+                    .fixedSize()
+                    .onChange(of: selectedLanguage) { oldValue, newValue in
+                        updateLanguage(newValue)
                     }
                 } else {
-                    // For English-only models, force set language to English
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Language: English")
-                            .font(.subheadline)
-                            .foregroundColor(.primary)
-
-                        Text("Current model: \(currentModel.displayName)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        Text(
-                            "This is an English-optimized model and only supports English transcription."
-                        )
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    }
-                    .onAppear {
-                        // Ensure English is set when viewing English-only model
-                        updateLanguage("en")
-                    }
+                    Text("English")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .onAppear { updateLanguage("en") }
                 }
             } else {
                 Text("No model selected")
@@ -190,9 +152,10 @@ struct LanguageSelectionView: View {
                     .foregroundColor(.secondary)
             }
         }
-        .padding()
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(CardBackground(isSelected: false))
         .cornerRadius(10)
     }
 

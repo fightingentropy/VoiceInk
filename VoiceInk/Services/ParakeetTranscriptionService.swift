@@ -19,7 +19,7 @@ actor ParakeetTranscriptionService: TranscriptionService {
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink.parakeet", category: "ParakeetTranscriptionService")
 
     private nonisolated func version(for model: any TranscriptionModel) -> AsrModelVersion {
-        model.name.lowercased().contains("v2") ? .v2 : .v3
+        .v2
     }
 
     private func ensureModelsLoaded(for version: AsrModelVersion) async throws {

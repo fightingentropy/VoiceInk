@@ -7,7 +7,6 @@ import KeyboardShortcuts
 final class PermissionManager: ObservableObject {
     @Published var audioPermissionStatus = AVCaptureDevice.authorizationStatus(for: .audio)
     @Published var isAccessibilityEnabled = false
-    @Published var isScreenRecordingEnabled = false
     @Published var isKeyboardShortcutSet = false
     
     init() {
@@ -39,7 +38,6 @@ final class PermissionManager: ObservableObject {
     
     func checkAllPermissions() {
         checkAccessibilityPermissions()
-        checkScreenRecordingPermission()
         checkAudioPermissionStatus()
         checkKeyboardShortcut()
     }
@@ -47,14 +45,6 @@ final class PermissionManager: ObservableObject {
     func checkAccessibilityPermissions() {
         let options = ["AXTrustedCheckOptionPrompt" as CFString: false] as CFDictionary
         isAccessibilityEnabled = AXIsProcessTrustedWithOptions(options)
-    }
-    
-    func checkScreenRecordingPermission() {
-        isScreenRecordingEnabled = CGPreflightScreenCaptureAccess()
-    }
-    
-    func requestScreenRecordingPermission() {
-        CGRequestScreenCaptureAccess()
     }
     
     func checkAudioPermissionStatus() {
@@ -254,24 +244,6 @@ struct PermissionsView: View {
                         infoTipMessage: "VoiceInk uses Accessibility permissions to paste the transcribed text directly into other applications at your cursor's position. This allows for a seamless dictation experience across your Mac."
                     )
                     
-                    // Screen Recording Permission
-                    PermissionCard(
-                        icon: "rectangle.on.rectangle",
-                        title: "Screen Recording Access",
-                        description: "Allow VoiceInk to understand context from your screen for transcript Enhancement",
-                        isGranted: permissionManager.isScreenRecordingEnabled,
-                        buttonTitle: "Request Permission",
-                        buttonAction: {
-                            permissionManager.requestScreenRecordingPermission()
-                            // After requesting, open system preferences as fallback
-                            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-                                NSWorkspace.shared.open(url)
-                            }
-                        },
-                        checkPermission: { permissionManager.checkScreenRecordingPermission() },
-                        infoTipMessage: "VoiceInk captures on-screen text to understand the context of your voice input, which significantly improves transcription accuracy. Your privacy is important: this data is processed locally and is not stored.",
-                        infoTipLink: "https://github.com/fightingentropy/VoiceInk#readme"
-                    )
                 }
             }
             .padding(24)
