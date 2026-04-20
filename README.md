@@ -306,8 +306,6 @@ Taken from SuperWhisper's assets for visual/audio consistency:
 - `VoiceInk/Assets.xcassets/menuBarIcon.imageset/` — 22×22 / 44×44 / 66×66 monochrome template PNGs derived from SuperWhisper's `Icon` asset. `template-rendering-intent: template` makes macOS auto-tint for light/dark menu bars.
 - `VoiceInk/Resources/Sounds/recstart.mp3` + `recstop.mp3` — transcoded from SuperWhisper's `Start1.m4a` / `Stop1.m4a` with ffmpeg (`-codec:a libmp3lame -qscale 2`).
 
-There is no longer a "paste success" sound — the old `pastess.mp3` has been removed so the only audio feedback is start + stop.
-
 ---
 
 ## Performance optimizations
@@ -366,7 +364,6 @@ Removed from upstream:
 - **License / trial / paywall system** — `LicenseViewModel`, `LicenseManager`, `PolarService`, `LicenseView`, `LicenseManagementView`, `TrialMessageView`, `DashboardPromotionsSection` all deleted; Polar.sh integration gone; `licenseStatusChanged` notification gone.
 - **Auto-updater** — `Sparkle` SwiftPM package, `UpdaterViewModel`, `CheckForUpdatesView`, the `SUFeedURL` / `SUEnableAutomaticChecks` / `SUEnableInstallerLauncherService` / `SUPublicEDKey` keys, the "Check for updates" menu item, and `scripts/build_sparkle_release.sh` / `.github/workflows/sparkle-release.yml` are all gone.
 - **Help & Resources dashboard section** — removed from the Metrics view.
-- **Paste "success" sound** (`pastess.mp3`) — removed; only start/stop tones play.
 
 Replaced:
 
