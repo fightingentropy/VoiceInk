@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import Accelerate
 import os
 
 final class LocalTranscriptionService: TranscriptionService, PCMBufferTranscriptionService, @unchecked Sendable {
@@ -101,21 +102,39 @@ final class LocalTranscriptionService: TranscriptionService, PCMBufferTranscript
 
     private func readAudioSamples(_ url: URL) throws -> [Float] {
         let data = try Data(contentsOf: url)
-        return Self.decodePCM16Mono(Data(data.dropFirst(44)))
+        guard data.count > 44 else {
+            throw VoiceInkEngineError.transcriptionFailed
+        }
+        return Self.decodePCM16Mono(data, byteOffset: 44)
     }
 
-    static func decodePCM16Mono(_ pcm: Data) -> [Float] {
-        let sampleCount = pcm.count / 2
+    static func decodePCM16Mono(_ pcm: Data, byteOffset: Int = 0) -> [Float] {
+        let startOffset = min(max(0, byteOffset), pcm.count)
+        let sampleCount = (pcm.count - startOffset) / 2
         guard sampleCount > 0 else { return [] }
 
         return pcm.withUnsafeBytes { rawBuffer -> [Float] in
-            let base = rawBuffer.baseAddress!
+            guard let base = rawBuffer.baseAddress else { return [] }
+            let sampleByteCount = sampleCount * MemoryLayout<Int16>.size
+            let sampleBase = base.advanced(by: startOffset)
+            let isAligned = Int(bitPattern: sampleBase).isMultiple(of: MemoryLayout<Int16>.alignment)
+
+            if isAligned {
+                let samples = UnsafeRawBufferPointer(start: sampleBase, count: sampleByteCount)
+                    .bindMemory(to: Int16.self)
+                var floats = [Float](repeating: 0, count: sampleCount)
+                vDSP.convertElements(of: samples, to: &floats)
+                vDSP.multiply(1.0 / 32767.0, floats, result: &floats)
+                vDSP.clip(floats, to: -1.0...1.0, result: &floats)
+                return floats
+            }
+
             return [Float](unsafeUninitializedCapacity: sampleCount) { buffer, initializedCount in
                 let scale: Float = 1.0 / 32767.0
                 for i in 0..<sampleCount {
                     // loadUnaligned tolerates Data backings that aren't 2-byte
                     // aligned (e.g. slices of read-from-disk WAV payloads).
-                    let raw = base.loadUnaligned(fromByteOffset: i * 2, as: Int16.self)
+                    let raw = sampleBase.loadUnaligned(fromByteOffset: i * 2, as: Int16.self)
                     let sample = Float(Int16(littleEndian: raw)) * scale
                     buffer[i] = max(-1.0, min(sample, 1.0))
                 }

@@ -150,6 +150,17 @@ import Foundation
             supportedLanguages: getLanguageDictionary(isMultilingual: false, provider: .parakeet)
         ),
         LocalModel(
+            name: "whisper-large-v3-accuracy",
+            displayName: "Whisper Large v3 (Accuracy)",
+            size: "626 MB",
+            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .local),
+            description: "Higher-accuracy WhisperKit preset using the compressed large-v3 v20240930 Core ML build.",
+            speed: 0.82,
+            accuracy: 0.96,
+            ramUsage: 2.2,
+            whisperKitVariant: "openai_whisper-large-v3-v20240930_626MB"
+        ),
+        LocalModel(
             name: "whisper-large-v3-turbo",
             displayName: "Whisper Large v3 Turbo",
             size: "2.8 GB",
@@ -174,9 +185,9 @@ import Foundation
         LocalCohereTranscribeModel(
             name: "cohere-transcribe-03-2026-local",
             displayName: "Cohere Transcribe (Local MLX)",
-            size: "1.5 GB",
-            description: "Runs locally on Apple Silicon with native MLX 4-bit inference for high-accuracy live recorder transcription.",
-            speed: 0.96,
+            size: "2.4 GB",
+            description: "Runs locally on Apple Silicon with native MLX 8-bit inference for high-accuracy live recorder transcription.",
+            speed: 0.94,
             accuracy: 0.99,
             isMultilingualModel: true,
             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .cohereTranscribe)

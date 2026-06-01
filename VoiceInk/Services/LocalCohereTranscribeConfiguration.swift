@@ -1,11 +1,10 @@
 import Foundation
 
 enum LocalCohereTranscribeConfiguration {
-    // Default to the 4-bit MLX variant for ~60% smaller memory footprint
-    // and noticeably faster inference on Apple Silicon vs the fp16 build,
-    // with negligible WER impact for this 2B encoder-decoder.
-    static let defaultRepository = "beshkenadze/cohere-transcribe-03-2026-mlx-4bit"
-    static let defaultRevision = "104bc4391b5b1a12b040859793d7148525e1a08c"
+    // Default to the 8-bit MLX variant: it keeps a substantially smaller
+    // footprint than fp16 while preserving fp16 parity on the repository sample.
+    static let defaultRepository = "beshkenadze/cohere-transcribe-03-2026-mlx-8bit"
+    static let defaultRevision = "d1f843476f84846e6fe7aa58a6033f17882f0ec9"
     static let fallbackLanguage = "en"
 
     // UserDefaults keys let power users pin to a different MLX build

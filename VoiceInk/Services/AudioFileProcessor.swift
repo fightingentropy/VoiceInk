@@ -1,5 +1,5 @@
 import Foundation
-import AVFoundation
+@preconcurrency import AVFoundation
 import os
 
 final class AudioProcessor: @unchecked Sendable {
@@ -57,6 +57,8 @@ final class AudioProcessor: @unchecked Sendable {
         
         let chunkSize: AVAudioFrameCount = 50_000_000
         var allSamples: [Float] = []
+        let estimatedOutputFrames = Int((Double(totalFrames) / sampleRate) * AudioFormat.targetSampleRate)
+        allSamples.reserveCapacity(max(0, estimatedOutputFrames))
         var currentFrame: AVAudioFramePosition = 0
         
         while currentFrame < totalFrames {
@@ -95,9 +97,7 @@ final class AudioProcessor: @unchecked Sendable {
                     }
                 )
                 
-                if let error = error {
-                    throw AudioProcessingError.conversionFailed
-                }
+                if error != nil { throw AudioProcessingError.conversionFailed }
                 
                 if status == .error {
                     throw AudioProcessingError.conversionFailed
@@ -121,22 +121,32 @@ final class AudioProcessor: @unchecked Sendable {
         let channelCount = Int(buffer.format.channelCount)
         let frameLength = Int(buffer.frameLength)
         var samples = Array(repeating: Float(0), count: frameLength)
+        var maxSample: Float = 0
         
         if channelCount == 1 {
-            samples = Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
+            let source = channelData[0]
+            for frame in 0..<frameLength {
+                let sample = source[frame]
+                samples[frame] = sample
+                maxSample = max(maxSample, abs(sample))
+            }
         } else {
             for frame in 0..<frameLength {
                 var sum: Float = 0
                 for channel in 0..<channelCount {
                     sum += channelData[channel][frame]
                 }
-                samples[frame] = sum / Float(channelCount)
+                let sample = sum / Float(channelCount)
+                samples[frame] = sample
+                maxSample = max(maxSample, abs(sample))
             }
         }
         
-        let maxSample = samples.map(abs).max() ?? 1
         if maxSample > 0 {
-            samples = samples.map { $0 / maxSample }
+            let scale = 1 / maxSample
+            for index in samples.indices {
+                samples[index] *= scale
+            }
         }
         
         return samples
@@ -162,13 +172,12 @@ final class AudioProcessor: @unchecked Sendable {
             throw AudioProcessingError.conversionFailed
         }
         
-        // Convert float samples to int16
-        let int16Samples = samples.map { max(-1.0, min(1.0, $0)) * Float(Int16.max) }.map { Int16($0) }
+        guard let channelData = buffer.int16ChannelData?[0] else {
+            throw AudioProcessingError.conversionFailed
+        }
 
-        // Copy samples to buffer
-        int16Samples.withUnsafeBufferPointer { int16Buffer in
-            let int16Pointer = int16Buffer.baseAddress!
-            buffer.int16ChannelData![0].update(from: int16Pointer, count: int16Samples.count)
+        for index in samples.indices {
+            channelData[index] = Int16(max(-1.0, min(1.0, samples[index])) * Float(Int16.max))
         }
         buffer.frameLength = AVAudioFrameCount(samples.count)
 

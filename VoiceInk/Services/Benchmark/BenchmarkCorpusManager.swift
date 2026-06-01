@@ -116,8 +116,8 @@ actor BenchmarkCorpusManager {
                 throw BenchmarkCorpusError.invalidAudioFile(audioURL.path)
             }
 
+            let audioSamples = LocalTranscriptionService.decodePCM16Mono(audioData, byteOffset: 44)
             let pcmData = Data(audioData.dropFirst(44))
-            let audioSamples = LocalTranscriptionService.decodePCM16Mono(pcmData)
             let duration: TimeInterval
             if let storedDuration = item.durationSeconds {
                 duration = storedDuration

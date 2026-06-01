@@ -174,10 +174,11 @@ struct ModelManagementView: View {
     private var displayedModels: [any TranscriptionModel] {
         let preferredOrder = [
             "apple-speech",
+            "cohere-transcribe-03-2026-local",
+            "whisper-large-v3-accuracy",
             "whisper-large-v3-turbo",
             "parakeet-tdt-0.6b-v2",
             "voxtral-mini-realtime-local",
-            "cohere-transcribe-03-2026-local",
             "scribe_v2",
             "xai-stt"
         ]

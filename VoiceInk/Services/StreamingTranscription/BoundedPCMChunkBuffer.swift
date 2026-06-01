@@ -12,6 +12,7 @@ final class BoundedPCMChunkBuffer: @unchecked Sendable {
     private let lock = NSLock()
 
     private var chunks: [Data] = []
+    private var headIndex = 0
     private var totalBytes = 0
     private var isClosed = false
     private var didTrimAudio = false
@@ -63,8 +64,9 @@ final class BoundedPCMChunkBuffer: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
 
-        let drained = chunks
+        let drained = headIndex == 0 ? chunks : Array(chunks[headIndex..<chunks.count])
         chunks.removeAll(keepingCapacity: true)
+        headIndex = 0
         totalBytes = 0
         return drained
     }
@@ -74,6 +76,7 @@ final class BoundedPCMChunkBuffer: @unchecked Sendable {
         defer { lock.unlock() }
 
         chunks.removeAll(keepingCapacity: false)
+        headIndex = 0
         totalBytes = 0
     }
 
@@ -99,24 +102,40 @@ final class BoundedPCMChunkBuffer: @unchecked Sendable {
             }
         }
 
-        while excessBytes > 0, !chunks.isEmpty {
-            let chunk = chunks[0]
+        while excessBytes > 0, headIndex < chunks.count {
+            let chunk = chunks[headIndex]
             if chunk.count <= excessBytes {
-                chunks.removeFirst()
+                headIndex += 1
                 totalBytes -= chunk.count
                 excessBytes -= chunk.count
                 continue
             }
 
             let trimmedChunk = chunk.dropFirst(excessBytes)
-            chunks[0] = Data(trimmedChunk)
+            chunks[headIndex] = Data(trimmedChunk)
             totalBytes -= excessBytes
             excessBytes = 0
         }
 
+        compactConsumedChunksIfNeeded()
+
         if totalBytes > capacityBytes {
             totalBytes = capacityBytes
         }
+    }
+
+    private func compactConsumedChunksIfNeeded() {
+        guard headIndex > 0 else { return }
+
+        if headIndex >= chunks.count {
+            chunks.removeAll(keepingCapacity: true)
+            headIndex = 0
+            return
+        }
+
+        guard headIndex > 32, headIndex * 2 >= chunks.count else { return }
+        chunks.removeFirst(headIndex)
+        headIndex = 0
     }
 }
 
