@@ -16,6 +16,7 @@ actor VoxtralNativeStreamingEngine {
     private var encoderCache: [VoxtralRotatingKVCache]?
     private var downsampleBuffer: MLXArray?
     private var pendingAudio: [Float] = []
+    private var pendingAudioStart = 0
     private var audioEmbeddings: MLXArray?
     private var decoderCache: [VoxtralRotatingKVCache]?
     private var nextToken: MLXArray?
@@ -64,10 +65,9 @@ actor VoxtralNativeStreamingEngine {
 
     private func processPendingAudio() throws {
         if firstCycle {
-            guard pendingAudio.count >= minimumProcessingSamples else { return }
-            let sampleCount = (pendingAudio.count / VoxtralNativeAudio.samplesPerToken) * VoxtralNativeAudio.samplesPerToken
-            let realAudio = Array(pendingAudio.prefix(sampleCount))
-            pendingAudio.removeFirst(sampleCount)
+            guard pendingAudioCount >= minimumProcessingSamples else { return }
+            let sampleCount = (pendingAudioCount / VoxtralNativeAudio.samplesPerToken) * VoxtralNativeAudio.samplesPerToken
+            let realAudio = consumePendingAudio(sampleCount)
             totalAudioSamplesFed += sampleCount
             let padded = VoxtralNativeAudio.zeroSamples(
                 count: leftPadTokenCount * VoxtralNativeAudio.samplesPerToken
@@ -76,10 +76,9 @@ actor VoxtralNativeStreamingEngine {
             try appendAudioChunk(padded)
         }
 
-        while !firstCycle && pendingAudio.count >= minimumProcessingSamples {
-            let sampleCount = (pendingAudio.count / VoxtralNativeAudio.samplesPerToken) * VoxtralNativeAudio.samplesPerToken
-            let chunk = Array(pendingAudio.prefix(sampleCount))
-            pendingAudio.removeFirst(sampleCount)
+        while !firstCycle && pendingAudioCount >= minimumProcessingSamples {
+            let sampleCount = (pendingAudioCount / VoxtralNativeAudio.samplesPerToken) * VoxtralNativeAudio.samplesPerToken
+            let chunk = consumePendingAudio(sampleCount)
             totalAudioSamplesFed += sampleCount
             try appendAudioChunk(chunk)
         }
@@ -89,8 +88,9 @@ actor VoxtralNativeStreamingEngine {
         let rightPadding = VoxtralNativeAudio.zeroSamples(
             count: VoxtralNativeAudio.rightPadTokenCount * VoxtralNativeAudio.samplesPerToken
         )
-        let realAudio = pendingAudio
+        let realAudio = remainingPendingAudio()
         pendingAudio.removeAll(keepingCapacity: true)
+        pendingAudioStart = 0
         totalAudioSamplesFed += realAudio.count
 
         var chunk = realAudio + rightPadding
@@ -103,6 +103,42 @@ actor VoxtralNativeStreamingEngine {
 
         guard !chunk.isEmpty else { return }
         try appendAudioChunk(chunk)
+    }
+
+    private var pendingAudioCount: Int {
+        pendingAudio.count - pendingAudioStart
+    }
+
+    private func consumePendingAudio(_ sampleCount: Int) -> [Float] {
+        let endIndex = pendingAudioStart + sampleCount
+        let chunk = Array(pendingAudio[pendingAudioStart..<endIndex])
+        pendingAudioStart = endIndex
+        compactPendingAudioIfNeeded()
+        return chunk
+    }
+
+    private func remainingPendingAudio() -> [Float] {
+        guard pendingAudioStart > 0 else { return pendingAudio }
+        guard pendingAudioStart < pendingAudio.count else { return [] }
+        return Array(pendingAudio[pendingAudioStart..<pendingAudio.count])
+    }
+
+    private func compactPendingAudioIfNeeded() {
+        guard pendingAudioStart > 0 else { return }
+
+        if pendingAudioStart >= pendingAudio.count {
+            pendingAudio.removeAll(keepingCapacity: true)
+            pendingAudioStart = 0
+            return
+        }
+
+        guard pendingAudioStart > minimumProcessingSamples,
+              pendingAudioStart * 2 >= pendingAudio.count else {
+            return
+        }
+
+        pendingAudio.removeFirst(pendingAudioStart)
+        pendingAudioStart = 0
     }
 
     private func appendAudioChunk(_ chunk: [Float]) throws {
@@ -283,6 +319,7 @@ actor VoxtralNativeStreamingEngine {
         encoderCache = nil
         downsampleBuffer = nil
         pendingAudio.removeAll(keepingCapacity: true)
+        pendingAudioStart = 0
         audioEmbeddings = nil
         decoderCache = nil
         nextToken = nil

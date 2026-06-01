@@ -107,6 +107,23 @@ struct LocalTranscriptionHotPathTests {
         #expect(decoded[2] == -1)
     }
 
+    @Test
+    func localWhisperPCMDecoderSkipsWAVHeaderWithoutCopyingPayload() {
+        let pcm = Data([
+            0x00, 0x00,
+            0xFF, 0x7F,
+            0x00, 0x80,
+        ])
+        let wavBytes = Data(repeating: 0, count: 44) + pcm
+
+        let decoded = LocalTranscriptionService.decodePCM16Mono(wavBytes, byteOffset: 44)
+
+        #expect(decoded.count == 3)
+        #expect(decoded[0] == 0)
+        #expect(decoded[1] == 1)
+        #expect(decoded[2] == -1)
+    }
+
     /// Original `stride.map`-based decoder kept around only so the
     /// benchmark below can prove the replacement is actually faster.
     private static func decodePCM16MonoLegacy(_ pcm: Data) -> [Float] {
@@ -192,6 +209,14 @@ struct LocalTranscriptionHotPathTests {
         #expect(whisperTurbo?.provider == .local)
         #expect(whisperTurbo?.displayName == "Whisper Large v3 Turbo")
         #expect((whisperTurbo as? LocalModel)?.whisperKitVariant == "openai_whisper-large-v3_turbo")
+    }
+
+    @Test
+    func predefinedModelsExposeCurrentLocalAccuracyPresets() {
+        let whisperAccuracy = PredefinedModels.models.first { $0.name == "whisper-large-v3-accuracy" }
+
+        #expect(whisperAccuracy?.provider == .local)
+        #expect((whisperAccuracy as? LocalModel)?.whisperKitVariant == "openai_whisper-large-v3-v20240930_626MB")
     }
 
     @Test

@@ -1,6 +1,27 @@
 import Foundation
-import AVFoundation
+@preconcurrency import AVFoundation
+import Accelerate
 import MLX
+
+private final class CohereAudioConverterInputProvider: @unchecked Sendable {
+    private let inputBuffer: AVAudioPCMBuffer
+    private var consumedInput = false
+
+    init(inputBuffer: AVAudioPCMBuffer) {
+        self.inputBuffer = inputBuffer
+    }
+
+    func nextBuffer(outStatus: UnsafeMutablePointer<AVAudioConverterInputStatus>) -> AVAudioBuffer? {
+        if consumedInput {
+            outStatus.pointee = .endOfStream
+            return nil
+        }
+
+        consumedInput = true
+        outStatus.pointee = .haveData
+        return inputBuffer
+    }
+}
 
 final class CohereNativeFeatureExtractor: @unchecked Sendable {
     let configuration: CohereNativeAudioConfiguration
@@ -93,16 +114,30 @@ final class CohereNativeFeatureExtractor: @unchecked Sendable {
         }
 
         let sampleCount = data.count / MemoryLayout<Int16>.size
-        return data.withUnsafeBytes { rawBuffer in
-            let samples = rawBuffer.bindMemory(to: Int16.self)
-            var floats: [Float] = []
-            floats.reserveCapacity(sampleCount)
+        return data.withUnsafeBytes { rawBuffer -> [Float] in
+            guard let base = rawBuffer.baseAddress else { return [] }
+            let sampleByteCount = sampleCount * MemoryLayout<Int16>.size
+            let isAligned = Int(bitPattern: base).isMultiple(of: MemoryLayout<Int16>.alignment)
 
-            for sample in samples {
-                floats.append(max(-1.0, min(Float(sample) / 32767.0, 1.0)))
+            if isAligned {
+                let samples = UnsafeRawBufferPointer(start: base, count: sampleByteCount)
+                    .bindMemory(to: Int16.self)
+                var floats = [Float](repeating: 0, count: sampleCount)
+                vDSP.convertElements(of: samples, to: &floats)
+                vDSP.multiply(1.0 / 32767.0, floats, result: &floats)
+                vDSP.clip(floats, to: -1.0...1.0, result: &floats)
+                return floats
             }
 
-            return floats
+            return [Float](unsafeUninitializedCapacity: sampleCount) { buffer, initializedCount in
+                let scale: Float = 1.0 / 32767.0
+                for index in 0..<sampleCount {
+                    let raw = base.loadUnaligned(fromByteOffset: index * MemoryLayout<Int16>.size, as: Int16.self)
+                    let sample = Float(Int16(littleEndian: raw)) * scale
+                    buffer[index] = max(-1.0, min(sample, 1.0))
+                }
+                initializedCount = sampleCount
+            }
         }
     }
 
@@ -150,16 +185,9 @@ final class CohereNativeFeatureExtractor: @unchecked Sendable {
             }
 
             var conversionError: NSError?
-            var consumedInput = false
+            let inputProvider = CohereAudioConverterInputProvider(inputBuffer: inputBuffer)
             let status = converter.convert(to: outputBuffer, error: &conversionError) { _, outStatus in
-                if consumedInput {
-                    outStatus.pointee = .endOfStream
-                    return nil
-                }
-
-                consumedInput = true
-                outStatus.pointee = .haveData
-                return inputBuffer
+                inputProvider.nextBuffer(outStatus: outStatus)
             }
 
             if let conversionError {

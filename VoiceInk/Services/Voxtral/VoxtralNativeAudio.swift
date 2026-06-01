@@ -1,6 +1,27 @@
 import Foundation
-import AVFoundation
+@preconcurrency import AVFoundation
+import Accelerate
 @preconcurrency import MLX
+
+private final class VoxtralAudioConverterInputProvider: @unchecked Sendable {
+    private let inputBuffer: AVAudioPCMBuffer
+    private var consumedInput = false
+
+    init(inputBuffer: AVAudioPCMBuffer) {
+        self.inputBuffer = inputBuffer
+    }
+
+    func nextBuffer(outStatus: UnsafeMutablePointer<AVAudioConverterInputStatus>) -> AVAudioBuffer? {
+        if consumedInput {
+            outStatus.pointee = .endOfStream
+            return nil
+        }
+
+        consumedInput = true
+        outStatus.pointee = .haveData
+        return inputBuffer
+    }
+}
 
 enum VoxtralNativeAudio {
     static let sampleRate = 16_000
@@ -36,10 +57,27 @@ enum VoxtralNativeAudio {
 
     static func decodePCM16(_ data: Data) -> [Float] {
         let sampleCount = data.count / MemoryLayout<Int16>.size
-        return data.withUnsafeBytes { rawBuffer in
-            let samples = rawBuffer.bindMemory(to: Int16.self)
-            return (0 ..< sampleCount).map { index in
-                Float(samples[index]) / 32767.0
+        return data.withUnsafeBytes { rawBuffer -> [Float] in
+            guard let base = rawBuffer.baseAddress else { return [] }
+            let sampleByteCount = sampleCount * MemoryLayout<Int16>.size
+            let isAligned = Int(bitPattern: base).isMultiple(of: MemoryLayout<Int16>.alignment)
+
+            if isAligned {
+                let samples = UnsafeRawBufferPointer(start: base, count: sampleByteCount)
+                    .bindMemory(to: Int16.self)
+                var floats = [Float](repeating: 0, count: sampleCount)
+                vDSP.convertElements(of: samples, to: &floats)
+                vDSP.multiply(1.0 / 32767.0, floats, result: &floats)
+                return floats
+            }
+
+            return [Float](unsafeUninitializedCapacity: sampleCount) { buffer, initializedCount in
+                let scale: Float = 1.0 / 32767.0
+                for index in 0..<sampleCount {
+                    let raw = base.loadUnaligned(fromByteOffset: index * MemoryLayout<Int16>.size, as: Int16.self)
+                    buffer[index] = Float(Int16(littleEndian: raw)) * scale
+                }
+                initializedCount = sampleCount
             }
         }
     }
@@ -101,19 +139,12 @@ enum VoxtralNativeAudio {
             }
 
             var conversionError: NSError?
-            var consumedInput = false
+            let inputProvider = VoxtralAudioConverterInputProvider(inputBuffer: inputBuffer)
             let status = converter.convert(
                 to: outputBuffer,
                 error: &conversionError
             ) { _, outStatus in
-                if consumedInput {
-                    outStatus.pointee = .endOfStream
-                    return nil
-                }
-
-                consumedInput = true
-                outStatus.pointee = .haveData
-                return inputBuffer
+                inputProvider.nextBuffer(outStatus: outStatus)
             }
 
             if let conversionError {
