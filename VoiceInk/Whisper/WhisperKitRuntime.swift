@@ -7,8 +7,7 @@ actor WhisperKitRuntime {
     private static let computeOptions = ModelComputeOptions(
         melCompute: .cpuAndGPU,
         audioEncoderCompute: .cpuAndNeuralEngine,
-        textDecoderCompute: .cpuAndNeuralEngine,
-        prefillCompute: .cpuOnly
+        textDecoderCompute: .cpuAndNeuralEngine
     )
 
     private var pipeline: WhisperKit?
@@ -54,7 +53,6 @@ actor WhisperKitRuntime {
             language: language,
             temperature: 0,
             usePrefillPrompt: true,
-            usePrefillCache: true,
             detectLanguage: language == nil,
             withoutTimestamps: true,
             wordTimestamps: false
@@ -63,7 +61,6 @@ actor WhisperKitRuntime {
         if let normalizedPrompt = normalizePrompt(prompt),
            let tokenizer = pipeline.tokenizer {
             decodingOptions.promptTokens = tokenizer.encode(text: normalizedPrompt)
-            decodingOptions.usePrefillCache = false
         }
 
         let results = try await pipeline.transcribe(audioArray: samples, decodeOptions: decodingOptions)

@@ -32,13 +32,17 @@ private enum WhisperKitDownloadClient {
         downloadBase: URL,
         relay: WhisperKitDownloadProgressRelay?
     ) async throws -> URL {
-        try await WhisperKit.download(
+        let progressCallback: ProgressCallback?
+        if let relay {
+            progressCallback = { progress in relay.update(progress) }
+        } else {
+            progressCallback = nil
+        }
+        return try await WhisperKit.download(
             variant: variant,
             downloadBase: downloadBase,
             useBackgroundSession: false,
-            progressCallback: relay.map { relay in
-                { progress in relay.update(progress) }
-            }
+            progressCallback: progressCallback
         )
     }
 }

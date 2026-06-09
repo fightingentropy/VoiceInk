@@ -211,7 +211,7 @@ enum VoxtralNativeAudio {
             window.reshaped([1, fftSize])
         let specReal = frames.matmul(dftReal.transposed())
         let specImag = frames.matmul(dftImag.transposed())
-        let magnitudes = (specReal * specReal + specImag * specImag)[0 ..< (frameCount - 1), axis: 0]
+        let magnitudes = (specReal * specReal + specImag * specImag)[0 ..< (frameCount - 1)]
 
         let melSpectrum = magnitudes.matmul(melFilters.transposed())
         var logSpectrum = log10(maximum(melSpectrum, 1e-10))

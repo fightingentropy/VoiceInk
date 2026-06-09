@@ -26,7 +26,9 @@ private func tail(_ array: MLXArray, count: Int, axis: Int) -> MLXArray {
     let resolvedAxis = axis >= 0 ? axis : array.ndim + axis
     let length = array.dim(resolvedAxis)
     guard count < length else { return array }
-    return array[(length - count)..., axis: resolvedAxis]
+    var indices = [any MLXArrayIndex](repeating: 0..., count: resolvedAxis)
+    indices.append((length - count)...)
+    return array[indices]
 }
 
 final class VoxtralRotatingKVCache {
@@ -113,16 +115,16 @@ final class VoxtralRotatingKVCache {
             self.index = 0
         }
 
-        self.keys![index ..< index + sequenceLength, axis: 2] = newKeys
-        self.values![index ..< index + sequenceLength, axis: 2] = newValues
+        self.keys![0..., 0..., index ..< index + sequenceLength] = newKeys
+        self.values![0..., 0..., index ..< index + sequenceLength] = newValues
 
         self.offset += sequenceLength
         self.index += sequenceLength
 
         if self.offset < maxSize {
             return (
-                self.keys![0 ..< self.offset, axis: 2],
-                self.values![0 ..< self.offset, axis: 2]
+                self.keys![0..., 0..., 0 ..< self.offset],
+                self.values![0..., 0..., 0 ..< self.offset]
             )
         }
 
@@ -132,7 +134,7 @@ final class VoxtralRotatingKVCache {
     private func trim(_ trimSize: Int, from value: MLXArray, append: MLXArray? = nil) -> MLXArray {
         var segments: [MLXArray] = []
         if trimSize > 0 {
-            segments.append(value[trimSize..., axis: 2])
+            segments.append(value[0..., 0..., trimSize...])
         } else {
             segments.append(value)
         }
@@ -148,13 +150,13 @@ final class VoxtralRotatingKVCache {
         } else if index < offset {
             return concatenated(
                 [
-                    value[index..., axis: 2],
-                    value[..<index, axis: 2],
+                    value[0..., 0..., index...],
+                    value[0..., 0..., ..<index],
                 ],
                 axis: 2
             )
         } else {
-            return value[..<index, axis: 2]
+            return value[0..., 0..., ..<index]
         }
     }
 }
@@ -604,7 +606,7 @@ final class VoxtralRealtimeModel: Module {
     func encode(_ mel: MLXArray) -> MLXArray {
         let melInput: MLXArray
         if mel.dim(1) % 2 != 0 {
-            melInput = mel[1..., axis: 1]
+            melInput = mel[0..., 1...]
         } else {
             melInput = mel
         }
@@ -613,7 +615,7 @@ final class VoxtralRealtimeModel: Module {
 
         let remainder = x.dim(0) % downsample_factor
         if remainder != 0 {
-            x = x[remainder..., axis: 0]
+            x = x[remainder...]
         }
 
         let length = x.dim(0)
@@ -656,8 +658,8 @@ final class VoxtralRealtimeModel: Module {
         }
 
         let remainder = hiddenStates.dim(0) - completeLength
-        let nextDownsampleBuffer = remainder > 0 ? hiddenStates[completeLength..., axis: 0] : nil
-        let completeStates = hiddenStates[..<completeLength, axis: 0]
+        let nextDownsampleBuffer = remainder > 0 ? hiddenStates[completeLength...] : nil
+        let completeStates = hiddenStates[..<completeLength]
         let reshaped = completeStates.reshaped(
             [completeLength / downsample_factor, encoder_dimension * downsample_factor]
         )
@@ -706,7 +708,7 @@ enum VoxtralNativeModelLoader {
     private static let mlxCacheLimit = 4 * 1024 * 1024 * 1024
 
     static func loadPreparedState(from bootstrap: VoxtralNativeBootstrap) throws -> VoxtralNativePreparedState {
-        GPU.set(cacheLimit: mlxCacheLimit)
+        Memory.cacheLimit = mlxCacheLimit
 
         let model = VoxtralRealtimeModel(config: bootstrap.modelConfig)
 

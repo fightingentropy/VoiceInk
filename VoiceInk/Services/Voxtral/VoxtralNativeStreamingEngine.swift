@@ -56,7 +56,7 @@ actor VoxtralNativeStreamingEngine {
         appendPendingTokenIfNeeded()
         continuation.yield(.committed(text: currentTranscript()))
         resetState()
-        GPU.clearCache()
+        Memory.clearCache()
     }
 
     func cancel() {
@@ -228,7 +228,7 @@ actor VoxtralNativeStreamingEngine {
 
                 consumed += 1
                 if consumed % 256 == 0 {
-                    GPU.clearCache()
+                    Memory.clearCache()
                 }
             }
 
@@ -250,7 +250,7 @@ actor VoxtralNativeStreamingEngine {
             VoxtralRotatingKVCache(maxSize: preparedState.bootstrap.modelConfig.slidingWindow)
         }
 
-        let prefixAudioEmbeddings = audioEmbeddings[..<prefixLength, axis: 0]
+        let prefixAudioEmbeddings = audioEmbeddings[..<prefixLength]
         let prefixEmbeddings = (preparedState.promptEmbeddings + prefixAudioEmbeddings)
             .expandedDimensions(axis: 0)
 
@@ -274,7 +274,7 @@ actor VoxtralNativeStreamingEngine {
     private func trimAudioEmbeddings(_ consumed: Int) {
         guard let audioEmbeddings else { return }
         let remaining = audioEmbeddings.dim(0) - consumed
-        self.audioEmbeddings = remaining > 0 ? audioEmbeddings[consumed..., axis: 0] : nil
+        self.audioEmbeddings = remaining > 0 ? audioEmbeddings[consumed...] : nil
     }
 
     private func appendPendingTokenIfNeeded() {

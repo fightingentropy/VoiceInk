@@ -661,10 +661,10 @@
 /* Begin XCRemoteSwiftPackageReference section */
 		E15110032F90000100790A2C /* XCRemoteSwiftPackageReference "WhisperKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/argmaxinc/WhisperKit.git";
+			repositoryURL = "https://github.com/argmaxinc/argmax-oss-swift.git";
 			requirement = {
-				kind = revision;
-				revision = c71c5ed607c3853c041b8fd3c1042e6e5b5a29a3;
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
 			};
 		};
 		E15000032F7A000100000001 /* XCRemoteSwiftPackageReference "mlx-swift" */ = {
@@ -672,7 +672,7 @@
 			repositoryURL = "https://github.com/ml-explore/mlx-swift.git";
 			requirement = {
 				kind = upToNextMinorVersion;
-				minimumVersion = 0.29.1;
+				minimumVersion = 0.31.3;
 			};
 		};
 		E11BBA4C2E5DC555000AB839 /* XCRemoteSwiftPackageReference "FluidAudio" */ = {
