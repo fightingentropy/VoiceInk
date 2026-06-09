@@ -365,7 +365,7 @@ final class CohereNativeRelPositionMultiHeadAttention: Module {
         let matrixAC = matmul(q + biasU, k.transposed(0, 1, 3, 2))
         var matrixBD = matmul(q + biasV, p.transposed(0, 1, 3, 2))
         matrixBD = Self.relShift(matrixBD)
-        matrixBD = matrixBD[..<matrixAC.dim(3), axis: 3]
+        matrixBD = matrixBD[.ellipsis, ..<matrixAC.dim(3)]
 
         var scores = (matrixAC + matrixBD) * scale
 
@@ -404,7 +404,7 @@ final class CohereNativeRelPositionMultiHeadAttention: Module {
             value: MLXArray(0, dtype: x.dtype)
         )
         let reshaped = paddedInput.reshaped([batch, heads, positionalLength + 1, queryLength])
-        let shifted = reshaped[1..., axis: 2]
+        let shifted = reshaped[0..., 0..., 1...]
         return shifted.reshaped([batch, heads, queryLength, positionalLength])
     }
 }
@@ -1358,7 +1358,7 @@ enum CohereNativeEncoderLoader {
     private static let mlxCacheLimit = 8 * 1024 * 1024 * 1024
 
     static func loadPreparedState(from bootstrap: CohereNativeBootstrap) throws -> CohereNativePreparedState {
-        GPU.set(cacheLimit: mlxCacheLimit)
+        Memory.cacheLimit = mlxCacheLimit
 
         let model = CohereNativeConditionalGenerationModel(config: bootstrap.config)
 

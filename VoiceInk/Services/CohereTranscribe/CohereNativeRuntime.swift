@@ -288,7 +288,7 @@ actor CohereNativeRuntime {
     func clearPreparedBootstraps() {
         bootstraps.removeAll()
         preparedStates.removeAll()
-        GPU.clearCache()
+        Memory.clearCache()
     }
 
     private func preparedState(

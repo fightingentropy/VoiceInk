@@ -250,7 +250,7 @@ actor VoxtralNativeRuntime {
     func unloadPreparedState(_ modelReference: String = LocalVoxtralConfiguration.modelName) -> Bool {
         guard !activeLeases.contains(modelReference) else { return false }
         guard preparedStates.removeValue(forKey: modelReference) != nil else { return false }
-        GPU.clearCache()
+        Memory.clearCache()
         return true
     }
 
@@ -266,7 +266,7 @@ actor VoxtralNativeRuntime {
             preparedStates.removeValue(forKey: modelReference)
         }
 
-        GPU.clearCache()
+        Memory.clearCache()
         return unloadableReferences.sorted()
     }
 
