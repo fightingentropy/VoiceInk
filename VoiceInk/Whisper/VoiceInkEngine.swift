@@ -4,6 +4,7 @@ import AVFoundation
 import SwiftData
 import AppKit
 import os
+import Darwin
 
 @MainActor
 class VoiceInkEngine: NSObject, ObservableObject {
@@ -350,6 +351,24 @@ class VoiceInkEngine: NSObject, ObservableObject {
         if model?.provider != .cohereTranscribe {
             await serviceRegistry.cohereTranscribeTranscriptionService.cleanup()
         }
+
+        await releaseFreedHeapPages()
+    }
+
+    /// Ask malloc to hand freed-but-still-mapped pages back to the OS.
+    ///
+    /// After a multi-GB local model is unloaded the runtimes correctly free
+    /// their objects, but the small-object malloc zone keeps its high-water
+    /// mark (and fragments ~30%) instead of shrinking the resident footprint —
+    /// so Activity Monitor keeps showing ~150MB+ long after the model is gone.
+    /// `malloc_zone_pressure_relief(nil, 0)` walks every zone and returns what
+    /// it can. Run off the main actor: the heap walk is synchronous and can
+    /// briefly block. Unloads are infrequent (idle timer / model switch), so
+    /// the cost is negligible.
+    private nonisolated func releaseFreedHeapPages() async {
+        await Task.detached(priority: .utility) {
+            _ = malloc_zone_pressure_relief(nil, 0)
+        }.value
     }
 
     func prewarmCurrentLocalModel(using audioURL: URL) async throws {
