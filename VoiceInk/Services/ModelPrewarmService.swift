@@ -166,8 +166,7 @@ final class ModelPrewarmService: ObservableObject {
         }
 
         let isEnabled = UserDefaults.standard.bool(forKey: prewarmEnabledKey)
-        let shouldForceCoherePrewarm = model.provider == .cohereTranscribe
-        guard isEnabled || shouldForceCoherePrewarm else {
+        guard isEnabled else {
             logger.notice("Prewarm disabled by user")
             return false
         }

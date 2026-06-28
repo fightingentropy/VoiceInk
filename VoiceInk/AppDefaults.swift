@@ -41,8 +41,8 @@ enum AppDefaults {
             "middleClickActivationDelay": 200,
 
             // Model
-            "PrewarmModelOnWake": true,
-            "LocalModelWarmRetentionSeconds": LocalModelWarmRetention.fifteenMinutes.rawValue,
+            "PrewarmModelOnWake": false,
+            "LocalModelWarmRetentionSeconds": LocalModelWarmRetention.fiveMinutes.rawValue,
             "LocalVoxtralModelName": LocalVoxtralConfiguration.defaultModelName,
         ])
     }

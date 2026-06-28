@@ -5,8 +5,8 @@ struct ModelSettingsView: View {
     @AppStorage("SelectedLanguage") private var selectedLanguage: String = "en"
     @AppStorage("IsTextFormattingEnabled") private var isTextFormattingEnabled = true
     @AppStorage("AppendTrailingSpace") private var appendTrailingSpace = true
-    @AppStorage("PrewarmModelOnWake") private var prewarmModelOnWake = true
-    @AppStorage("LocalModelWarmRetentionSeconds") private var localModelWarmRetention = LocalModelWarmRetention.fifteenMinutes.rawValue
+    @AppStorage("PrewarmModelOnWake") private var prewarmModelOnWake = false
+    @AppStorage("LocalModelWarmRetentionSeconds") private var localModelWarmRetention = LocalModelWarmRetention.fiveMinutes.rawValue
     @State private var customPrompt: String = ""
     @State private var isEditing: Bool = false
     
