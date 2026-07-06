@@ -1,8 +1,213 @@
 import Foundation
 import CoreAudio
 import AudioToolbox
-import AVFoundation
+@preconcurrency import AVFoundation
+import Atomics
 import os
+
+/// Moves the worker's exclusively-owned ExtAudioFileRef across the Thread
+/// boundary; only the drain worker touches it after startWorker hands it off.
+private struct AudioFileRef: @unchecked Sendable {
+    let ref: ExtAudioFileRef
+}
+
+// MARK: - SPSC Audio Packet Ring
+
+/// Fixed-size single-producer/single-consumer ring. The realtime callback
+/// publishes mono Float32 packets with no locks and no heap allocation; the
+/// drain worker consumes them in order. @unchecked Sendable: the atomic
+/// write/read indices are the only cross-thread coordination, and each slot
+/// is owned exclusively by producer or consumer at any given time.
+private final class AudioPacketRing: @unchecked Sendable {
+    static let slotCount = 64
+    static let slotCapacity = 4096 // frames of mono Float32 per slot
+
+    struct Packet {
+        let samples: UnsafePointer<Float32>
+        let frameCount: Int
+        let sampleRate: Double
+        let hostTime: UInt64
+    }
+
+    private let sampleStorage: UnsafeMutablePointer<Float32>
+    private let frameCounts: UnsafeMutablePointer<UInt32>
+    private let sampleRates: UnsafeMutablePointer<Double>
+    private let hostTimes: UnsafeMutablePointer<UInt64>
+    private let writeIndex = ManagedAtomic<UInt64>(0)
+    private let readIndex = ManagedAtomic<UInt64>(0)
+    let droppedPackets = ManagedAtomic<UInt64>(0)
+
+    init() {
+        sampleStorage = .allocate(capacity: Self.slotCount * Self.slotCapacity)
+        frameCounts = .allocate(capacity: Self.slotCount)
+        sampleRates = .allocate(capacity: Self.slotCount)
+        hostTimes = .allocate(capacity: Self.slotCount)
+    }
+
+    deinit {
+        sampleStorage.deallocate()
+        frameCounts.deallocate()
+        sampleRates.deallocate()
+        hostTimes.deallocate()
+    }
+
+    var isEmpty: Bool {
+        readIndex.load(ordering: .relaxed) == writeIndex.load(ordering: .acquiring)
+    }
+
+    /// Realtime-safe producer: lock-free, allocation-free. Returns false when
+    /// the packet was dropped (ring full or oversized packet).
+    func publish(samples: UnsafePointer<Float32>, frameCount: Int, sampleRate: Double, hostTime: UInt64) -> Bool {
+        guard frameCount > 0 else { return false }
+        guard frameCount <= Self.slotCapacity else {
+            droppedPackets.wrappingIncrement(ordering: .relaxed)
+            return false
+        }
+        let write = writeIndex.load(ordering: .relaxed)
+        let read = readIndex.load(ordering: .acquiring)
+        guard write &- read < UInt64(Self.slotCount) else {
+            droppedPackets.wrappingIncrement(ordering: .relaxed)
+            return false
+        }
+        let slot = Int(write % UInt64(Self.slotCount))
+        (sampleStorage + slot * Self.slotCapacity).update(from: samples, count: frameCount)
+        frameCounts[slot] = UInt32(frameCount)
+        sampleRates[slot] = sampleRate
+        hostTimes[slot] = hostTime
+        writeIndex.store(write &+ 1, ordering: .releasing)
+        return true
+    }
+
+    /// Consumer side: the returned samples pointer stays valid until consume().
+    func peek() -> Packet? {
+        let read = readIndex.load(ordering: .relaxed)
+        let write = writeIndex.load(ordering: .acquiring)
+        guard read != write else { return nil }
+        let slot = Int(read % UInt64(Self.slotCount))
+        return Packet(
+            samples: UnsafePointer(sampleStorage + slot * Self.slotCapacity),
+            frameCount: Int(frameCounts[slot]),
+            sampleRate: sampleRates[slot],
+            hostTime: hostTimes[slot]
+        )
+    }
+
+    func consume() {
+        let read = readIndex.load(ordering: .relaxed)
+        readIndex.store(read &+ 1, ordering: .releasing)
+    }
+}
+
+// MARK: - Anti-aliased Resampler (worker-thread only)
+
+/// Converts device-rate mono Float32 to 16kHz mono Int16 through
+/// AVAudioConverter's polyphase sample-rate converter. Recreated in place when
+/// the input sample rate changes (e.g. after a device switch), flushing the
+/// buffered tail of the previous converter first.
+/// @unchecked Sendable: confined to the drain worker thread; the converter's
+/// @Sendable input block runs synchronously inside convert() on that thread.
+private final class MonoResampler16k: @unchecked Sendable {
+    static let outputSampleRate = 16000.0
+
+    private let logger: Logger
+    private var converter: AVAudioConverter?
+    private var inputSampleRate: Double = 0
+    private var inputBuffer: AVAudioPCMBuffer?
+    private var outputBuffer: AVAudioPCMBuffer?
+    /// One-shot handoff to the converter's input block; convert() consumes it
+    /// synchronously, so it never outlives a process() call.
+    private var pendingInput: AVAudioPCMBuffer?
+    private(set) var tailFramesFlushed: UInt64 = 0
+
+    init(logger: Logger) {
+        self.logger = logger
+    }
+
+    func process(samples: UnsafePointer<Float32>, frameCount: Int, sampleRate: Double, sink: (AVAudioPCMBuffer) -> Void) {
+        if converter == nil || sampleRate != inputSampleRate {
+            flush(sink: sink)
+            prepare(inputSampleRate: sampleRate)
+        }
+        guard let converter = converter, let inputBuffer = inputBuffer, let outputBuffer = outputBuffer else { return }
+        guard frameCount > 0, frameCount <= Int(inputBuffer.frameCapacity) else { return }
+
+        inputBuffer.floatChannelData![0].update(from: samples, count: frameCount)
+        inputBuffer.frameLength = AVAudioFrameCount(frameCount)
+        outputBuffer.frameLength = 0
+
+        pendingInput = inputBuffer
+        var conversionError: NSError?
+        let status = converter.convert(to: outputBuffer, error: &conversionError) { [self] _, outStatus in
+            guard let buffer = pendingInput else {
+                outStatus.pointee = .noDataNow
+                return nil
+            }
+            pendingInput = nil
+            outStatus.pointee = .haveData
+            return buffer
+        }
+
+        if status == .error {
+            logger.error("🎙️ AVAudioConverter failed: \(conversionError?.localizedDescription ?? "unknown", privacy: .public)")
+            return
+        }
+        if outputBuffer.frameLength > 0 {
+            sink(outputBuffer)
+        }
+    }
+
+    /// Drains the polyphase converter's buffered samples (the last ~100ms of
+    /// dictation) by feeding end-of-stream, then discards the converter.
+    func flush(sink: (AVAudioPCMBuffer) -> Void) {
+        defer {
+            converter = nil
+            inputSampleRate = 0
+        }
+        guard let converter = converter, let outputBuffer = outputBuffer else { return }
+
+        while true {
+            outputBuffer.frameLength = 0
+            var conversionError: NSError?
+            let status = converter.convert(to: outputBuffer, error: &conversionError) { _, outStatus in
+                outStatus.pointee = .endOfStream
+                return nil
+            }
+            if status == .error {
+                logger.error("🎙️ AVAudioConverter tail flush failed: \(conversionError?.localizedDescription ?? "unknown", privacy: .public)")
+                return
+            }
+            guard outputBuffer.frameLength > 0 else { return }
+            tailFramesFlushed &+= UInt64(outputBuffer.frameLength)
+            sink(outputBuffer)
+            if status == .endOfStream { return }
+        }
+    }
+
+    private func prepare(inputSampleRate: Double) {
+        guard inputSampleRate > 0,
+              let inputFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: inputSampleRate, channels: 1, interleaved: false),
+              let outputFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: Self.outputSampleRate, channels: 1, interleaved: true),
+              let newConverter = AVAudioConverter(from: inputFormat, to: outputFormat) else {
+            logger.error("🎙️ Failed to create AVAudioConverter for input rate \(inputSampleRate, privacy: .public)")
+            return
+        }
+        newConverter.sampleRateConverterQuality = AVAudioQuality.max.rawValue
+
+        let inputCapacity = AVAudioFrameCount(AudioPacketRing.slotCapacity)
+        let outputCapacity = AVAudioFrameCount((Double(AudioPacketRing.slotCapacity) * Self.outputSampleRate / inputSampleRate).rounded(.up)) + 256
+        guard let newInputBuffer = AVAudioPCMBuffer(pcmFormat: inputFormat, frameCapacity: inputCapacity),
+              let newOutputBuffer = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: outputCapacity) else {
+            logger.error("🎙️ Failed to allocate conversion buffers for input rate \(inputSampleRate, privacy: .public)")
+            return
+        }
+
+        converter = newConverter
+        inputBuffer = newInputBuffer
+        outputBuffer = newOutputBuffer
+        self.inputSampleRate = inputSampleRate
+        logger.notice("🎙️ Resampler ready: \(Int(inputSampleRate), privacy: .public)Hz → \(Int(Self.outputSampleRate), privacy: .public)Hz (anti-aliased, quality=max)")
+    }
+}
 
 // MARK: - Core Audio Recorder (AUHAL-based, does not change system default device)
 final class CoreAudioRecorder: @unchecked Sendable {
@@ -23,11 +228,7 @@ final class CoreAudioRecorder: @unchecked Sendable {
     // Output format (16kHz mono PCM Int16 for transcription)
     private var outputFormat = AudioStreamBasicDescription()
 
-    // Conversion buffer
-    private var conversionBuffer: UnsafeMutablePointer<Int16>?
-    private var conversionBufferSize: UInt32 = 0
-
-    // Audio metering (thread-safe)
+    // Audio metering (thread-safe, updated by the drain worker)
     private let meterLock = NSLock()
     private var _averagePower: Float = -160.0
     private var _peakPower: Float = -160.0
@@ -48,8 +249,23 @@ final class CoreAudioRecorder: @unchecked Sendable {
     private var renderBuffer: UnsafeMutablePointer<Float32>?
     private var renderBufferSize: UInt32 = 0
 
-    /// Called on the audio thread with raw PCM data (16-bit, 16kHz, mono) for streaming.
-    var onAudioChunk: (@Sendable (_ data: Data) -> Void)?
+    // SPSC handoff between the realtime callback and the drain worker
+    private var ring: AudioPacketRing?
+    private var packetSemaphore = DispatchSemaphore(value: 0)
+    private var workerDone = DispatchSemaphore(value: 0)
+    private var workerThread: Thread?
+    private let workerStopRequested = ManagedAtomic<Bool>(false)
+    private let isCapturing = ManagedAtomic<Bool>(false)
+    private let captureStartNanos = ManagedAtomic<UInt64>(0)
+
+    /// Called on the drain worker thread (serialized, in order) with converted
+    /// PCM data (16-bit, 16kHz, mono) for streaming.
+    private let chunkHandlerLock = NSLock()
+    private var _onAudioChunk: (@Sendable (_ data: Data) -> Void)?
+    var onAudioChunk: (@Sendable (_ data: Data) -> Void)? {
+        get { chunkHandlerLock.withLock { _onAudioChunk } }
+        set { chunkHandlerLock.withLock { _onAudioChunk = newValue } }
+    }
 
     // MARK: - Initialization
 
@@ -98,13 +314,16 @@ final class CoreAudioRecorder: @unchecked Sendable {
         // Step 5: Create the output file
         try createOutputFile(at: url)
 
-        // Step 6: Initialize and start the AudioUnit
+        // Step 6: Start the drain worker, then the AudioUnit
+        startWorker()
         try startAudioUnit()
 
         isRecording = true
     }
 
-    /// Stops the current recording
+    /// Stops the current recording. Blocks (bounded) until the drain worker has
+    /// flushed the converter tail and finalized the WAV, because callers read
+    /// the file immediately after.
     func stopRecording() {
         guard isRecording || audioUnit != nil else {
             logger.notice("stopRecording: skipped, not recording and no audio unit")
@@ -112,25 +331,33 @@ final class CoreAudioRecorder: @unchecked Sendable {
         }
         logger.notice("stopRecording: stopping core audio recorder")
 
-        // Stop and dispose AudioUnit
+        // Stop realtime callbacks before anything else
         if let unit = audioUnit {
             AudioOutputUnitStop(unit)
+        }
+        isCapturing.store(false, ordering: .releasing)
+
+        // Let the worker drain remaining packets, flush the converter tail, and
+        // finalize the file. The worker owns the file's disposal.
+        if workerThread != nil {
+            workerStopRequested.store(true, ordering: .releasing)
+            packetSemaphore.signal()
+            if workerDone.wait(timeout: .now() + .seconds(2)) == .timedOut {
+                logger.error("stopRecording: drain worker did not finish within 2s")
+            }
+            workerThread = nil
+        } else if let file = audioFile {
+            ExtAudioFileDispose(file)
+        }
+        audioFile = nil
+
+        // Dispose AudioUnit
+        if let unit = audioUnit {
             AudioComponentInstanceDispose(unit)
             audioUnit = nil
         }
 
-        // Close audio file
-        if let file = audioFile {
-            ExtAudioFileDispose(file)
-            audioFile = nil
-        }
-
-        // Free conversion buffer
-        if let buffer = conversionBuffer {
-            buffer.deallocate()
-            conversionBuffer = nil
-            conversionBufferSize = 0
-        }
+        ring = nil
 
         // Free render buffer
         if let buffer = renderBuffer {
@@ -172,13 +399,26 @@ final class CoreAudioRecorder: @unchecked Sendable {
             logger.warning("🎙️ Warning: AudioOutputUnitStop returned \(status, privacy: .public)")
         }
 
-        // Step 2: Uninitialize to allow reconfiguration
+        // Step 2: Wait for the worker to drain packets from the old device.
+        // Slots are tagged with their sample rate, so the worker recreates the
+        // converter on its own if the new device runs at a different rate.
+        if let ring = ring {
+            let deadline = DispatchTime.now() + .seconds(1)
+            while !ring.isEmpty && DispatchTime.now() < deadline {
+                usleep(2000)
+            }
+            if !ring.isEmpty {
+                logger.warning("🎙️ switchDevice: ring not fully drained before reconfiguration")
+            }
+        }
+
+        // Step 3: Uninitialize to allow reconfiguration
         status = AudioUnitUninitialize(unit)
         if status != noErr {
             logger.warning("🎙️ Warning: AudioUnitUninitialize returned \(status, privacy: .public)")
         }
 
-        // Step 3: Set the new device
+        // Step 4: Set the new device
         var device = newDeviceID
         status = AudioUnitSetProperty(
             unit,
@@ -199,7 +439,7 @@ final class CoreAudioRecorder: @unchecked Sendable {
             throw CoreAudioRecorderError.failedToSetDevice(status: status)
         }
 
-        // Step 4: Get new device format
+        // Step 5: Get new device format
         var formatSize = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
         var newDeviceFormat = AudioStreamBasicDescription()
         status = AudioUnitGetProperty(
@@ -215,7 +455,7 @@ final class CoreAudioRecorder: @unchecked Sendable {
             throw CoreAudioRecorderError.failedToGetDeviceFormat(status: status)
         }
 
-        // Step 5: Configure callback format for new device
+        // Step 6: Configure callback format for new device
         var callbackFormat = AudioStreamBasicDescription(
             mSampleRate: newDeviceFormat.mSampleRate,
             mFormatID: kAudioFormatLinearPCM,
@@ -241,8 +481,8 @@ final class CoreAudioRecorder: @unchecked Sendable {
             throw CoreAudioRecorderError.failedToSetFormat(status: status)
         }
 
-        // Step 6: Reallocate buffers if needed
-        let maxFrames: UInt32 = 4096
+        // Step 7: Reallocate render buffer if needed
+        let maxFrames = UInt32(AudioPacketRing.slotCapacity)
         let bufferSamples = maxFrames * newDeviceFormat.mChannelsPerFrame
         if bufferSamples > renderBufferSize {
             renderBuffer?.deallocate()
@@ -250,19 +490,11 @@ final class CoreAudioRecorder: @unchecked Sendable {
             renderBufferSize = bufferSamples
         }
 
-        // Reallocate conversion buffer if new sample rate requires more space
-        let maxOutputFrames = UInt32(Double(maxFrames) * (outputFormat.mSampleRate / newDeviceFormat.mSampleRate)) + 1
-        if maxOutputFrames > conversionBufferSize {
-            conversionBuffer?.deallocate()
-            conversionBuffer = UnsafeMutablePointer<Int16>.allocate(capacity: Int(maxOutputFrames))
-            conversionBufferSize = maxOutputFrames
-        }
-
         // Update stored format
         deviceFormat = newDeviceFormat
         currentDeviceID = newDeviceID
 
-        // Step 7: Reinitialize and restart
+        // Step 8: Reinitialize and restart
         status = AudioUnitInitialize(unit)
         if status != noErr {
             throw CoreAudioRecorderError.failedToInitialize(status: status)
@@ -389,7 +621,7 @@ final class CoreAudioRecorder: @unchecked Sendable {
             mReserved: 0
         )
 
-        // Set callback format (Float32 for processing, then convert to Int16 for file)
+        // Set callback format (Float32 for processing, converted off the RT thread)
         var callbackFormat = AudioStreamBasicDescription(
             mSampleRate: deviceFormat.mSampleRate,
             mFormatID: kAudioFormatLinearPCM,
@@ -429,16 +661,11 @@ final class CoreAudioRecorder: @unchecked Sendable {
             logger.notice("🎙️ Converting: \(Int(devSampleRate), privacy: .public)Hz → \(Int(outSampleRate), privacy: .public)Hz")
         }
 
-        // Pre-allocate buffers for real-time callback (avoid malloc in callback)
-        let maxFrames: UInt32 = 4096
+        // Pre-allocate the render buffer for the real-time callback
+        let maxFrames = UInt32(AudioPacketRing.slotCapacity)
         let bufferSamples = maxFrames * deviceFormat.mChannelsPerFrame
         renderBuffer = UnsafeMutablePointer<Float32>.allocate(capacity: Int(bufferSamples))
         renderBufferSize = bufferSamples
-
-        // Pre-allocate conversion buffer (output is always smaller due to downsampling)
-        let maxOutputFrames = UInt32(Double(maxFrames) * (outputFormat.mSampleRate / deviceFormat.mSampleRate)) + 1
-        conversionBuffer = UnsafeMutablePointer<Int16>.allocate(capacity: Int(maxOutputFrames))
-        conversionBufferSize = maxOutputFrames
     }
 
     private func setupInputCallback() throws {
@@ -515,14 +742,17 @@ final class CoreAudioRecorder: @unchecked Sendable {
             throw CoreAudioRecorderError.failedToInitialize(status: status)
         }
 
+        isCapturing.store(true, ordering: .releasing)
+        captureStartNanos.store(DispatchTime.now().uptimeNanoseconds, ordering: .releasing)
         status = AudioOutputUnitStart(audioUnit)
         if status != noErr {
+            isCapturing.store(false, ordering: .releasing)
             logger.error("Failed to start AudioUnit: \(status, privacy: .public)")
             throw CoreAudioRecorderError.failedToStart(status: status)
         }
     }
 
-    // MARK: - Input Callback
+    // MARK: - Input Callback (realtime thread: no disk I/O, no locks, no allocation)
 
     private let inputCallback: AURenderCallback = { (
         inRefCon,
@@ -549,7 +779,11 @@ final class CoreAudioRecorder: @unchecked Sendable {
         inNumberFrames: UInt32
     ) -> OSStatus {
 
-        guard let audioUnit = audioUnit, isRecording, let renderBuf = renderBuffer else {
+        guard isCapturing.load(ordering: .acquiring),
+              let audioUnit = audioUnit,
+              let renderBuf = renderBuffer,
+              let ring = ring,
+              inNumberFrames > 0 else {
             return noErr
         }
 
@@ -588,29 +822,159 @@ final class CoreAudioRecorder: @unchecked Sendable {
             return status
         }
 
-        // Calculate audio meters from input buffer
-        calculateMeters(from: &bufferList, frameCount: inNumberFrames)
+        // Mix interleaved channels down to mono in place (bounded arithmetic)
+        let frames = Int(inNumberFrames)
+        let channels = Int(channelCount)
+        if channels > 1 {
+            let scale = 1.0 / Float32(channels)
+            for frame in 0..<frames {
+                var sum: Float32 = 0
+                let base = frame * channels
+                for channel in 0..<channels {
+                    sum += renderBuf[base + channel]
+                }
+                renderBuf[frame] = sum * scale
+            }
+        }
 
-        // Convert and write to file
-        convertAndWriteToFile(inputBuffer: &bufferList, frameCount: inNumberFrames)
+        // Publish to the SPSC ring; the drain worker does metering,
+        // resampling, file writes, and chunk delivery off this thread.
+        let timeStamp = inTimeStamp.pointee
+        let hostTime = timeStamp.mFlags.contains(.hostTimeValid) ? timeStamp.mHostTime : mach_absolute_time()
+        if ring.publish(samples: renderBuf, frameCount: frames, sampleRate: deviceFormat.mSampleRate, hostTime: hostTime) {
+            packetSemaphore.signal()
+        }
 
         return noErr
     }
 
-    private func calculateMeters(from bufferList: inout AudioBufferList, frameCount: UInt32) {
-        guard let data = bufferList.mBuffers.mData else { return }
+    // MARK: - Drain Worker
+
+    private func startWorker() {
+        guard let file = audioFile else { return }
+
+        let ring = AudioPacketRing()
+        self.ring = ring
+        let semaphore = DispatchSemaphore(value: 0)
+        packetSemaphore = semaphore
+        let done = DispatchSemaphore(value: 0)
+        workerDone = done
+        workerStopRequested.store(false, ordering: .releasing)
+
+        // The worker must not retain self: an abandoned recorder relies on
+        // deinit -> stopRecording() to stop the AudioUnit and finalize the
+        // file, and a strong capture would keep the mic hot forever.
+        let logger = self.logger
+        let stopRequested = workerStopRequested
+        let captureStartNanos = self.captureStartNanos
+        let meterSink: @Sendable (UnsafePointer<Float32>, Int) -> Void = { [weak self] samples, frameCount in
+            self?.updateMeters(samples: samples, frameCount: frameCount)
+        }
+        let chunkHandler: @Sendable () -> (@Sendable (_ data: Data) -> Void)? = { [weak self] in
+            self?.onAudioChunk
+        }
+        let fileRef = AudioFileRef(ref: file)
+        let thread = Thread {
+            Self.workerLoop(
+                ring: ring,
+                file: fileRef,
+                packetSemaphore: semaphore,
+                done: done,
+                stopRequested: stopRequested,
+                captureStartNanos: captureStartNanos,
+                logger: logger,
+                meterSink: meterSink,
+                chunkHandler: chunkHandler
+            )
+        }
+        thread.name = "com.fightingentropy.voiceink.coreaudio-drain"
+        thread.qualityOfService = .userInteractive
+        thread.start()
+        workerThread = thread
+    }
+
+    private static func workerLoop(
+        ring: AudioPacketRing,
+        file fileRef: AudioFileRef,
+        packetSemaphore: DispatchSemaphore,
+        done: DispatchSemaphore,
+        stopRequested: ManagedAtomic<Bool>,
+        captureStartNanos: ManagedAtomic<UInt64>,
+        logger: Logger,
+        meterSink: @Sendable (UnsafePointer<Float32>, Int) -> Void,
+        chunkHandler: @Sendable () -> (@Sendable (_ data: Data) -> Void)?
+    ) {
+        let file = fileRef.ref
+        let resampler = MonoResampler16k(logger: logger)
+        var framesCaptured: UInt64 = 0
+        var framesWritten: UInt64 = 0
+        var firstChunkDelivered = false
+
+        func deliver(_ buffer: AVAudioPCMBuffer) {
+            let frameCount = Int(buffer.frameLength)
+            guard frameCount > 0, let channel = buffer.int16ChannelData?[0] else { return }
+
+            var outputBufferList = AudioBufferList(
+                mNumberBuffers: 1,
+                mBuffers: AudioBuffer(
+                    mNumberChannels: 1,
+                    mDataByteSize: UInt32(frameCount * MemoryLayout<Int16>.size),
+                    mData: UnsafeMutableRawPointer(channel)
+                )
+            )
+            let writeStatus = ExtAudioFileWrite(file, UInt32(frameCount), &outputBufferList)
+            if writeStatus != noErr {
+                logger.error("🎙️ ExtAudioFileWrite failed with status: \(writeStatus, privacy: .public)")
+            }
+            framesWritten &+= UInt64(frameCount)
+
+            if !firstChunkDelivered {
+                firstChunkDelivered = true
+                let elapsedNanos = DispatchTime.now().uptimeNanoseconds &- captureStartNanos.load(ordering: .acquiring)
+                let elapsedMs = Double(elapsedNanos) / 1_000_000.0
+                logger.notice("🎙️ First audio chunk delivered \(String(format: "%.1f", elapsedMs), privacy: .public)ms after AudioOutputUnitStart")
+            }
+
+            if let handler = chunkHandler() {
+                handler(Data(bytes: channel, count: frameCount * MemoryLayout<Int16>.size))
+            }
+        }
+
+        while true {
+            while let packet = ring.peek() {
+                framesCaptured &+= UInt64(packet.frameCount)
+                meterSink(packet.samples, packet.frameCount)
+                resampler.process(
+                    samples: packet.samples,
+                    frameCount: packet.frameCount,
+                    sampleRate: packet.sampleRate,
+                    sink: deliver
+                )
+                ring.consume()
+            }
+
+            if stopRequested.load(ordering: .acquiring), ring.isEmpty {
+                break
+            }
+            _ = packetSemaphore.wait(timeout: .now() + .milliseconds(100))
+        }
+
+        resampler.flush(sink: deliver)
+        ExtAudioFileDispose(file)
+
+        let dropped = ring.droppedPackets.load(ordering: .relaxed)
+        logger.notice("🎙️ Recording finished: capturedFrames=\(framesCaptured, privacy: .public), writtenFrames=\(framesWritten, privacy: .public), droppedPackets=\(dropped, privacy: .public), tailFramesFlushed=\(resampler.tailFramesFlushed, privacy: .public)")
+
+        done.signal()
+    }
+
+    private func updateMeters(samples: UnsafePointer<Float32>, frameCount: Int) {
         guard frameCount > 0 else { return }
-
-        let samples = data.assumingMemoryBound(to: Float32.self)
-        let channelCount = Int(deviceFormat.mChannelsPerFrame)
-        let totalSamples = Int(frameCount) * channelCount
-
-        guard totalSamples > 0 else { return }
 
         var sum: Float = 0.0
         var peak: Float = 0.0
 
-        for i in 0..<totalSamples {
+        for i in 0..<frameCount {
             let sample = abs(samples[i])
             sum += sample * sample
             if sample > peak {
@@ -618,7 +982,7 @@ final class CoreAudioRecorder: @unchecked Sendable {
             }
         }
 
-        let rms = sqrt(sum / Float(totalSamples))
+        let rms = sqrt(sum / Float(frameCount))
         let avgDb = 20.0 * log10(max(rms, 0.000001))
         let peakDb = 20.0 * log10(max(peak, 0.000001))
 
@@ -626,90 +990,6 @@ final class CoreAudioRecorder: @unchecked Sendable {
         _averagePower = avgDb
         _peakPower = peakDb
         meterLock.unlock()
-    }
-
-    private func convertAndWriteToFile(inputBuffer: inout AudioBufferList, frameCount: UInt32) {
-        guard let file = audioFile else { return }
-
-        let inputChannels = deviceFormat.mChannelsPerFrame
-        let inputSampleRate = deviceFormat.mSampleRate
-        let outputSampleRate = outputFormat.mSampleRate
-
-        // Get input samples
-        guard let inputData = inputBuffer.mBuffers.mData else { return }
-        let inputSamples = inputData.assumingMemoryBound(to: Float32.self)
-
-        // Calculate output frame count after sample rate conversion
-        let ratio = outputSampleRate / inputSampleRate
-        let outputFrameCount = UInt32(Double(frameCount) * ratio)
-
-        guard outputFrameCount > 0,
-              let outputBuffer = conversionBuffer,
-              outputFrameCount <= conversionBufferSize else { return }
-
-        // Convert Float32 multi-channel → Int16 mono (with sample rate conversion if needed)
-        if inputSampleRate == outputSampleRate {
-            // Direct conversion, just format change and channel mixing
-            for i in 0..<Int(frameCount) {
-                var sample: Float32 = 0
-                // Mix all channels to mono
-                for ch in 0..<Int(inputChannels) {
-                    sample += inputSamples[i * Int(inputChannels) + ch]
-                }
-                sample /= Float32(inputChannels)
-
-                // Convert to Int16 with clipping
-                let scaled = sample * 32767.0
-                let clipped = max(-32768.0, min(32767.0, scaled))
-                outputBuffer[i] = Int16(clipped)
-            }
-        } else {
-            // Sample rate conversion needed - use linear interpolation
-            for i in 0..<Int(outputFrameCount) {
-                let inputIndex = Double(i) / ratio
-                let inputIndexInt = Int(inputIndex)
-                let frac = Float32(inputIndex - Double(inputIndexInt))
-
-                var sample: Float32 = 0
-                let idx1 = min(inputIndexInt, Int(frameCount) - 1)
-                let idx2 = min(inputIndexInt + 1, Int(frameCount) - 1)
-
-                // Mix channels and interpolate
-                for ch in 0..<Int(inputChannels) {
-                    let s1 = inputSamples[idx1 * Int(inputChannels) + ch]
-                    let s2 = inputSamples[idx2 * Int(inputChannels) + ch]
-                    sample += s1 + frac * (s2 - s1)
-                }
-                sample /= Float32(inputChannels)
-
-                // Convert to Int16
-                let scaled = sample * 32767.0
-                let clipped = max(-32768.0, min(32767.0, scaled))
-                outputBuffer[i] = Int16(clipped)
-            }
-        }
-
-        // Write to file
-        var outputBufferList = AudioBufferList(
-            mNumberBuffers: 1,
-            mBuffers: AudioBuffer(
-                mNumberChannels: 1,
-                mDataByteSize: outputFrameCount * 2,
-                mData: outputBuffer
-            )
-        )
-
-        let writeStatus = ExtAudioFileWrite(file, outputFrameCount, &outputBufferList)
-        if writeStatus != noErr {
-            logger.error("🎙️ ExtAudioFileWrite failed with status: \(writeStatus, privacy: .public)")
-        }
-
-        // Send the same PCM data to the streaming callback if set
-        if let onAudioChunk = onAudioChunk {
-            let byteCount = Int(outputFrameCount) * MemoryLayout<Int16>.size
-            let data = Data(bytes: outputBuffer, count: byteCount)
-            onAudioChunk(data)
-        }
     }
 
     // MARK: - Device Info Logging
@@ -744,17 +1024,19 @@ final class CoreAudioRecorder: @unchecked Sendable {
             mElement: kAudioObjectPropertyElementMain
         )
 
-        var propertySize = UInt32(MemoryLayout<CFString>.size)
+        var propertySize = UInt32(MemoryLayout<CFString?>.size)
         var property: CFString?
 
-        let status = AudioObjectGetPropertyData(
-            deviceID,
-            &address,
-            0,
-            nil,
-            &propertySize,
-            &property
-        )
+        let status = withUnsafeMutablePointer(to: &property) { pointer in
+            AudioObjectGetPropertyData(
+                deviceID,
+                &address,
+                0,
+                nil,
+                &propertySize,
+                UnsafeMutableRawPointer(pointer)
+            )
+        }
 
         if status == noErr, let cfString = property {
             return cfString as String
