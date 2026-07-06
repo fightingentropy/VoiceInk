@@ -2,8 +2,9 @@
 // Build configuration for local builds installed to /Applications.
 // Used by `make local` — does NOT affect Debug or Release configurations.
 
-// Use the stable local VoiceInk identity so macOS treats rebuilt installs consistently.
-CODE_SIGN_IDENTITY = VoiceInk
+// Sign with the Apple Development identity so rebuilt installs keep a
+// team-backed designated requirement (TCC grants survive rebuilds).
+CODE_SIGN_IDENTITY = Apple Development: erlin.hx@icloud.com (476S656MHV)
 CODE_SIGN_STYLE = Manual
 DEVELOPMENT_TEAM =
 PROVISIONING_PROFILE_SPECIFIER =

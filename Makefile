@@ -4,7 +4,7 @@ LOCAL_DERIVED_DATA := $(LOCAL_BUILD_ROOT)/deriveddata
 LOCAL_SPM_DIR := $(LOCAL_BUILD_ROOT)/spm
 LOCAL_BUILD_CONFIGURATION := Release
 INSTALL_APP_PATH := /Applications/VoiceInk.app
-LOCAL_CODESIGN_IDENTITY ?= VoiceInk
+LOCAL_CODESIGN_IDENTITY ?= Apple Development: erlin.hx@icloud.com (476S656MHV)
 
 .PHONY: all clean build local install-local bump-version check healthcheck help dev run resolve-packages
 
