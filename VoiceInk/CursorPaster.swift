@@ -26,7 +26,7 @@ class CursorPaster {
             }
         }
 
-        ClipboardManager.setClipboard(text, transient: shouldRestoreClipboard)
+        _ = ClipboardManager.setClipboard(text, transient: shouldRestoreClipboard)
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             if UserDefaults.standard.bool(forKey: "useAppleScriptPaste") {
@@ -76,100 +76,91 @@ class CursorPaster {
 
     // MARK: - CGEvent paste
 
-    // Paste via CGEvent, temporarily switching to a QWERTY input source so virtual key 0x09 maps to "V".
+    // Paste via CGEvent, using the virtual keycode that produces "v" in the current keyboard layout.
     private static func pasteFromClipboard() {
         guard AXIsProcessTrusted() else {
             logger.error("Accessibility not trusted — cannot paste")
             return
         }
 
-        guard let currentSource = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue() else {
-            logger.error("TISCopyCurrentKeyboardInputSource returned nil")
-            return
+        let vKeyCode = vKeyCodeForCurrentLayout()
+        let source = CGEventSource(stateID: .privateState)
+
+        let cmdDown = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: true)
+        let vDown   = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: true)
+        let vUp     = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: false)
+        let cmdUp   = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: false)
+
+        cmdDown?.flags = .maskCommand
+        vDown?.flags   = .maskCommand
+        vUp?.flags     = .maskCommand
+
+        cmdDown?.post(tap: .cghidEventTap)
+        vDown?.post(tap: .cghidEventTap)
+        vUp?.post(tap: .cghidEventTap)
+        cmdUp?.post(tap: .cghidEventTap)
+
+        logger.notice("CGEvents posted for Cmd+V (keycode 0x\(String(vKeyCode, radix: 16), privacy: .public))")
+    }
+
+    // Virtual keycode for "v" in the current keyboard layout. The UCKeyTranslate scan takes
+    // microseconds, so it runs per paste and always reflects the active input source.
+    private static func vKeyCodeForCurrentLayout() -> CGKeyCode {
+        // ANSI "V"; macOS resolves Cmd-shortcuts correctly for it on most non-Latin layouts.
+        let fallback: CGKeyCode = 0x09
+
+        guard let sourceRef = TISCopyCurrentKeyboardLayoutInputSource()?.takeRetainedValue(),
+              let rawPtr = TISGetInputSourceProperty(sourceRef, kTISPropertyUnicodeKeyLayoutData) else {
+            logger.error("No Unicode key layout data for current input source — using fallback keycode 0x09")
+            return fallback
         }
-        let currentID = sourceID(for: currentSource) ?? "unknown"
-        let switched = switchToQWERTYInputSource()
-        logger.notice("Pasting: inputSource=\(currentID, privacy: .public), switched=\(switched)")
+        let layoutData = Unmanaged<CFData>.fromOpaque(rawPtr).takeUnretainedValue() as Data
 
-        // If we switched input sources, wait 30 ms for the system to apply it
-        // before posting the CGEvents.
-        let eventDelay: TimeInterval = switched ? 0.03 : 0.0
-        DispatchQueue.main.asyncAfter(deadline: .now() + eventDelay) {
-            let source = CGEventSource(stateID: .privateState)
+        if let keyCode = scanForVKeyCode(in: layoutData, modifierKeyState: 0) {
+            return keyCode
+        }
+        // Non-Latin layouts (Cyrillic, Hebrew, …) expose their Latin command layer
+        // when the command modifier bit is set in modifierKeyState.
+        if let keyCode = scanForVKeyCode(in: layoutData, modifierKeyState: UInt32((cmdKey >> 8) & 0xFF)) {
+            return keyCode
+        }
 
-            let cmdDown = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: true)
-            let vDown   = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: true)
-            let vUp     = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false)
-            let cmdUp   = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: false)
+        logger.notice("No keycode for \"v\" in current layout — using fallback keycode 0x09")
+        return fallback
+    }
 
-            cmdDown?.flags = .maskCommand
-            vDown?.flags   = .maskCommand
-            vUp?.flags     = .maskCommand
+    private static func scanForVKeyCode(in layoutData: Data, modifierKeyState: UInt32) -> CGKeyCode? {
+        layoutData.withUnsafeBytes { buffer -> CGKeyCode? in
+            guard let layoutPtr = buffer.baseAddress?.assumingMemoryBound(to: UCKeyboardLayout.self) else {
+                return nil
+            }
+            let kbType = UInt32(LMGetKbdType())
+            var deadKeyState: UInt32 = 0
+            var chars = [UniChar](repeating: 0, count: 4)
+            var length = 0
 
-            cmdDown?.post(tap: .cghidEventTap)
-            vDown?.post(tap: .cghidEventTap)
-            vUp?.post(tap: .cghidEventTap)
-            cmdUp?.post(tap: .cghidEventTap)
-
-            logger.notice("CGEvents posted for Cmd+V")
-
-            if switched {
-                // Restore the original input source after a short delay so the
-                // posted events are processed under ABC/US first.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    TISSelectInputSource(currentSource)
-                    logger.notice("Restored input source to \(currentID, privacy: .public)")
+            for keyCode: UInt16 in 0..<128 {
+                deadKeyState = 0
+                length = 0
+                let status = UCKeyTranslate(
+                    layoutPtr,
+                    keyCode,
+                    UInt16(kUCKeyActionDisplay),
+                    modifierKeyState,
+                    kbType,
+                    UInt32(kUCKeyTranslateNoDeadKeysMask),
+                    &deadKeyState,
+                    chars.count,
+                    &length,
+                    &chars
+                )
+                guard status == noErr, length > 0 else { continue }
+                if chars[0] == UniChar(("v" as UnicodeScalar).value) || chars[0] == UniChar(("V" as UnicodeScalar).value) {
+                    return CGKeyCode(keyCode)
                 }
             }
+            return nil
         }
-    }
-
-    // Try to switch to ABC or US QWERTY. Returns true if the switch was made.
-    private static func switchToQWERTYInputSource() -> Bool {
-        guard let currentSourceRef = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue() else { return false }
-        if let currentID = sourceID(for: currentSourceRef), isQWERTY(currentID) {
-            return false // already QWERTY, nothing to do
-        }
-
-        let criteria = [kTISPropertyInputSourceCategory: kTISCategoryKeyboardInputSource] as CFDictionary
-        guard let list = TISCreateInputSourceList(criteria, false)?.takeRetainedValue() as? [TISInputSource] else {
-            logger.error("Failed to list input sources")
-            return false
-        }
-
-        // Prefer ABC, then US.
-        let preferred = ["com.apple.keylayout.ABC", "com.apple.keylayout.US"]
-        for targetID in preferred {
-            if let match = list.first(where: { sourceID(for: $0) == targetID }) {
-                let status = TISSelectInputSource(match)
-                if status == noErr {
-                    logger.notice("Switched input source to \(targetID, privacy: .public)")
-                    return true
-                } else {
-                    logger.error("TISSelectInputSource failed with status \(status, privacy: .public)")
-                }
-            }
-        }
-
-        logger.error("No QWERTY input source found to switch to")
-        return false
-    }
-
-    private static func sourceID(for source: TISInputSource) -> String? {
-        guard let raw = TISGetInputSourceProperty(source, kTISPropertyInputSourceID) else { return nil }
-        return Unmanaged<CFString>.fromOpaque(raw).takeUnretainedValue() as String
-    }
-
-    private static func isQWERTY(_ id: String) -> Bool {
-        let qwertyIDs: Set<String> = [
-            "com.apple.keylayout.ABC",
-            "com.apple.keylayout.US",
-            "com.apple.keylayout.USInternational-PC",
-            "com.apple.keylayout.British",
-            "com.apple.keylayout.Australian",
-            "com.apple.keylayout.Canadian",
-        ]
-        return qwertyIDs.contains(id)
     }
 
     // MARK: - Enter key
