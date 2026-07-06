@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import AVFoundation
 import SwiftData
 import os
@@ -105,6 +106,18 @@ class TranscriptionPipeline {
                 logger.notice("📝 Formatted transcript: \(text, privacy: .public)")
             }
 
+            let frontmostAppContext = Self.frontmostAppContext()
+
+            if UserDefaults.standard.bool(forKey: "ConvertSpokenPunctuation") {
+                text = SpokenPunctuationFormatter.apply(text, frontmostAppContext: frontmostAppContext)
+                logger.notice("📝 SpokenPunctuation: \(text, privacy: .public)")
+            }
+
+            if UserDefaults.standard.bool(forKey: "ConvertLiteralDictationTokens") {
+                text = DictationLiteralFormatter.apply(text, frontmostAppContext: frontmostAppContext)
+                logger.notice("📝 LiteralDictationTokens: \(text, privacy: .public)")
+            }
+
             text = WordReplacementService.shared.applyReplacements(to: text, using: modelContext)
             logger.notice("📝 WordReplacement: \(text, privacy: .public)")
 
@@ -146,8 +159,14 @@ class TranscriptionPipeline {
            persistencePayload?.isCompleted == true {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 let appendSpace = UserDefaults.standard.bool(forKey: "AppendTrailingSpace")
-                CursorPaster.pasteAtCursor(textToPaste + (appendSpace ? " " : ""))
-
+                var pasteText = textToPaste + (appendSpace ? " " : "")
+                if UserDefaults.standard.bool(forKey: "ConvertLiteralDictationTokens") {
+                    pasteText = DictationLiteralFormatter.applyTerminalLiteralAutocompleteSpacing(
+                        pasteText,
+                        frontmostAppContext: Self.frontmostAppContext()
+                    )
+                }
+                CursorPaster.pasteAtCursor(pasteText)
             }
         }
 
@@ -159,6 +178,14 @@ class TranscriptionPipeline {
                 audioURL: audioURL
             )
         }
+    }
+
+    /// Gating haystack for app-aware formatting rules: app name plus bundle
+    /// ID, because some bundle IDs don't contain the product name (Cursor is
+    /// com.todesktop.230313mzl4w4u92, ChatGPT is com.openai.chat).
+    nonisolated private static func frontmostAppContext() -> String? {
+        guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
+        return [app.localizedName, app.bundleIdentifier].compactMap { $0 }.joined(separator: " ")
     }
 
     private func persistTranscription(payload: PersistencePayload, audioURL: URL) {

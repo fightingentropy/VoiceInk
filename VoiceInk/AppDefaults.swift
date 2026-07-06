@@ -24,6 +24,8 @@ enum AppDefaults {
             // Recording & Transcription
             "IsTextFormattingEnabled": true,
             "RemoveFillerWords": true,
+            "ConvertSpokenPunctuation": true,
+            "ConvertLiteralDictationTokens": true,
             "SelectedLanguage": "en",
             "AppendTrailingSpace": true,
             "RecorderType": "mini",

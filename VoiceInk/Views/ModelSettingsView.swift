@@ -6,6 +6,8 @@ struct ModelSettingsView: View {
     @AppStorage("IsTextFormattingEnabled") private var isTextFormattingEnabled = true
     @AppStorage("AppendTrailingSpace") private var appendTrailingSpace = true
     @AppStorage("PrewarmModelOnWake") private var prewarmModelOnWake = false
+    @AppStorage("ConvertSpokenPunctuation") private var convertSpokenPunctuation = true
+    @AppStorage("ConvertLiteralDictationTokens") private var convertLiteralDictationTokens = true
     @AppStorage("LocalModelWarmRetentionSeconds") private var localModelWarmRetention = LocalModelWarmRetention.fiveMinutes.rawValue
     @State private var customPrompt: String = ""
     @State private var isEditing: Bool = false
@@ -111,6 +113,24 @@ struct ModelSettingsView: View {
             BenchmarkSettingsSectionView()
 
             Divider().padding(.vertical, 4)
+
+            HStack {
+                Toggle(isOn: $convertSpokenPunctuation) {
+                    Text("Convert spoken punctuation")
+                }
+                .toggleStyle(.switch)
+
+                InfoTip("Turn spoken phrases like 'comma', 'question mark' or 'open paren' into , ? ( symbols.")
+            }
+
+            HStack {
+                Toggle(isOn: $convertLiteralDictationTokens) {
+                    Text("Convert slash commands and mentions")
+                }
+                .toggleStyle(.switch)
+
+                InfoTip("Turn spoken 'slash command' and 'tag name' phrases into literal /command and @name tokens.")
+            }
 
             FillerWordsSettingsView()
 
