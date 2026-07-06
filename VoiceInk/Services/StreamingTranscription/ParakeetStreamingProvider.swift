@@ -3,13 +3,13 @@ import FluidAudio
 import Foundation
 import os
 
-/// On-device streaming transcription provider using FluidAudio's StreamingAsrManager
+/// On-device streaming transcription provider using FluidAudio's SlidingWindowAsrManager
 /// with Parakeet TDT v2.
 final class ParakeetStreamingProvider: StreamingTranscriptionProvider, @unchecked Sendable {
 
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "ParakeetStreaming")
     private let parakeetService: ParakeetTranscriptionService
-    private var streamingManager: StreamingAsrManager?
+    private var streamingManager: SlidingWindowAsrManager?
     private var eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation?
 
     private(set) var transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
@@ -28,8 +28,9 @@ final class ParakeetStreamingProvider: StreamingTranscriptionProvider, @unchecke
     func connect(model: any TranscriptionModel, language: String?) async throws {
         let models = try await parakeetService.getOrLoadModels(for: .v2)
 
-        let manager = StreamingAsrManager(config: .streaming)
-        try await manager.start(models: models)
+        let manager = SlidingWindowAsrManager(config: .streaming)
+        try await manager.loadModels(models)
+        try await manager.startStreaming()
         self.streamingManager = manager
 
         eventsContinuation?.yield(.sessionStarted)

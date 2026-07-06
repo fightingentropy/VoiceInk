@@ -18,7 +18,19 @@ class ParakeetModelManager: ObservableObject {
 
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "ParakeetModelManager")
 
-    init() {}
+    init() {
+        Self.migrateLegacyV2CacheIfNeeded()
+    }
+
+    // MARK: - Legacy cache migration
+
+    /// FluidAudio renamed the v2 cache folder from "parakeet-tdt-0.6b-v2-coreml"
+    /// to "parakeet-tdt-0.6b-v2" (the "-coreml" suffix is now stripped from
+    /// Repo.folderName). Move an existing download across so it is not silently
+    /// re-downloaded and the old ~474MB directory orphaned. Runs once per process.
+    nonisolated static func migrateLegacyV2CacheIfNeeded() {
+        _ = parakeetLegacyV2CacheMigration
+    }
 
     // MARK: - Query helpers
 
@@ -114,3 +126,35 @@ class ParakeetModelManager: ObservableObject {
         AsrModels.defaultCacheDirectory(for: version)
     }
 }
+
+private let parakeetLegacyV2CacheMigration: Void = {
+    let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "ParakeetModelManager")
+    let fileManager = FileManager.default
+    let currentDirectory = AsrModels.defaultCacheDirectory(for: .v2)
+    let legacyDirectory = currentDirectory.deletingLastPathComponent()
+        .appendingPathComponent(currentDirectory.lastPathComponent + "-coreml")
+
+    guard fileManager.fileExists(atPath: legacyDirectory.path) else { return }
+
+    do {
+        if fileManager.fileExists(atPath: currentDirectory.path) {
+            // A (possibly partial) re-download already exists; keep its files
+            // and fill in the rest from the legacy download.
+            for item in try fileManager.contentsOfDirectory(atPath: legacyDirectory.path) {
+                let destination = currentDirectory.appendingPathComponent(item)
+                if !fileManager.fileExists(atPath: destination.path) {
+                    try fileManager.moveItem(
+                        at: legacyDirectory.appendingPathComponent(item),
+                        to: destination
+                    )
+                }
+            }
+            try fileManager.removeItem(at: legacyDirectory)
+        } else {
+            try fileManager.moveItem(at: legacyDirectory, to: currentDirectory)
+        }
+        logger.notice("Migrated legacy Parakeet v2 model cache to \(currentDirectory.path, privacy: .public)")
+    } catch {
+        logger.error("Failed to migrate legacy Parakeet v2 model cache: \(error.localizedDescription, privacy: .public)")
+    }
+}()

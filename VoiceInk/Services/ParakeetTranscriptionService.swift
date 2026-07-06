@@ -35,7 +35,7 @@ actor ParakeetTranscriptionService: TranscriptionService {
         let models = try await getOrLoadModels(for: version)
 
         let manager = AsrManager(config: .default)
-        try await manager.initialize(models: models)
+        try await manager.loadModels(models)
         self.asrManager = manager
         self.activeVersion = version
     }
@@ -50,6 +50,8 @@ actor ParakeetTranscriptionService: TranscriptionService {
         if let (existingVersion, existingTask) = loadingTask, existingVersion == version {
             return try await existingTask.value
         }
+
+        ParakeetModelManager.migrateLegacyV2CacheIfNeeded()
 
         let task = Task {
             try await AsrModels.loadFromCache(
@@ -98,7 +100,8 @@ actor ParakeetTranscriptionService: TranscriptionService {
             speechAudio += [Float](repeating: 0, count: trailingSilenceSamples)
         }
 
-        let result = try await asrManager.transcribe(speechAudio)
+        var decoderState = TdtDecoderState.make(decoderLayers: await asrManager.decoderLayerCount)
+        let result = try await asrManager.transcribe(speechAudio, decoderState: &decoderState)
 
         return result.text
     }
