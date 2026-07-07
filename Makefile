@@ -124,6 +124,16 @@ dist: check resolve-packages
 		build
 	@APP_PATH="$(DIST_DERIVED_DATA)/Build/Products/Release/VoiceInk.app" && \
 	if [ ! -d "$$APP_PATH" ]; then echo "Error: built app not found at $$APP_PATH"; exit 1; fi && \
+	SPARKLE_FW="$$APP_PATH/Contents/Frameworks/Sparkle.framework" && \
+	if [ -d "$$SPARKLE_FW" ]; then \
+		echo "Re-signing Sparkle helpers with the Developer ID identity..."; \
+		codesign -f -o runtime --timestamp --preserve-metadata=entitlements -s "$(DIST_CODESIGN_IDENTITY)" "$$SPARKLE_FW/Versions/B/XPCServices/Downloader.xpc" && \
+		codesign -f -o runtime --timestamp --preserve-metadata=entitlements -s "$(DIST_CODESIGN_IDENTITY)" "$$SPARKLE_FW/Versions/B/XPCServices/Installer.xpc" && \
+		codesign -f -o runtime --timestamp -s "$(DIST_CODESIGN_IDENTITY)" "$$SPARKLE_FW/Versions/B/Autoupdate" && \
+		codesign -f -o runtime --timestamp -s "$(DIST_CODESIGN_IDENTITY)" "$$SPARKLE_FW/Versions/B/Updater.app" && \
+		codesign -f -o runtime --timestamp -s "$(DIST_CODESIGN_IDENTITY)" "$$SPARKLE_FW" && \
+		codesign -f -o runtime --timestamp -s "$(DIST_CODESIGN_IDENTITY)" --entitlements $(CURDIR)/VoiceInk/VoiceInk.dist.entitlements "$$APP_PATH"; \
+	fi && \
 	echo "Verifying signature..." && \
 	codesign --verify --deep --strict "$$APP_PATH" && \
 	codesign -d --verbose=2 "$$APP_PATH" 2>&1 | grep -q "flags=.*runtime" || { echo "Error: hardened runtime flag missing"; exit 1; }; \

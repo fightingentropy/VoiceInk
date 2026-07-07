@@ -9,6 +9,8 @@ struct SettingsView: View {
     @EnvironmentObject private var menuBarManager: MenuBarManager
     @EnvironmentObject private var hotkeyManager: HotkeyManager
     @EnvironmentObject private var transcriptionModelManager: TranscriptionModelManager
+    @EnvironmentObject private var updaterViewModel: UpdaterViewModel
+    @AppStorage("autoUpdateCheck") private var autoUpdateCheck = true
     @StateObject private var deviceManager = AudioDeviceManager.shared
     @ObservedObject private var soundManager = SoundManager.shared
     @ObservedObject private var mediaController = MediaController.shared
@@ -186,6 +188,20 @@ struct SettingsView: View {
                 Toggle("Hide Dock Icon", isOn: $menuBarManager.isMenuBarOnly)
 
                 LaunchAtLogin.Toggle("Launch at Login")
+
+                #if !LOCAL_BUILD
+                Toggle("Automatically Check for Updates", isOn: $autoUpdateCheck)
+                    .onChange(of: autoUpdateCheck) { _, newValue in
+                        updaterViewModel.toggleAutoUpdates(newValue)
+                    }
+
+                HStack {
+                    Button("Check for Updates Now") {
+                        updaterViewModel.checkForUpdates()
+                    }
+                    .disabled(!updaterViewModel.canCheckForUpdates)
+                }
+                #endif
 
                 Toggle("Show Announcements", isOn: $enableAnnouncements)
                     .onChange(of: enableAnnouncements) { _, newValue in
