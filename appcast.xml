@@ -3,6 +3,23 @@
     <channel>
         <title>VoiceInk</title>
         <item>
+            <title>1.70.37</title>
+            <pubDate>Tue, 07 Jul 2026 20:41:50 +0000</pubDate>
+            <link>https://github.com/fightingentropy/VoiceInk</link>
+            <sparkle:version>207</sparkle:version>
+            <sparkle:shortVersionString>1.70.37</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.4</sparkle:minimumSystemVersion>
+            <description sparkle:format="plain-text"><![CDATA[VoiceInk 1.70.37 — UI Modernization
+
+- Liquid Glass mini recorder on macOS 26 (classic dark capsule on earlier systems)
+- Native system materials across all cards and panels
+- Resizable main window and standard macOS sidebar
+- Dashboard Recent Activity: your last five transcriptions at a glance
+- Cleaner History: hover-revealed selection, details inspector on selection
+- Standard buttons and badges on model cards; Copy System Info moved to Settings > Diagnostics]]></description>
+            <enclosure url="https://github.com/fightingentropy/VoiceInk/releases/download/v1.70.37/VoiceInk-1.70.37.zip" length="18651718" type="application/octet-stream" sparkle:edSignature="OZ4w72huideen/93HZQ5I59lsQpOwGHGUrmmZ00sHWgGdOrk6+5BlNRSxJo2i2jvgBJh3IvDCkYyNplGf+GbCA=="/>
+        </item>
+        <item>
             <title>1.70.36</title>
             <pubDate>Tue, 07 Jul 2026 17:08:26 +0000</pubDate>
             <link>https://github.com/fightingentropy/VoiceInk</link>
