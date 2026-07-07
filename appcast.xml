@@ -3,6 +3,22 @@
     <channel>
         <title>VoiceInk</title>
         <item>
+            <title>1.70.36</title>
+            <pubDate>Tue, 07 Jul 2026 17:08:26 +0000</pubDate>
+            <link>https://github.com/fightingentropy/VoiceInk</link>
+            <sparkle:version>206</sparkle:version>
+            <sparkle:shortVersionString>1.70.36</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.4</sparkle:minimumSystemVersion>
+            <description sparkle:format="plain-text"><![CDATA[VoiceInk 1.70.36
+
+- Notarized Developer ID build with Sparkle auto-updates re-enabled
+- FluidAudio upgraded to v0.15.4 (long-form accuracy fixes, download retries)
+- Spoken punctuation ("comma", "open paren") and literal dictation tokens (/commands, @mentions)
+- Lower-latency audio capture: lock-free realtime path with anti-aliased resampling
+- Keyboard-layout-aware paste (no more input-source switching)]]></description>
+            <enclosure url="https://github.com/fightingentropy/VoiceInk/releases/download/v1.70.36/VoiceInk-1.70.36.zip" length="18664402" type="application/octet-stream" sparkle:edSignature="iPsQUB/qDz60eTkFhx7WOZSl55kgYnKnpZw3SN0riY0NBA4wkFC12Sg5RiGQbBhMtyodNfcW150PbV5l1Z4NCw=="/>
+        </item>
+        <item>
             <title>1.70.6</title>
             <pubDate>Sun, 08 Mar 2026 18:33:37 +0000</pubDate>
             <link>https://github.com/fightingentropy/VoiceInk</link>
