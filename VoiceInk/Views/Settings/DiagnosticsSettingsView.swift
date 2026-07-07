@@ -5,6 +5,7 @@ struct DiagnosticsSettingsView: View {
     @State private var exportedLogURL: URL?
     @State private var showLogExportError = false
     @State private var logExportError: String = ""
+    @State private var isSystemInfoCopied = false
 
     var body: some View {
         LabeledContent {
@@ -36,6 +37,28 @@ struct DiagnosticsSettingsView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(logExportError)
+        }
+
+        LabeledContent("System Info") {
+            Button {
+                copySystemInfo()
+            } label: {
+                if isSystemInfoCopied {
+                    Label("Copied", systemImage: "checkmark")
+                } else {
+                    Text("Copy")
+                }
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+
+    private func copySystemInfo() {
+        SystemInfoService.shared.copySystemInfoToClipboard()
+        isSystemInfoCopied = true
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            isSystemInfoCopied = false
         }
     }
 

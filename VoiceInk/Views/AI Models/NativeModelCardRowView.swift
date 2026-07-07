@@ -40,18 +40,18 @@ struct NativeAppleModelCardView: View {
         Group {
             if isCurrent {
                 Text("Default")
-                    .font(.system(size: 11, weight: .medium))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.accentColor))
-                    .foregroundColor(.white)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(Color.accentColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(Color.accentColor.opacity(0.15)))
             } else {
                 Text("Built-in")
-                    .font(.system(size: 11, weight: .medium))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.blue.opacity(0.2)))
-                    .foregroundColor(Color.blue)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(.quaternary))
             }
         }
     }
@@ -105,7 +105,7 @@ struct NativeAppleModelCardView: View {
                     Text("Set as Default")
                         .font(.system(size: 12))
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
                 .controlSize(.small)
             }
         }

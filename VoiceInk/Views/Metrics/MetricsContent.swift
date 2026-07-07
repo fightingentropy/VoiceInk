@@ -9,6 +9,7 @@ struct MetricsContent: View {
     @State private var totalCount: Int = 0
     @State private var totalWords: Int = 0
     @State private var totalDuration: TimeInterval = 0
+    @State private var recentTranscriptions: [Transcription] = []
     @State private var isLoadingMetrics: Bool = true
     @State private var metricsTask: Task<Void, Never>?
 
@@ -20,24 +21,18 @@ struct MetricsContent: View {
                 ProgressView("Loading metrics...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                GeometryReader { geometry in
-                    ScrollView {
-                        VStack(spacing: 24) {
-                            metricsSection
+                ScrollView {
+                    VStack(spacing: 24) {
+                        metricsSection
 
-                            Spacer(minLength: 20)
-
-                            HStack {
-                                Spacer()
-                                footerActionsView
-                            }
+                        if !recentTranscriptions.isEmpty {
+                            recentActivitySection
                         }
-                        .frame(minHeight: geometry.size.height - 56)
-                        .padding(.vertical, 28)
-                        .padding(.horizontal, 32)
                     }
-                    .background(Color(.windowBackgroundColor))
+                    .padding(.vertical, 28)
+                    .padding(.horizontal, 32)
                 }
+                .background(Color(.windowBackgroundColor))
             }
         }
         .task {
@@ -115,6 +110,7 @@ struct MetricsContent: View {
                 self.totalCount = count
                 self.totalWords = words
                 self.totalDuration = duration
+                self.recentTranscriptions = self.fetchRecentTranscriptions()
                 self.isLoadingMetrics = false
             }
         } catch {
@@ -123,6 +119,15 @@ struct MetricsContent: View {
                 self.isLoadingMetrics = false
             }
         }
+    }
+
+    @MainActor
+    private func fetchRecentTranscriptions() -> [Transcription] {
+        var descriptor = FetchDescriptor<Transcription>(
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
+        descriptor.fetchLimit = 5
+        return (try? modelContext.fetch(descriptor)) ?? []
     }
 
     private var emptyStateView: some View {
@@ -179,10 +184,74 @@ struct MetricsContent: View {
         }
     }
     
-    private var footerActionsView: some View {
-        CopySystemInfoButton()
+    private var recentActivitySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Recent Activity")
+                    .font(.headline)
+
+                Spacer()
+
+                Button("Show All") {
+                    NotificationCenter.default.post(
+                        name: .navigateToDestination,
+                        object: nil,
+                        userInfo: ["destination": "History"]
+                    )
+                }
+                .buttonStyle(.borderless)
+            }
+
+            VStack(spacing: 0) {
+                ForEach(recentTranscriptions) { transcription in
+                    recentActivityRow(transcription)
+
+                    if transcription.id != recentTranscriptions.last?.id {
+                        Divider()
+                    }
+                }
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(.thinMaterial)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.07), lineWidth: 1)
+            )
+            .shadow(color: Color.black.opacity(0.05), radius: 2, y: 1)
+        }
     }
-    
+
+    private func recentActivityRow(_ transcription: Transcription) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Text(transcription.timestamp, format: .dateTime.month(.abbreviated).day().hour().minute())
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+
+                if transcription.duration > 0 {
+                    Text(transcription.duration.formatTiming())
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.quaternary, in: Capsule())
+                }
+
+                Spacer()
+            }
+
+            Text(transcription.text)
+                .font(.system(size: 12))
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+
     // MARK: - Computed Metrics
 
     private var averageWordsPerMinute: Double {
@@ -204,45 +273,5 @@ private enum Formatters {
 
     static func formattedNumber(_ value: Int) -> String {
         return numberFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
-    }
-}
-
-private struct CopySystemInfoButton: View {
-    @State private var isCopied: Bool = false
-
-    var body: some View {
-        Button(action: {
-            copySystemInfo()
-        }) {
-            HStack(spacing: 8) {
-                Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
-                    .rotationEffect(.degrees(isCopied ? 360 : 0))
-                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isCopied)
-
-                Text(isCopied ? "Copied!" : "Copy System Info")
-                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isCopied)
-            }
-            .font(.system(size: 13, weight: .medium))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Capsule().fill(.thinMaterial))
-        }
-        .buttonStyle(.plain)
-        .scaleEffect(isCopied ? 1.1 : 1.0)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isCopied)
-    }
-
-    private func copySystemInfo() {
-        SystemInfoService.shared.copySystemInfoToClipboard()
-
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-            isCopied = true
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                isCopied = false
-            }
-        }
     }
 }

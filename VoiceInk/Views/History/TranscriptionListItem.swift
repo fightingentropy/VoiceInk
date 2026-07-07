@@ -4,17 +4,26 @@ struct TranscriptionListItem: View {
     let transcription: Transcription
     let isSelected: Bool
     let isChecked: Bool
+    let isSelectionActive: Bool
     let onSelect: () -> Void
     let onToggleCheck: () -> Void
+    @State private var isHovering = false
 
     var body: some View {
         HStack(spacing: 8) {
-            Toggle("", isOn: Binding(
-                get: { isChecked },
-                set: { _ in onToggleCheck() }
-            ))
-            .toggleStyle(CircularCheckboxStyle())
-            .labelsHidden()
+            Group {
+                if isChecked || isSelectionActive || isHovering {
+                    Toggle("", isOn: Binding(
+                        get: { isChecked },
+                        set: { _ in onToggleCheck() }
+                    ))
+                    .toggleStyle(CircularCheckboxStyle())
+                    .labelsHidden()
+                } else {
+                    Color.clear
+                }
+            }
+            .frame(width: 18, height: 18)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
@@ -53,6 +62,7 @@ struct TranscriptionListItem: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { onSelect() }
+        .onHover { isHovering = $0 }
     }
 }
 

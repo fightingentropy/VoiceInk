@@ -27,7 +27,6 @@ struct ModelManagementView: View {
             .padding(24)
         }
         .frame(minWidth: 600, minHeight: 500)
-        .background(Color(NSColor.controlBackgroundColor))
         .alert(isPresented: $isShowingDeleteAlert) {
             Alert(
                 title: Text(alertTitle),
@@ -52,7 +51,6 @@ struct ModelManagementView: View {
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(CardBackground(isSelected: false))
-        .cornerRadius(10)
     }
 
     private var languageSelectionSection: some View {
@@ -74,13 +72,9 @@ struct ModelManagementView: View {
                 }) {
                     Image(systemName: "gear")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(isShowingSettings ? .accentColor : .primary.opacity(0.7))
-                        .padding(12)
-                        .background(
-                            CardBackground(isSelected: isShowingSettings, cornerRadius: 22)
-                        )
+                        .foregroundStyle(isShowingSettings ? Color.accentColor : Color.secondary)
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(.borderless)
             }
             .padding(.bottom, 12)
             

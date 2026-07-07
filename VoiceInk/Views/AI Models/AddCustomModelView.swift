@@ -47,14 +47,10 @@ struct AddCustomModelCardView: View {
                         Text(editingModel != nil ? "Edit Model" : "Add Model")
                             .font(.system(size: 14, weight: .semibold))
                     }
-                    .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.accentColor)
-                    .cornerRadius(12)
                 }
-                .buttonStyle(.plain)
-                .shadow(color: Color.accentColor.opacity(0.3), radius: 8, y: 4)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
             }
             
             // Expandable Form Section
@@ -76,9 +72,9 @@ struct AddCustomModelCardView: View {
                         }) {
                             Image(systemName: "xmark")
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.borderless)
                     }
                     
                     // Disclaimer
@@ -115,14 +111,11 @@ struct AddCustomModelCardView: View {
                         }) {
                             Text("Cancel")
                                 .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.secondary)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                                .background(Color.secondary.opacity(0.1))
-                                .cornerRadius(8)
                         }
-                        .buttonStyle(.plain)
-                        
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+
                         Button(action: {
                             addModel()
                         }) {
@@ -138,28 +131,15 @@ struct AddCustomModelCardView: View {
                                 Text(editingModel != nil ? "Update Model" : "Add Model")
                                     .font(.system(size: 13, weight: .medium))
                             }
-                            .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(isFormValid ? Color(.controlAccentColor) : Color.secondary)
-                                    .shadow(color: (isFormValid ? Color(.controlAccentColor) : Color.secondary).opacity(0.2), radius: 2, x: 0, y: 1)
-                            )
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
                         .disabled(!isFormValid || isSaving)
                     }
                 }
                 .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(.windowBackgroundColor))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color(.separatorColor), lineWidth: 1)
-                        )
-                )
+                .background(CardBackground(isSelected: false))
             }
         }
         .alert("Validation Errors", isPresented: $showingAlert) {

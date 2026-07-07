@@ -50,18 +50,18 @@ struct LocalModelCardView: View {
         Group {
             if isCurrent {
                 Text("Default")
-                    .font(.system(size: 11, weight: .medium))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.accentColor))
-                    .foregroundColor(.white)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(Color.accentColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(Color.accentColor.opacity(0.15)))
             } else if isDownloaded {
                 Text("Downloaded")
-                    .font(.system(size: 11, weight: .medium))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color(.quaternaryLabelColor)))
-                    .foregroundColor(Color(.labelColor))
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(.quaternary))
             }
         }
     }
@@ -136,26 +136,18 @@ struct LocalModelCardView: View {
                     Text("Set as Default")
                         .font(.system(size: 12))
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
                 .controlSize(.small)
             } else {
                 Button(action: downloadAction) {
                     HStack(spacing: 4) {
                         Text(isDownloading ? "Downloading..." : "Download")
-                            .font(.system(size: 12, weight: .medium))
                         Image(systemName: "arrow.down.circle")
-                            .font(.system(size: 12, weight: .medium))
                     }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(Color(.controlAccentColor))
-                            .shadow(color: Color(.controlAccentColor).opacity(0.2), radius: 2, x: 0, y: 1)
-                    )
+                    .font(.system(size: 12, weight: .medium))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
                 .disabled(isDownloading)
             }
             

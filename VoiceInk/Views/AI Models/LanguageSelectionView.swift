@@ -156,7 +156,6 @@ struct LanguageSelectionView: View {
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(CardBackground(isSelected: false))
-        .cornerRadius(10)
     }
 
     // New compact view for menu bar

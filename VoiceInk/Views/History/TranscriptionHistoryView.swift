@@ -79,7 +79,7 @@ struct TranscriptionHistoryView: View {
             centerPaneView
                 .frame(maxWidth: .infinity)
 
-            if isRightSidebarVisible {
+            if isRightSidebarVisible && selectedTranscription != nil {
                 Divider()
 
                 rightSidebarView
@@ -102,6 +102,7 @@ struct TranscriptionHistoryView: View {
                 Button(action: { withAnimation { isRightSidebarVisible.toggle() } }) {
                     Label("Toggle Inspector", systemImage: "sidebar.right")
                 }
+                .disabled(selectedTranscription == nil)
             }
         }
         .alert("Delete Selected Items?", isPresented: $showDeleteConfirmation) {
@@ -181,6 +182,7 @@ struct TranscriptionHistoryView: View {
                                     transcription: transcription,
                                     isSelected: selectedTranscription == transcription,
                                     isChecked: selectedTranscriptions.contains(transcription),
+                                    isSelectionActive: !selectedTranscriptions.isEmpty,
                                     onSelect: { selectedTranscription = transcription },
                                     onToggleCheck: { toggleSelection(transcription) }
                                 )
@@ -261,17 +263,6 @@ struct TranscriptionHistoryView: View {
             if let transcription = selectedTranscription {
                 TranscriptionMetadataView(transcription: transcription)
                     .id(transcription.id)
-            } else {
-                VStack(spacing: 12) {
-                    Image(systemName: "info.circle")
-                        .font(.system(size: 40))
-                        .foregroundColor(.secondary)
-                    Text("No Metadata")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(NSColor.controlBackgroundColor))
             }
         }
     }
@@ -333,10 +324,7 @@ struct TranscriptionHistoryView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(
-            Color(NSColor.windowBackgroundColor)
-                .shadow(color: Color.black.opacity(0.15), radius: 3, y: -2)
-        )
+        .background(.bar)
     }
     
     @MainActor

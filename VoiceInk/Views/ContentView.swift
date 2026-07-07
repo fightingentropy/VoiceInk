@@ -64,45 +64,39 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: $selectedView) {
-                Section {
-                    // App Header
-                    HStack(spacing: 6) {
-                        if let appIcon = NSImage(named: "AppIcon") {
-                            Image(nsImage: appIcon)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 28, height: 28)
-                                .cornerRadius(8)
-                        }
-
-                        Text("VoiceInk")
-                            .font(.system(size: 14, weight: .semibold))
-
-                        Spacer()
+                // App Header
+                HStack(spacing: 6) {
+                    if let appIcon = NSImage(named: "AppIcon") {
+                        Image(nsImage: appIcon)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 24, height: 24)
+                            .cornerRadius(8)
                     }
-                    .padding(.vertical, 4)
+
+                    Text("VoiceInk")
+                        .font(.system(size: 13, weight: .semibold))
+
+                    Spacer()
                 }
+                .padding(.vertical, 4)
 
                 ForEach(visibleViewTypes) { viewType in
-                    Section {
-                        if viewType == .history {
-                            Button(action: {
-                                HistoryWindowController.shared.showHistoryWindow(
-                                    modelContainer: modelContext.container,
-                                    engine: engine
-                                )
-                            }) {
-                                SidebarItemView(viewType: viewType)
-                            }
-                            .buttonStyle(.plain)
-                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                            .listRowSeparator(.hidden)
-                        } else {
-                            NavigationLink(value: viewType) {
-                                SidebarItemView(viewType: viewType)
-                            }
-                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                            .listRowSeparator(.hidden)
+                    if viewType == .history {
+                        Button(action: {
+                            HistoryWindowController.shared.showHistoryWindow(
+                                modelContainer: modelContext.container,
+                                engine: engine
+                            )
+                        }) {
+                            Label(viewType.rawValue, systemImage: viewType.icon)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        NavigationLink(value: viewType) {
+                            Label(viewType.rawValue, systemImage: viewType.icon)
                         }
                     }
                 }
@@ -121,8 +115,7 @@ struct ContentView: View {
             }
         }
         .navigationSplitViewStyle(.balanced)
-        .frame(width: 950)
-        .frame(minHeight: 730)
+        .frame(minWidth: 940, minHeight: 700)
         .onReceive(NotificationCenter.default.publisher(for: .navigateToDestination)) { notification in
             if let destination = notification.userInfo?["destination"] as? String {
                 switch destination {
@@ -167,26 +160,5 @@ struct ContentView: View {
         case .permissions:
             PermissionsView()
         }
-    }
-}
-
-private struct SidebarItemView: View {
-    let viewType: ViewType
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: viewType.icon)
-                .font(.system(size: 18, weight: .medium))
-                .frame(width: 24, height: 24)
-
-            Text(viewType.rawValue)
-                .font(.system(size: 14, weight: .medium))
-
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .padding(.vertical, 8)
-        .padding(.horizontal, 2)
     }
 }

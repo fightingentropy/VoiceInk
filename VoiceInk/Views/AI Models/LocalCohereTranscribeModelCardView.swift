@@ -103,24 +103,26 @@ struct LocalCohereTranscribeModelCardView: View {
     private var statusBadge: some View {
         Group {
             if isCurrent {
-                badge("Default", color: Color.accentColor, textColor: .white)
+                badge("Default", isProminent: true)
             } else if isDownloading {
-                badge("Downloading", color: Color(.systemOrange).opacity(0.18), textColor: Color(.systemOrange))
+                badge("Downloading")
             } else if isDownloaded {
-                badge("Downloaded", color: Color(.quaternaryLabelColor), textColor: Color(.labelColor))
+                badge("Downloaded")
             } else {
                 EmptyView()
             }
         }
     }
 
-    private func badge(_ label: String, color: Color, textColor: Color) -> some View {
+    private func badge(_ label: String, isProminent: Bool = false) -> some View {
         Text(label)
-            .font(.system(size: 11, weight: .medium))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(Capsule().fill(color))
-            .foregroundColor(textColor)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(isProminent ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(
+                Capsule().fill(isProminent ? AnyShapeStyle(Color.accentColor.opacity(0.15)) : AnyShapeStyle(.quaternary))
+            )
     }
 
     private var metadataSection: some View {
@@ -179,7 +181,7 @@ struct LocalCohereTranscribeModelCardView: View {
                     Text("Set as Default")
                         .font(.system(size: 12))
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
                 .controlSize(.small)
             } else {
                 Button {
@@ -194,21 +196,13 @@ struct LocalCohereTranscribeModelCardView: View {
                                 .frame(width: 12, height: 12)
                         } else {
                             Image(systemName: "arrow.down.circle")
-                                .font(.system(size: 12, weight: .medium))
                         }
                         Text(downloadButtonLabel)
-                            .font(.system(size: 12, weight: .medium))
                     }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(Color(.controlAccentColor))
-                            .shadow(color: Color(.controlAccentColor).opacity(0.2), radius: 2, x: 0, y: 1)
-                    )
+                    .font(.system(size: 12, weight: .medium))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
                 .disabled(isDownloading)
             }
 

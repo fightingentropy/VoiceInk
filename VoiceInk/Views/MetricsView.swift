@@ -11,6 +11,5 @@ struct MetricsView: View {
         VStack {
             MetricsContent(modelContext: modelContext)
         }
-        .background(Color(.controlBackgroundColor))
     }
 }
