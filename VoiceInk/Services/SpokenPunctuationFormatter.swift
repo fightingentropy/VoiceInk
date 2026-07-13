@@ -104,7 +104,6 @@ enum SpokenPunctuationFormatter {
         guard let haystack = context?.lowercased() else { return false }
         return haystack.contains("codex") ||
             haystack.contains("chatgpt") ||
-            haystack.contains("claude") ||
             haystack.contains("cursor") ||
             haystack.contains("windsurf") ||
             haystack.contains("xcode") ||
