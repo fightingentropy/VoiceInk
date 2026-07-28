@@ -9,22 +9,15 @@ import os
 struct GeneralSettings: Codable {
     let toggleMiniRecorderShortcut: KeyboardShortcuts.Shortcut?
     let toggleMiniRecorderShortcut2: KeyboardShortcuts.Shortcut?
-    let retryLastTranscriptionShortcut: KeyboardShortcuts.Shortcut?
     let selectedHotkey1RawValue: String?
     let selectedHotkey2RawValue: String?
     let launchAtLoginEnabled: Bool?
-    let isMenuBarOnly: Bool?
-    let isTranscriptionCleanupEnabled: Bool?
-    let transcriptionRetentionMinutes: Int?
-    let isAudioCleanupEnabled: Bool?
-    let audioRetentionPeriod: Int?
 
     let isSoundFeedbackEnabled: Bool?
     let isSystemMuteEnabled: Bool?
     let isPauseMediaEnabled: Bool?
     let audioResumptionDelay: Double?
     let isTextFormattingEnabled: Bool?
-    let isExperimentalFeaturesEnabled: Bool?
     let restoreClipboardAfterPaste: Bool?
     let clipboardRestoreDelay: Double?
     let useAppleScriptPaste: Bool?
@@ -42,15 +35,6 @@ final class ImportExportService {
     static let shared = ImportExportService()
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "ImportExportService")
     private let currentSettingsVersion: String
-    private let wordReplacementsKey = "wordReplacements"
-
-
-    private let keyIsMenuBarOnly = "IsMenuBarOnly"
-    private let keyRecorderType = "RecorderType"
-    private let keyIsAudioCleanupEnabled = "IsAudioCleanupEnabled"
-    private let keyIsTranscriptionCleanupEnabled = "IsTranscriptionCleanupEnabled"
-    private let keyTranscriptionRetentionMinutes = "TranscriptionRetentionMinutes"
-    private let keyAudioRetentionPeriod = "AudioRetentionPeriod"
 
     private let keyIsSoundFeedbackEnabled = "isSoundFeedbackEnabled"
     private let keyIsSystemMuteEnabled = "isSystemMuteEnabled"
@@ -65,7 +49,7 @@ final class ImportExportService {
     }
 
     @MainActor
-    func exportSettings(whisperPrompt: WhisperPrompt, hotkeyManager: HotkeyManager, menuBarManager: MenuBarManager, mediaController: MediaController, playbackController: PlaybackController, soundManager: SoundManager, modelContext: ModelContext) {
+    func exportSettings(hotkeyManager: HotkeyManager, mediaController: MediaController, playbackController: PlaybackController, soundManager: SoundManager, modelContext: ModelContext) {
         // Export custom models
         let customModels = CustomModelManager.shared.customModels
 
@@ -79,22 +63,15 @@ final class ImportExportService {
         let generalSettingsToExport = GeneralSettings(
             toggleMiniRecorderShortcut: KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder),
             toggleMiniRecorderShortcut2: KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder2),
-            retryLastTranscriptionShortcut: KeyboardShortcuts.getShortcut(for: .retryLastTranscription),
             selectedHotkey1RawValue: hotkeyManager.selectedHotkey1.rawValue,
             selectedHotkey2RawValue: hotkeyManager.selectedHotkey2.rawValue,
             launchAtLoginEnabled: LaunchAtLogin.isEnabled,
-            isMenuBarOnly: menuBarManager.isMenuBarOnly,
-            isTranscriptionCleanupEnabled: UserDefaults.standard.bool(forKey: keyIsTranscriptionCleanupEnabled),
-            transcriptionRetentionMinutes: UserDefaults.standard.integer(forKey: keyTranscriptionRetentionMinutes),
-            isAudioCleanupEnabled: UserDefaults.standard.bool(forKey: keyIsAudioCleanupEnabled),
-            audioRetentionPeriod: UserDefaults.standard.integer(forKey: keyAudioRetentionPeriod),
 
             isSoundFeedbackEnabled: soundManager.isEnabled,
             isSystemMuteEnabled: mediaController.isSystemMuteEnabled,
             isPauseMediaEnabled: playbackController.isPauseMediaEnabled,
             audioResumptionDelay: mediaController.audioResumptionDelay,
             isTextFormattingEnabled: UserDefaults.standard.bool(forKey: keyIsTextFormattingEnabled),
-            isExperimentalFeaturesEnabled: UserDefaults.standard.bool(forKey: "isExperimentalFeaturesEnabled"),
             restoreClipboardAfterPaste: UserDefaults.standard.bool(forKey: "restoreClipboardAfterPaste"),
             clipboardRestoreDelay: UserDefaults.standard.double(forKey: "clipboardRestoreDelay"),
             useAppleScriptPaste: UserDefaults.standard.bool(forKey: "useAppleScriptPaste")
@@ -139,7 +116,7 @@ final class ImportExportService {
     }
 
     @MainActor
-    func importSettings(whisperPrompt: WhisperPrompt, hotkeyManager: HotkeyManager, menuBarManager: MenuBarManager, mediaController: MediaController, playbackController: PlaybackController, soundManager: SoundManager, modelContext: ModelContext, transcriptionModelManager: TranscriptionModelManager) {
+    func importSettings(hotkeyManager: HotkeyManager, mediaController: MediaController, playbackController: PlaybackController, soundManager: SoundManager, modelContext: ModelContext, transcriptionModelManager: TranscriptionModelManager) {
         let openPanel = NSOpenPanel()
         openPanel.allowedContentTypes = [UTType.json]
         openPanel.canChooseFiles = true
@@ -219,9 +196,6 @@ final class ImportExportService {
                         if let shortcut2 = general.toggleMiniRecorderShortcut2 {
                             KeyboardShortcuts.setShortcut(shortcut2, for: .toggleMiniRecorder2)
                         }
-                        if let retryShortcut = general.retryLastTranscriptionShortcut {
-                            KeyboardShortcuts.setShortcut(retryShortcut, for: .retryLastTranscription)
-                        }
                         if let hotkeyRaw = general.selectedHotkey1RawValue,
                            let hotkey = HotkeyManager.HotkeyOption(rawValue: hotkeyRaw) {
                             hotkeyManager.selectedHotkey1 = hotkey
@@ -232,22 +206,6 @@ final class ImportExportService {
                         }
                         if let launch = general.launchAtLoginEnabled {
                             LaunchAtLogin.isEnabled = launch
-                        }
-                        if let menuOnly = general.isMenuBarOnly {
-                            menuBarManager.isMenuBarOnly = menuOnly
-                        }
-
-                        if let transcriptionCleanup = general.isTranscriptionCleanupEnabled {
-                            UserDefaults.standard.set(transcriptionCleanup, forKey: self.keyIsTranscriptionCleanupEnabled)
-                        }
-                        if let transcriptionMinutes = general.transcriptionRetentionMinutes {
-                            UserDefaults.standard.set(transcriptionMinutes, forKey: self.keyTranscriptionRetentionMinutes)
-                        }
-                        if let audioCleanup = general.isAudioCleanupEnabled {
-                            UserDefaults.standard.set(audioCleanup, forKey: self.keyIsAudioCleanupEnabled)
-                        }
-                        if let audioRetention = general.audioRetentionPeriod {
-                            UserDefaults.standard.set(audioRetention, forKey: self.keyAudioRetentionPeriod)
                         }
 
                         if let soundFeedback = general.isSoundFeedbackEnabled {
@@ -261,12 +219,6 @@ final class ImportExportService {
                         }
                         if let audioDelay = general.audioResumptionDelay {
                             mediaController.audioResumptionDelay = audioDelay
-                        }
-                        if let experimentalEnabled = general.isExperimentalFeaturesEnabled {
-                            UserDefaults.standard.set(experimentalEnabled, forKey: "isExperimentalFeaturesEnabled")
-                            if experimentalEnabled == false {
-                                playbackController.isPauseMediaEnabled = false
-                            }
                         }
                         if let textFormattingEnabled = general.isTextFormattingEnabled {
                             UserDefaults.standard.set(textFormattingEnabled, forKey: self.keyIsTextFormattingEnabled)

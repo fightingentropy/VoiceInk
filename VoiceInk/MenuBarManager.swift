@@ -1,37 +1,12 @@
 import SwiftUI
-import SwiftData
 import AppKit
 import os
 
 @MainActor
 class MenuBarManager: ObservableObject {
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "MenuBarManager")
-    @Published var isMenuBarOnly: Bool {
-        didSet {
-            UserDefaults.standard.set(isMenuBarOnly, forKey: "IsMenuBarOnly")
-            if !isMinimalModeEnabled {
-                updateAppActivationPolicy()
-            }
-        }
-    }
-    @Published var isMinimalModeEnabled: Bool {
-        didSet {
-            MinimalModePolicy.setEnabled(isMinimalModeEnabled)
-            // Keep the currently open Settings window in the foreground.
-            // The normal window-close path applies the menu-bar-only policy.
-        }
-    }
-
-    var shouldHideDockIcon: Bool {
-        isMenuBarOnly || isMinimalModeEnabled
-    }
-
-    private var modelContainer: ModelContainer?
-    private var engine: VoiceInkEngine?
 
     init() {
-        self.isMenuBarOnly = UserDefaults.standard.bool(forKey: "IsMenuBarOnly")
-        self.isMinimalModeEnabled = MinimalModePolicy.isEnabled()
         updateAppActivationPolicy()
 
         NotificationCenter.default.addObserver(
@@ -47,8 +22,7 @@ class MenuBarManager: ObservableObject {
     }
 
     @objc private func windowDidClose(_ notification: Notification) {
-        guard shouldHideDockIcon,
-              let window = notification.object as? NSWindow,
+        guard let window = notification.object as? NSWindow,
               window.identifier != nil else { return }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -61,41 +35,22 @@ class MenuBarManager: ObservableObject {
         }
     }
 
-    func configure(modelContainer: ModelContainer, engine: VoiceInkEngine) {
-        self.modelContainer = modelContainer
-        self.engine = engine
-    }
-    
-    func toggleMenuBarOnly() {
-        isMenuBarOnly.toggle()
-    }
-    
     func applyActivationPolicy() {
         updateAppActivationPolicy()
     }
     
     func focusMainWindow() {
-        NSApplication.shared.setActivationPolicy(.regular)
         if WindowManager.shared.showMainWindow() == nil {
             logger.warning("Unable to locate main window to focus")
         }
     }
     
     private func updateAppActivationPolicy() {
-        let application = NSApplication.shared
-        if shouldHideDockIcon {
-            application.setActivationPolicy(.accessory)
-            WindowManager.shared.hideMainWindow()
-        } else {
-            application.setActivationPolicy(.regular)
-            _ = WindowManager.shared.showMainWindow()
-        }
+        NSApplication.shared.setActivationPolicy(.accessory)
     }
     
     func openMainWindowAndNavigate(to destination: String) {
         logger.debug("Navigating to \(destination, privacy: .public)")
-
-        NSApplication.shared.setActivationPolicy(.regular)
 
         guard WindowManager.shared.showMainWindow() != nil else {
             logger.warning("Unable to show main window for navigation")
@@ -113,16 +68,4 @@ class MenuBarManager: ObservableObject {
         }
     }
 
-    func openHistoryWindow() {
-        guard let modelContainer = modelContainer,
-              let engine = engine else {
-            logger.error("Dependencies not configured")
-            return
-        }
-        NSApplication.shared.setActivationPolicy(.regular)
-        HistoryWindowController.shared.showHistoryWindow(
-            modelContainer: modelContainer,
-            engine: engine
-        )
-    }
 }

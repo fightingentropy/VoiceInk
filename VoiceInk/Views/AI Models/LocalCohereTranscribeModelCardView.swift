@@ -80,7 +80,7 @@ struct LocalCohereTranscribeModelCardView: View {
 
                 Text(errorMessage)
                     .font(.caption)
-                    .foregroundColor(Color(.systemRed))
+                    .foregroundColor(MonochromeStyle.secondaryText)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
             }
@@ -117,11 +117,11 @@ struct LocalCohereTranscribeModelCardView: View {
     private func badge(_ label: String, isProminent: Bool = false) -> some View {
         Text(label)
             .font(.caption.weight(.medium))
-            .foregroundStyle(isProminent ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary))
+            .foregroundStyle(isProminent ? AnyShapeStyle(MonochromeStyle.primaryText) : AnyShapeStyle(MonochromeStyle.secondaryText))
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(
-                Capsule().fill(isProminent ? AnyShapeStyle(Color.accentColor.opacity(0.15)) : AnyShapeStyle(.quaternary))
+                Capsule().fill(isProminent ? AnyShapeStyle(MonochromeStyle.raisedFill) : AnyShapeStyle(MonochromeStyle.subtleFill))
             )
     }
 

@@ -39,7 +39,7 @@ final class SystemInfoService: @unchecked Sendable {
         Selected Language: \(getCurrentLanguage())
 
         UI SETTINGS:
-        Menu Bar Only: \(UserDefaults.standard.bool(forKey: "IsMenuBarOnly"))
+        Menu Bar Only: true
 
         CLIPBOARD & PASTE SETTINGS:
         Restore Clipboard After Paste: \(UserDefaults.standard.bool(forKey: "restoreClipboardAfterPaste"))

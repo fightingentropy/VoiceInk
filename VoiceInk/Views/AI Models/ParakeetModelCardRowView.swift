@@ -51,10 +51,10 @@ struct ParakeetModelCardRowView: View {
             if isCurrent {
                 Text("Default")
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(MonochromeStyle.primaryText)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(Capsule().fill(Color.accentColor.opacity(0.15)))
+                    .background(Capsule().fill(MonochromeStyle.raisedFill))
             } else if isDownloaded {
                 Text("Downloaded")
                     .font(.caption.weight(.medium))

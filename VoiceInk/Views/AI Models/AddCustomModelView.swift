@@ -80,7 +80,7 @@ struct AddCustomModelCardView: View {
                     // Disclaimer
                     HStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
+                            .foregroundColor(MonochromeStyle.secondaryText)
                             .font(.caption)
                         Text("Only OpenAI-compatible transcription APIs are supported")
                             .font(.caption)
@@ -88,7 +88,7 @@ struct AddCustomModelCardView: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(Color.orange.opacity(0.1))
+                    .background(MonochromeStyle.subtleFill)
                     .cornerRadius(8)
                     
                     // Form fields
@@ -277,4 +277,4 @@ struct FormField: View {
             }
         }
     }
-} 
+}

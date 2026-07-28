@@ -27,14 +27,21 @@ class WindowManager: NSObject {
         window.styleMask.formUnion(requiredStyleMask)
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
-        window.backgroundColor = .windowBackgroundColor
+        window.backgroundColor = NSColor(
+            red: 16 / 255,
+            green: 16 / 255,
+            blue: 18 / 255,
+            alpha: 1
+        )
         window.isReleasedWhenClosed = false
         window.title = "VoiceInk"
         window.collectionBehavior = [.fullScreenPrimary]
         window.level = .normal
         window.isOpaque = true
         window.isMovableByWindowBackground = false
-        window.minSize = NSSize(width: 0, height: 0)
+        window.minSize = NSSize(width: 760, height: 540)
+        window.hasShadow = true
+        window.titlebarSeparatorStyle = .none
         window.setFrameAutosaveName(Self.mainWindowAutosaveName)
         applyInitialPlacementIfNeeded(to: window)
         registerMainWindowIfNeeded(window)
@@ -77,13 +84,6 @@ class WindowManager: NSObject {
         return window
     }
     
-    func hideMainWindow() {
-        guard let window = resolveMainWindow() else {
-            return
-        }
-        window.orderOut(nil)
-    }
-    
     func currentMainWindow() -> NSWindow? {
         resolveMainWindow()
     }
@@ -97,10 +97,8 @@ class WindowManager: NSObject {
     
     private func applyInitialPlacementIfNeeded(to window: NSWindow) {
         guard !didApplyInitialPlacement else { return }
-        // Attempt to restore previous frame if one exists; otherwise fall back to a centered placement
-        if !window.setFrameUsingName(Self.mainWindowAutosaveName) {
-            window.center()
-        }
+        window.setContentSize(NSSize(width: 820, height: 600))
+        window.center()
         didApplyInitialPlacement = true
     }
     

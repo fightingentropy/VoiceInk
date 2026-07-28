@@ -5,9 +5,6 @@ import OSLog
 import AppIntents
 import FluidAudio
 import Security
-#if !LOCAL_BUILD
-import Sparkle
-#endif
 
 @main
 struct VoiceInkApp: App {
@@ -22,16 +19,8 @@ struct VoiceInkApp: App {
     @StateObject private var recorderUIManager: RecorderUIManager
     @StateObject private var hotkeyManager: HotkeyManager
     @StateObject private var menuBarManager: MenuBarManager
-    @StateObject private var updaterViewModel: UpdaterViewModel
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @AppStorage("enableAnnouncements") private var enableAnnouncements = true
     @State private var showMenuBarIcon = true
-
-    // Audio cleanup manager for automatic deletion of old audio files
-    private let audioCleanupManager = AudioCleanupManager.shared
-
-    // Transcription auto-cleanup service for zero data retention
-    private let transcriptionAutoCleanupService = TranscriptionAutoCleanupService.shared
 
     // Model prewarm service for optimizing model on wake from sleep
     @StateObject private var prewarmService: ModelPrewarmService
@@ -60,7 +49,8 @@ struct VoiceInkApp: App {
         ])
         var initializationFailed = false
 
-        // Attempt 1: Try persistent storage
+        // Attempt 1: Persist dictionary data while keeping transcript objects
+        // memory-only. VoiceInk never opens or writes a transcript history store.
         if let persistentContainer = Self.createPersistentContainer(schema: schema, logger: logger) {
             container = persistentContainer
         }
@@ -68,13 +58,13 @@ struct VoiceInkApp: App {
         else if let memoryContainer = Self.createInMemoryContainer(schema: schema, logger: logger) {
             container = memoryContainer
 
-            logger.warning("Using in-memory storage as fallback. Data will not persist between sessions.")
+            logger.warning("Using in-memory storage as fallback. Dictionary changes will not persist between sessions.")
 
             // Show alert to user about storage issue
             DispatchQueue.main.async {
                 let alert = NSAlert()
                 alert.messageText = "Storage Warning"
-                alert.informativeText = "VoiceInk couldn't access its storage location. Your transcriptions will not be saved between sessions."
+                alert.informativeText = "VoiceInk couldn't access its storage location. Dictionary changes will not be saved between sessions."
                 alert.alertStyle = .warning
                 alert.addButton(withTitle: "OK")
                 alert.runModal()
@@ -130,10 +120,6 @@ struct VoiceInkApp: App {
 
         let menuBarManager = MenuBarManager()
         _menuBarManager = StateObject(wrappedValue: menuBarManager)
-        menuBarManager.configure(modelContainer: container, engine: engine)
-
-        let updaterViewModel = UpdaterViewModel()
-        _updaterViewModel = StateObject(wrappedValue: updaterViewModel)
 
         let prewarmService = ModelPrewarmService(engine: engine)
         _prewarmService = StateObject(wrappedValue: prewarmService)
@@ -156,14 +142,6 @@ struct VoiceInkApp: App {
 
         AppShortcuts.updateAppShortcutParameters()
 
-        let benchmarkModelContext = container.mainContext
-        Task { @MainActor in
-            await RecentBenchmarkCorpusService.shared.bootstrapIfNeeded(modelContext: benchmarkModelContext)
-        }
-
-        // Start cleanup service for the app's lifetime, not tied to window lifecycle
-        TranscriptionAutoCleanupService.shared.startMonitoring(modelContext: container.mainContext)
-
         let initElapsed = launchClock.now - initStartedAt
         let elapsedComps = initElapsed.components
         let initElapsedMs =
@@ -182,17 +160,16 @@ struct VoiceInkApp: App {
             // Create the directory if it doesn't exist
             try? AppStoragePaths.createDirectoryIfNeeded(at: appSupportURL)
 
-            // Define storage locations
-            let defaultStoreURL = AppStoragePaths.defaultStoreURL
+            // Define the only persistent storage location.
             let dictionaryStoreURL = AppStoragePaths.dictionaryStoreURL
 
-            // Transcript configuration
+            // Transcript values exist only long enough to render imported-file
+            // results. They are intentionally never backed by a disk store.
             let transcriptSchema = Schema([Transcription.self])
             let transcriptConfig = ModelConfiguration(
                 "default",
                 schema: transcriptSchema,
-                url: defaultStoreURL,
-                cloudKitDatabase: .none
+                isStoredInMemoryOnly: true
             )
 
             // Dictionary configuration
@@ -310,7 +287,6 @@ struct VoiceInkApp: App {
                     .environmentObject(recorderUIManager)
                     .environmentObject(hotkeyManager)
                     .environmentObject(menuBarManager)
-                    .environmentObject(updaterViewModel)
                     .modelContainer(container)
                     .onAppear {
                         // Check if container initialization failed
@@ -329,20 +305,6 @@ struct VoiceInkApp: App {
                         // Migrate dictionary data from UserDefaults to SwiftData (one-time operation)
                         DictionaryMigrationService.shared.migrateIfNeeded(context: container.mainContext)
 
-                        updaterViewModel.setMinimalModeEnabled(menuBarManager.isMinimalModeEnabled)
-                        updaterViewModel.silentlyCheckForUpdates()
-
-                        if MinimalModePolicy.allowsBackgroundNetworkActivity(
-                            requested: enableAnnouncements
-                        ) {
-                            AnnouncementsService.shared.start()
-                        }
-
-                        // Start the automatic audio cleanup process only if transcript cleanup is not enabled
-                        if !UserDefaults.standard.bool(forKey: "IsTranscriptionCleanupEnabled") {
-                            audioCleanupManager.startAutomaticCleanup(modelContext: container.mainContext)
-                        }
-
                         // Process any pending open-file request now that the main ContentView is ready.
                         if let pendingURL = appDelegate.pendingOpenFileURL {
                             NotificationCenter.default.post(name: .navigateToDestination, object: nil, userInfo: ["destination": "Transcribe Audio"])
@@ -354,22 +316,12 @@ struct VoiceInkApp: App {
                     }
                     .background(WindowAccessor { window in
                         WindowManager.shared.configureWindow(window)
+                        DispatchQueue.main.async {
+                            menuBarManager.applyActivationPolicy()
+                        }
                     })
                     .onDisappear {
-                        AnnouncementsService.shared.stop()
                         prewarmService.handleWindowDidDisappear()
-
-                        // Stop the automatic audio cleanup process
-                        audioCleanupManager.stopAutomaticCleanup()
-                    }
-                    .onChange(of: menuBarManager.isMinimalModeEnabled) { _, isEnabled in
-                        updaterViewModel.setMinimalModeEnabled(isEnabled)
-
-                        if isEnabled {
-                            AnnouncementsService.shared.stop()
-                        } else if enableAnnouncements {
-                            AnnouncementsService.shared.start()
-                        }
                     }
             } else {
                 OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)
@@ -388,17 +340,8 @@ struct VoiceInkApp: App {
             }
         }
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 950, height: 730)
+        .defaultSize(width: 820, height: 600)
         .windowResizability(.contentMinSize)
-        .commands {
-            CommandGroup(replacing: .newItem) { }
-
-            #if !LOCAL_BUILD
-            CommandGroup(after: .appInfo) {
-                CheckForUpdatesView(updaterViewModel: updaterViewModel)
-            }
-            #endif
-        }
 
         MenuBarExtra(isInserted: $showMenuBarIcon) {
             MenuBarView()
@@ -420,14 +363,6 @@ struct VoiceInkApp: App {
             Image(nsImage: image)
         }
         .menuBarExtraStyle(.menu)
-
-        #if DEBUG
-        WindowGroup("Debug") {
-            Button("Toggle Menu Bar Only") {
-                menuBarManager.isMenuBarOnly.toggle()
-            }
-        }
-        #endif
     }
 }
 
@@ -445,70 +380,4 @@ struct WindowAccessor: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {}
-}
-
-@MainActor
-class UpdaterViewModel: ObservableObject {
-    #if LOCAL_BUILD
-    @Published var canCheckForUpdates = false
-
-    init() { }
-
-    func toggleAutoUpdates(_ value: Bool) { }
-
-    func checkForUpdates() { }
-
-    func silentlyCheckForUpdates() { }
-
-    func setMinimalModeEnabled(_ enabled: Bool) { }
-    #else
-    @AppStorage("autoUpdateCheck") private var autoUpdateCheck = true
-
-    private let updaterController: SPUStandardUpdaterController
-
-    @Published var canCheckForUpdates = false
-
-    init() {
-        updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
-
-        // Enable automatic update checking
-        updaterController.updater.automaticallyChecksForUpdates =
-            MinimalModePolicy.allowsBackgroundNetworkActivity(requested: autoUpdateCheck)
-        updaterController.updater.updateCheckInterval = 24 * 60 * 60
-
-        updaterController.updater.publisher(for: \.canCheckForUpdates)
-            .assign(to: &$canCheckForUpdates)
-    }
-
-    func toggleAutoUpdates(_ value: Bool) {
-        updaterController.updater.automaticallyChecksForUpdates =
-            MinimalModePolicy.allowsBackgroundNetworkActivity(requested: value)
-    }
-
-    func checkForUpdates() {
-        // This is for manual checks - will show UI
-        updaterController.checkForUpdates(nil)
-    }
-
-    func silentlyCheckForUpdates() {
-        guard MinimalModePolicy.allowsBackgroundNetworkActivity(requested: autoUpdateCheck) else {
-            return
-        }
-        // This checks for updates in the background without showing UI unless an update is found
-        updaterController.updater.checkForUpdatesInBackground()
-    }
-
-    func setMinimalModeEnabled(_ enabled: Bool) {
-        updaterController.updater.automaticallyChecksForUpdates = !enabled && autoUpdateCheck
-    }
-    #endif
-}
-
-struct CheckForUpdatesView: View {
-    @ObservedObject var updaterViewModel: UpdaterViewModel
-
-    var body: some View {
-        Button("Check for Updates…", action: updaterViewModel.checkForUpdates)
-            .disabled(!updaterViewModel.canCheckForUpdates)
-    }
 }

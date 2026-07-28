@@ -7,8 +7,6 @@ enum AppDefaults {
         UserDefaults.standard.register(defaults: [
             // Onboarding & General
             "hasCompletedOnboarding": false,
-            "enableAnnouncements": true,
-            "autoUpdateCheck": true,
 
             // Clipboard
             "restoreClipboardAfterPaste": true,
@@ -37,8 +35,6 @@ enum AppDefaults {
             "AudioRetentionPeriod": 7,
 
             // UI & Behavior
-            "IsMenuBarOnly": false,
-            MinimalModePolicy.enabledKey: false,
             // Hotkey
             "isMiddleClickToggleEnabled": false,
             "middleClickActivationDelay": 200,

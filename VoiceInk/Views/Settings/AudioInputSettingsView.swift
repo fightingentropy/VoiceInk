@@ -11,7 +11,7 @@ struct AudioInputSettingsView: View {
                 mainContent
             }
         }
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color.clear)
     }
     
     private var mainContent: some View {
@@ -74,12 +74,12 @@ struct AudioInputSettingsView: View {
 
                 Label("Active", systemImage: "wave.3.right")
                     .font(.caption)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(MonochromeStyle.primaryText)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
                     .background(
                         Capsule()
-                            .fill(.green.opacity(0.1))
+                            .fill(MonochromeStyle.raisedFill)
                     )
             }
             .padding()
@@ -288,7 +288,7 @@ struct InputModeCard: View {
                 Image(systemName: icon)
                     .font(.system(size: 28))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(isSelected ? .blue : .secondary)
+                    .foregroundStyle(isSelected ? MonochromeStyle.primaryText : MonochromeStyle.secondaryText)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(mode.rawValue)
@@ -319,7 +319,7 @@ struct DeviceSelectionCard: View {
             HStack {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(isSelected ? .blue : .secondary)
+                    .foregroundStyle(isSelected ? MonochromeStyle.primaryText : MonochromeStyle.secondaryText)
                     .font(.system(size: 18))
                 
                 Text(name)
@@ -330,12 +330,12 @@ struct DeviceSelectionCard: View {
                 if isActive {
                     Label("Active", systemImage: "wave.3.right")
                         .font(.caption)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(MonochromeStyle.primaryText)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
                         .background(
                             Capsule()
-                                .fill(.green.opacity(0.1))
+                                .fill(MonochromeStyle.raisedFill)
                         )
                 }
             }
@@ -385,12 +385,12 @@ struct DevicePriorityCard: View {
                 if isActive {
                     Label("Active", systemImage: "wave.3.right")
                         .font(.caption)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(MonochromeStyle.primaryText)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
                         .background(
                             Capsule()
-                                .fill(.green.opacity(0.1))
+                                .fill(MonochromeStyle.raisedFill)
                         )
                 } else if !isAvailable && isPrioritized {
                     Label("Unavailable", systemImage: "exclamationmark.triangle")
@@ -409,13 +409,13 @@ struct DevicePriorityCard: View {
                     HStack(spacing: 2) {
                         Button(action: onMoveUp) {
                             Image(systemName: "chevron.up")
-                                .foregroundStyle(canMoveUp ? .blue : .secondary.opacity(0.5))
+                                .foregroundStyle(canMoveUp ? MonochromeStyle.primaryText : MonochromeStyle.secondaryText.opacity(0.5))
                         }
                         .disabled(!canMoveUp)
                         
                         Button(action: onMoveDown) {
                             Image(systemName: "chevron.down")
-                                .foregroundStyle(canMoveDown ? .blue : .secondary.opacity(0.5))
+                                .foregroundStyle(canMoveDown ? MonochromeStyle.primaryText : MonochromeStyle.secondaryText.opacity(0.5))
                         }
                         .disabled(!canMoveDown)
                     }
@@ -425,7 +425,7 @@ struct DevicePriorityCard: View {
                 Button(action: onTogglePriority) {
                     Image(systemName: isPrioritized ? "minus.circle.fill" : "plus.circle.fill")
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(isPrioritized ? .red : .blue)
+                        .foregroundStyle(isPrioritized ? MonochromeStyle.secondaryText : MonochromeStyle.primaryText)
                 }
             }
             .buttonStyle(.plain)

@@ -12,7 +12,7 @@ struct DictionarySettingsView: View {
             }
         }
         .frame(minWidth: 600, minHeight: 500)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color.clear)
     }
     
     private var heroSection: some View {
@@ -39,7 +39,7 @@ struct DictionarySettingsView: View {
                     }) {
                         Image(systemName: "square.and.arrow.down")
                             .font(.system(size: 18))
-                            .foregroundColor(.blue)
+                            .foregroundColor(MonochromeStyle.primaryText)
                     }
                     .buttonStyle(.plain)
                     .help("Import word replacements")
@@ -49,7 +49,7 @@ struct DictionarySettingsView: View {
                     }) {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 18))
-                            .foregroundColor(.blue)
+                            .foregroundColor(MonochromeStyle.primaryText)
                     }
                     .buttonStyle(.plain)
                     .help("Export word replacements")

@@ -83,13 +83,13 @@ struct PermissionCard: View {
                 // Icon with background
                 ZStack {
                     Circle()
-                        .fill(isGranted ? Color.green.opacity(0.15) : Color.orange.opacity(0.15))
-                        .frame(width: 44, height: 44)
+                        .fill(isGranted ? MonochromeStyle.raisedFill : MonochromeStyle.subtleFill)
+                        .frame(width: 38, height: 38)
 
                     Image(systemName: isGranted ? "\(icon).fill" : icon)
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(isGranted ? .green : .orange)
-                        .symbolRenderingMode(.hierarchical)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(isGranted ? MonochromeStyle.primaryText : MonochromeStyle.secondaryText)
+                        .symbolRenderingMode(.monochrome)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -134,14 +134,14 @@ struct PermissionCard: View {
                     
                     if isGranted {
                         Image(systemName: "checkmark.seal.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(.green)
-                            .symbolRenderingMode(.hierarchical)
+                            .font(.system(size: 17))
+                            .foregroundColor(MonochromeStyle.primaryText)
+                            .symbolRenderingMode(.monochrome)
                     } else {
                         Image(systemName: "xmark.seal.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(.orange)
-                            .symbolRenderingMode(.hierarchical)
+                            .font(.system(size: 17))
+                            .foregroundColor(MonochromeStyle.secondaryText)
+                            .symbolRenderingMode(.monochrome)
                     }
                 }
             }
@@ -153,26 +153,15 @@ struct PermissionCard: View {
                         Spacer()
                         Image(systemName: "arrow.right")
                     }
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .padding()
+                    .font(.system(size: 12, weight: .medium))
                     .frame(maxWidth: .infinity)
-                    .background(
-                        LinearGradient(
-                            colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .cornerRadius(10)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(MonochromeActionButtonStyle())
             }
         }
-        .padding()
+        .padding(14)
         .background(CardBackground(isSelected: false))
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.05), radius: 5, y: 2)
+        .cornerRadius(13)
     }
 }
 
@@ -182,7 +171,7 @@ struct PermissionsView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 32) {
+            VStack(spacing: 18) {
                 // Header
                 CompactHeroSection(
                     icon: "shield.lefthalf.filled",
@@ -191,7 +180,7 @@ struct PermissionsView: View {
                 )
                 
                 // Permission Cards
-                VStack(spacing: 16) {
+                VStack(spacing: 10) {
                     // Keyboard Shortcut Permission
                     PermissionCard(
                         icon: "keyboard",
@@ -246,9 +235,9 @@ struct PermissionsView: View {
                     
                 }
             }
-            .padding(24)
+            .padding(20)
         }
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color.clear)
         .onAppear {
             permissionManager.checkAllPermissions()
         }

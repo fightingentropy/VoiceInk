@@ -1,414 +1,80 @@
 # VoiceInk
 
 <div align="center">
-  <img src="VoiceInk/Assets.xcassets/AppIcon.appiconset/256-mac.png" width="180" height="180" />
-  <p><strong>Fast, local-first voice-to-text for macOS.</strong></p>
-  <p>Press a hotkey, speak, get text at the cursor. Transcription runs on-device, with optional cloud transcription providers when you configure them.</p>
+  <img src="VoiceInk/Assets.xcassets/AppIcon.appiconset/256-mac.png" width="144" height="144" alt="VoiceInk icon" />
+  <p><strong>Private, ephemeral voice-to-text for macOS.</strong></p>
 
   [![License](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-  ![Platform](https://img.shields.io/badge/platform-macOS%2014.4%2B-brightgreen)
-  ![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-required%20for%20local%20MLX-orange)
+  ![Platform](https://img.shields.io/badge/macOS-14.4%2B-black)
 </div>
 
----
+VoiceInk is a native menu-bar dictation app. Hold or tap a global shortcut, speak, and the result is pasted at the cursor.
 
-## Overview
-
-VoiceInk is a native macOS menu-bar app that captures your voice, transcribes it with a local model (or a cloud API if you configure one), and pastes the text at your cursor. It targets the workflow where dictation replaces typing inside any app — editors, terminals, chat windows, email, browsers, etc.
-
-This fork is a personal, non-commercial build:
-
-- **No license/trial/paywall** — all purchase, activation, and Polar integration code has been removed.
-- **No auto-updater** — Sparkle is completely removed. Builds are produced by running `make local`.
-- **No telemetry or remote calls** other than the cloud transcription providers you explicitly configure.
-
-If you want a signed, auto-updating distribution channel, that infrastructure is no longer present in this repo (see [What's different in this fork](#whats-different-in-this-fork)).
-
----
+There is one mode: ephemeral dictation. VoiceInk does not keep a transcript history, persist completed transcriptions, or retain temporary recordings after processing. Dictionary entries and app settings remain available between launches. The selected transcription model is preserved until you change it.
 
 ## Features
 
-- 🎙️ **Local transcription** — WhisperKit (Whisper Large v3 Turbo), Voxtral Realtime (MLX), Parakeet v2 (FluidAudio), Apple Speech, and Cohere Transcribe (MLX). All run on-device on Apple Silicon.
-- ☁️ **Optional cloud models** — ElevenLabs Scribe and any OpenAI-compatible transcription endpoint.
-- 🔥 **Prewarm & warm retention** — Local models are preloaded on launch and kept in memory for a configurable idle window (5 min – "until quit") so the first transcription is instant.
-- 📝 **Word replacement** — Text substitutions with case-insensitive matching and CJK/Thai-aware boundary handling. Stored in SwiftData.
-- 🎯 **Global hotkeys** — Customizable push-to-talk or toggle shortcuts via [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts), including modifier-only hotkeys (e.g. hold Right Option).
-- 🧪 **Benchmark suite** — Run WER/CER benchmarks against a synthetic corpus or your own recent recordings; exports JSON + Markdown reports.
-- 🗂️ **History & retention** — Searchable transcript history, automatic audio/transcription cleanup with configurable retention.
-- 🪶 **Minimal Mode** — Menu-bar-only dictation that keeps your selected model unchanged, discards new transcript/audio history, and pauses background announcements and update checks.
-- 🤐 **Privacy-first** — Local models never transmit audio. Cloud providers are only hit when you enable them.
+- Local transcription with WhisperKit, Parakeet, Apple Speech, Voxtral MLX, and Cohere Transcribe MLX
+- Optional cloud transcription providers when explicitly configured
+- Push-to-talk and hands-free global shortcuts
+- Automatic formatting, spoken punctuation, and dictionary replacements
+- Audio-input and permission controls
+- Opaque monochrome macOS interface
+- No account, paywall, telemetry, transcript history, metrics dashboard, or in-app updater
 
----
+Local models keep audio on the Mac. Selecting a cloud model sends audio to that configured provider.
 
 ## Requirements
 
-- macOS **14.4** or later
-- **Apple Silicon** (M-series) for local MLX paths (Voxtral, Cohere). Intel Macs will work with Whisper / Parakeet / Apple Speech / cloud providers only, though performance will suffer.
-- Xcode 16+ to build from source (latest stable recommended)
-- Microphone + Accessibility permission (required to insert text at the cursor)
-
----
+- macOS 14.4 or later
+- Xcode 16 or later to build from source
+- Microphone permission
+- Accessibility permission to paste text into other apps
+- Apple Silicon for MLX-backed local models
 
 ## Install
 
-### Build and install locally (recommended for this fork)
+Download the current signed and notarized archive from
+[GitHub Releases](https://github.com/fightingentropy/VoiceInk/releases/latest), unzip it, and move `VoiceInk.app` to `/Applications`.
+
+On first launch, grant the requested permissions, select a model, and choose a recording shortcut.
+
+## Build
 
 ```bash
 git clone https://github.com/fightingentropy/VoiceInk.git
 cd VoiceInk
-scripts/create_local_codesigning_identity.sh   # first time only
-make local
+make build
 ```
 
-`make local` builds a Release app with a stable local codesigning identity named `VoiceInk`, then rsync-installs it to `/Applications/VoiceInk.app` and launches it. The identity is self-signed in your login keychain so macOS treats re-installs as the same app (preserving microphone / accessibility grants).
+Useful targets:
 
-See [BUILDING.md](BUILDING.md) for more details and a plain `xcodebuild` path.
-
-### Makefile targets
-
-| Command | What it does |
+| Command | Purpose |
 | --- | --- |
-| `make build` | Debug build in Xcode's default location |
-| `make local` | Release build → sign → install to `/Applications/VoiceInk.app` → launch |
-| `make run` | Open `/Applications/VoiceInk.app` (or the Debug build) |
-| `make dev` | `make build` then `make run` |
-| `make resolve-packages` | Resolve Swift packages only |
-| `make bump-version` | Increment marketing/build versions in the pbxproj |
-| `make clean` | Remove `.codex-build/` |
-| `make healthcheck` | Verify `xcodebuild`, `swift`, `rsync` are installed |
+| `make build` | Resolve packages and build Debug |
+| `make local` | Increment the version, build Release, install, and launch |
+| `make dist` | Build with Developer ID, notarize, staple, and create a release zip |
+| `make bump-version` | Increment marketing and build versions |
+| `make clean` | Remove local build artifacts |
 
----
+`make local` requires the Apple Development identity configured in the
+`Makefile`. `make dist` additionally requires the configured Developer ID
+identity and `VoiceInkNotary` keychain profile.
 
-## Quick Start
+## Privacy model
 
-1. Launch VoiceInk. It lives in the menu bar (look for the waveform glyph).
-2. Walk through onboarding: grant Microphone and Accessibility, download at least one local model (Whisper Large v3 Turbo is the recommended starting point).
-3. Set a recording hotkey (e.g. hold Right Option).
-4. Focus any text field, hold the hotkey, speak, release. Text appears at your cursor.
-5. Explore:
-   - **Metrics** tab — transcription stats
-   - **History** tab — searchable past transcripts
-   - **Models** tab — download / switch transcription models, run benchmarks
-   - **Dictionary** — word replacements
+The live recording pipeline:
 
----
-
-## Architecture
-
-### High-level flow
-
-```
-Hotkey  →  Recorder  →  Transcription Pipeline  ──▶  Paste at cursor
-                              │
-                              ├── Transcribe (local or cloud)
-                              ├── Output filter (strip artifacts)
-                              ├── Text formatter (capitalization, punctuation)
-                              ├── Word replacement (dictionary substitutions)
-                              └── Persist (SwiftData + audio file)
+```text
+shortcut → temporary audio → transcription → formatting → paste → discard audio
 ```
 
-The orchestrator is [`TranscriptionPipeline`](VoiceInk/Whisper/TranscriptionPipeline.swift). It runs after the recorder finishes capturing audio (or, for streaming models, consumes a live session). Each stage is optional and gated by a UserDefaults flag.
-
-### Project layout
-
-```
-VoiceInk/
-├── VoiceInk.swift              # @main entry point, App + Scene graph
-├── AppDelegate.swift           # Activation policy, re-open, termination guards
-├── Recorder.swift              # Controls recording lifecycle
-├── CoreAudioRecorder.swift     # Low-level CoreAudio capture
-├── HotkeyManager.swift         # Global hotkey registration
-├── MenuBarManager.swift        # MenuBarExtra controller
-├── CursorPaster.swift          # Inserts text via AppleScript / CGEvent
-├── SoundManager.swift          # Plays start / stop tones
-├── ClipboardManager.swift      # Snapshot + restore clipboard around pastes
-├── WindowManager.swift         # Main window + settings panels
-├── Whisper/
-│   ├── TranscriptionPipeline.swift   # Stage-by-stage post-recording pipeline
-│   ├── VoiceInkEngine.swift          # High-level recording orchestrator
-│   ├── WhisperKitRuntime.swift       # WhisperKit bindings
-│   ├── WhisperModelManager.swift     # Download + manage Whisper assets
-│   ├── TranscriptionModelManager.swift
-│   └── RecorderUIManager.swift       # Mini-recorder UI state
-├── Services/
-│   ├── TranscriptionServiceRegistry.swift
-│   ├── LocalTranscriptionService.swift
-│   ├── CloudTranscription/   # ElevenLabs + OpenAI-compatible
-│   ├── CohereTranscribe/     # Native MLX Cohere runtime
-│   ├── Voxtral/              # Native MLX Voxtral runtime
-│   ├── StreamingTranscription/
-│   ├── Benchmark/            # WER/CER suite
-│   ├── WordReplacementService.swift
-│   ├── ModelPrewarmService.swift
-│   ├── TranscriptionAutoCleanupService.swift
-│   ├── SystemInfoService.swift
-│   └── …
-├── Models/                   # SwiftData models + presets
-├── Notifications/            # NotificationCenter names
-├── Resources/Sounds/         # recstart.mp3, recstop.mp3, esc.wav
-├── Views/                    # All SwiftUI UI
-└── Assets.xcassets/          # App icon + menu bar template icon
-```
-
-### Entry point & lifecycle
-
-[`VoiceInk.swift`](VoiceInk/VoiceInk.swift) performs a dependency-ordered cold start:
-
-1. Register `AppDefaults` and migrate legacy storage via `AppStoragePaths`.
-2. Build the SwiftData `ModelContainer` (two stores: transcripts + dictionary). Falls back to in-memory if the on-disk store can't be opened.
-3. Instantiate services in order: model managers → `RecorderUIManager` → `VoiceInkEngine` → `HotkeyManager` → `MenuBarManager` → `ModelPrewarmService`.
-4. Wire circular dependencies (engine ↔ recorder UI, menu bar ↔ engine).
-5. Publish everything as `@StateObject` and inject into the SwiftUI environment.
-6. Kick off async boot tasks: model cache load, benchmark corpus bootstrap, auto-cleanup, audio trim.
-
-The scene graph is a hidden-titlebar `WindowGroup` + `MenuBarExtra` + a DEBUG-only utility window.
-
-### Transcription pipeline stages
-
-Order matches [`TranscriptionPipeline.run()`](VoiceInk/Whisper/TranscriptionPipeline.swift):
-
-1. **Transcribe** — `TranscriptionSession.transcribe(audioURL:)` (streaming models) or `TranscriptionServiceRegistry.transcribe(audioURL:model:)` (batch).
-2. **Output filter** — `TranscriptionOutputFilter.filter` strips whisper-specific artifacts like `[BLANK_AUDIO]`.
-3. **Text formatter** — `WhisperTextFormatter.format` applies capitalization and punctuation cleanup (gated on `IsTextFormattingEnabled`).
-4. **Word replacement** — `WordReplacementService.applyReplacements` swaps tokens using your dictionary.
-5. **Paste** — `CursorPaster.pasteAtCursor` inserts the text, optionally appending a trailing space.
-6. **Persist** — Background `Task.detached` writes a `Transcription` record (with metadata: durations, model used, audio URL) to SwiftData and captures it into the benchmark corpus if that's enabled.
-
-### Local runtimes
-
-| Family | Location | Notes |
-| --- | --- | --- |
-| **WhisperKit** — Whisper Large v3 Turbo | [`Whisper/WhisperKitRuntime.swift`](VoiceInk/Whisper/WhisperKitRuntime.swift) | Core ML on Apple Silicon, model downloaded to App Support. |
-| **Voxtral Realtime** | [`Services/Voxtral/`](VoiceInk/Services/Voxtral) | Native MLX + Tekken tokenizer. Streaming-only (mini-realtime). |
-| **Parakeet v2** | [`Services/ParakeetTranscriptionService.swift`](VoiceInk/Services/ParakeetTranscriptionService.swift) + FluidAudio | Local Core ML; batch + streaming. |
-| **Apple Speech** | [`Services/NativeAppleTranscriptionService.swift`](VoiceInk/Services/NativeAppleTranscriptionService.swift) | Uses the system speech framework. |
-| **Cohere Transcribe** | [`Services/CohereTranscribe/`](VoiceInk/Services/CohereTranscribe) | Native MLX path. Defaults to 4-bit quantization. Live-recorder only — imported audio still routes to Whisper / Parakeet v2 / Apple Speech / cloud. |
-
-All local models download on demand. Assets live under `~/Library/Application Support/VoiceInk/models/` (or `~/Library/Containers/…` for sandboxed builds).
-
-### Cloud providers
-
-Implemented in [`Services/CloudTranscription/`](VoiceInk/Services/CloudTranscription):
-
-- **ElevenLabs Scribe v2** — Streaming transcription via server-sent events.
-- **OpenAI-compatible** — Any endpoint that exposes `/audio/transcriptions` with a `whisper-1`-style contract. Configure base URL + API key under Settings → Models → Custom.
-
-When a cloud model is selected, audio leaves your device. Nothing is sent otherwise.
-
-### Prewarm & warm retention
-
-[`ModelPrewarmService`](VoiceInk/Services/ModelPrewarmService.swift) preloads the active local model by running inference on a short bundled clip (`Resources/Sounds/esc.wav`). Triggers:
-
-- 3s after cold launch
-- 3s after wake from sleep
-- 500ms after a model change (debounced)
-- Always-on for Cohere (its startup cost is highest)
-
-Retention policy (Settings → Models → "Keep model warm"):
-
-- 5 min / 15 min / 30 min / 1 hour / Until quit
-
-Unload is rescheduled on every transcription and skipped while recording is active.
-
-### Hotkeys
-
-[`HotkeyManager`](VoiceInk/HotkeyManager.swift) registers:
-
-- `toggleMiniRecorder`, `toggleMiniRecorder2` — two independent recorder hotkeys
-- `pasteLastTranscription` — re-insert last output
-- `retryLastTranscription` — re-run the pipeline on the last audio file
-- `openHistoryWindow`
-
-Hotkey modes:
-
-- **Push-to-talk** (hold)
-- **Toggle** (press to start, press to stop)
-- **Modifier-only shortcuts** — Right Option, Left Option, Right Control, Left Control, Fn, Right Command, Right Shift, or custom combo
-- **Middle-click to toggle** (optional, with activation delay)
-- 0.5s keyboard cooldown to debounce fast presses
-
-### Dictionary & word replacement
-
-[`WordReplacementService`](VoiceInk/Services/WordReplacementService.swift):
-
-- Singleton, fetches enabled `WordReplacement` rows from SwiftData each call.
-- Accepts comma-separated source variants per rule.
-- Case-insensitive.
-- Uses regex word boundaries for spaced languages, falls back to substring replacement for CJK / Thai / Hiragana / Katakana (no word-boundary concept).
-- Applied post-formatting, before paste and persistence.
-
-Related: [`Services/DictionaryImportExportService.swift`](VoiceInk/Services/DictionaryImportExportService.swift) for import/export.
-
-### Persistence
-
-[`Models/Transcription.swift`](VoiceInk/Models/Transcription.swift) is the main SwiftData `@Model`:
-
-- Two `ModelConfiguration`s: one for transcripts, one for dictionary data. Keeping them separate lets the dictionary sync to iCloud (on signed builds only) while transcripts stay local.
-- Persistent store lives under `~/Library/Application Support/VoiceInk/`.
-- Graceful in-memory fallback if the on-disk store fails to open.
-
-Auto-cleanup:
-
-- [`TranscriptionAutoCleanupService`](VoiceInk/Services/TranscriptionAutoCleanupService.swift) — soft-deletes transcripts per retention (30/7/1 days or "never"), with one backup before deletion.
-- [`AudioCleanupManager`](VoiceInk/Services/AudioCleanupManager.swift) — removes old audio files so the store doesn't grow unbounded.
-
-### Benchmark suite
-
-[`Services/Benchmark/`](VoiceInk/Services/Benchmark) provides an in-app suite (Settings → Models → Benchmarks):
-
-- Runs against on-device model families (Whisper / Voxtral / Parakeet / Apple Speech / Cohere). Cloud models are excluded because network latency distorts the signal.
-- Two corpus sources:
-  - **Standard corpus** — fixed synthetic phrases, generated once and reused for consistent cross-model comparison.
-  - **Recent recordings** — your last N completed recordings, captured into an app-managed benchmark directory. The "accuracy" here is agreement with the saved transcript, not neutral ground truth.
-- Reports are written as JSON + Markdown under the app's benchmark directory.
-
-### Menu bar icon & sounds
-
-Taken from SuperWhisper's assets for visual/audio consistency:
-
-- `VoiceInk/Assets.xcassets/menuBarIcon.imageset/` — 22×22 / 44×44 / 66×66 monochrome template PNGs derived from SuperWhisper's `Icon` asset. `template-rendering-intent: template` makes macOS auto-tint for light/dark menu bars.
-- `VoiceInk/Resources/Sounds/recstart.mp3` + `recstop.mp3` — transcoded from SuperWhisper's `Start1.m4a` / `Stop1.m4a` with ffmpeg (`-codec:a libmp3lame -qscale 2`).
-
----
-
-## Performance optimizations
-
-Notable changes that are already in the codebase (see `git log --oneline` for commits):
-
-- **Native MLX Cohere path** — Replaced the old Python/PyTorch bridge with a pure Swift MLX runtime. Reduced startup, eliminated the Hugging Face token requirement, and made 4-bit the default.
-- **Quantize-safe module registration** — Cohere `Linear` and `Embedding` fields are annotated `@ModuleInfo` so MLX's `quantize` pass can walk the module tree correctly. `lm_head` and dtype probes were re-routed through quantize-safe paths.
-- **Correct MLX-native tensor layouts** — Subsampling convolutions now use MLX's `(out, kernel, in)` order (not PyTorch's `(out, in, kernel)`), fixing shape mismatches during the encoder's first conv stack.
-- **Download progress via KVO** — `URLSessionDownloadTask` progress is tracked via Foundation's `Progress` KVO so the UI shows accurate per-file percentages for multi-asset MLX bundles (Cohere, Voxtral).
-- **Keep-alive during downloads** — A process-level activity token prevents App Nap / sudden termination while a model is downloading.
-- **Startup-cost trimming** — Removed redundant meter polling, skipped unnecessary PCM decode on the hot path, and tightened model-load logging.
-- **Prewarm with ESC-50 clip** — First-transcription latency dropped by preloading the model on launch and wake.
-- **4-bit quantized Cohere default** — Lower memory and faster first token on 8 GB / 16 GB Macs.
-- **Pinned runtime versions** — FluidAudio and WhisperKit pinned to known-good revisions to avoid regression drift.
-- **Benchmark corpus cap** — Recent recordings corpus is capped at 20 entries to keep runs fast and reproducible.
-
----
-
-## Dependencies
-
-Resolved via Swift Package Manager (`VoiceInk.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`):
-
-| Package | Purpose |
-| --- | --- |
-| [WhisperKit](https://github.com/argmaxinc/WhisperKit) | Native Whisper + Core ML pipeline |
-| [mlx-swift](https://github.com/ml-explore/mlx-swift) | MLX GPU runtime (Cohere, Voxtral) |
-| [FluidAudio](https://github.com/FluidInference/FluidAudio) | Parakeet v2 backend |
-| [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) | User-customizable global hotkeys |
-| [LaunchAtLogin-Modern](https://github.com/sindresorhus/LaunchAtLogin-Modern) | Start-on-login |
-| [MediaRemoteAdapter](https://github.com/ejbills/mediaremote-adapter) | Pause/resume media around recording |
-| [LLMkit](https://github.com/Beingpax/LLMkit) | Cloud transcription client utilities |
-| [swift-atomics](https://github.com/apple/swift-atomics) | Lock-free counters in hot paths |
-| [swift-transformers](https://github.com/huggingface/swift-transformers) | Tokenization for MLX models |
-
-Removed from this fork: **Sparkle** (auto-updater).
-
----
-
-## Privacy & data flow
-
-- **Local models** send nothing over the network after their initial asset download.
-- **Cloud transcription** sends audio to ElevenLabs or your configured OpenAI-compatible endpoint — only when a cloud model is the active transcription model.
-- **Storage** is local SwiftData + audio files under `~/Library/Application Support/VoiceInk/`. The dictionary store is replicated to iCloud on signed builds only (disabled for local / `LOCAL_BUILD`).
-- **Minimal Mode** skips new transcript/benchmark persistence, deletes its temporary recording after transcription, redacts transcript content from logs, hides history actions from the menu bar, and pauses automatic announcements and update checks.
-- **No analytics, telemetry, crash reporting, or update pings** are sent. There is no backend.
-
----
-
-## What's different in this fork
-
-Removed from upstream:
-
-- **License / trial / paywall system** — `LicenseViewModel`, `LicenseManager`, `PolarService`, `LicenseView`, `LicenseManagementView`, `TrialMessageView`, `DashboardPromotionsSection` all deleted; Polar.sh integration gone; `licenseStatusChanged` notification gone.
-- **Auto-updater** — `Sparkle` SwiftPM package, `UpdaterViewModel`, `CheckForUpdatesView`, the `SUFeedURL` / `SUEnableAutomaticChecks` / `SUEnableInstallerLauncherService` / `SUPublicEDKey` keys, the "Check for updates" menu item, and `scripts/build_sparkle_release.sh` / `.github/workflows/sparkle-release.yml` are all gone.
-- **Help & Resources dashboard section** — removed from the Metrics view.
-
-Replaced:
-
-- **Menu bar icon** — swapped to a template-rendered icon derived from SuperWhisper.
-- **Start / stop tones** — swapped to SuperWhisper's recording sounds.
-
-Net effect: the app launches, runs, transcribes, and persists with zero network traffic unless you explicitly configure a cloud model or LLM.
-
----
-
-## Development
-
-### Swift compilation flags
-
-- `LOCAL_BUILD` — set by `LocalBuild.xcconfig` during `make local`. Disables CloudKit sync (no iCloud entitlement in `VoiceInk.local.entitlements`).
-
-### Local codesigning identity
-
-`make local` signs with a stable self-signed identity called `VoiceInk`. Create it once:
-
-```bash
-scripts/create_local_codesigning_identity.sh
-```
-
-Using the same identity across rebuilds means macOS treats each install as the same app and preserves microphone / accessibility permissions.
-
-### Entitlements
-
-- [`VoiceInk/VoiceInk.entitlements`](VoiceInk/VoiceInk.entitlements) — full entitlements (CloudKit, push notifications) for signed-distribution builds.
-- [`VoiceInk/VoiceInk.local.entitlements`](VoiceInk/VoiceInk.local.entitlements) — minimal entitlements for local builds (no CloudKit, no provisioning profile required).
-
-### Debugging
-
-- Logs go to `os.Logger` under the `com.fightingentropy.voiceink` subsystem. Stream them from `Console.app` or with:
-  ```bash
-  log stream --predicate 'subsystem == "com.fightingentropy.voiceink"' --level debug
-  ```
-- The DEBUG build shows a second window with a "Use Menu Bar Only" toggle.
-
-### Tests
-
-- `VoiceInkTests/` contains correctness tests for local runtimes (`LocalTranscriptionHotPathTests.swift`, `CohereNativeSmokeTests.swift`, `VoxtralNativeStreamingSmokeTests.swift`) and benchmark metrics (`BenchmarkMetricsTests.swift`, `LocalOnDeviceBenchmarkTests.swift`).
-- Run from Xcode (`⌘U`) or `xcodebuild test -project VoiceInk.xcodeproj -scheme VoiceInk`.
-
----
-
-## Storage paths
-
-| What | Where |
-| --- | --- |
-| SwiftData transcripts | `~/Library/Application Support/VoiceInk/default.store` |
-| SwiftData dictionary | `~/Library/Application Support/VoiceInk/dictionary.store` |
-| Downloaded model assets | `~/Library/Application Support/VoiceInk/models/` |
-| Recorded audio files | `~/Library/Application Support/VoiceInk/recordings/` |
-| Benchmark corpus | `~/Library/Application Support/VoiceInk/benchmarks/` |
-| Local build output | `.codex-build/local-install/deriveddata/` |
-
----
-
-## Contributing
-
-This repo is a personal fork, but PRs that improve correctness, performance, or documentation are welcome. Please:
-
-1. Open an issue first to discuss scope.
-2. Follow the existing Swift style (default Xcode format, no extra docstrings unless non-obvious).
-3. Include tests for new runtime / pipeline logic.
-4. Keep feature additions opt-in and local-first.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
-
----
+- Transcript text is passed directly to the paste operation and is not inserted into SwiftData.
+- Transcription objects used by imported-audio results are backed only by an in-memory store.
+- Temporary audio generated by live or imported transcription is deleted when processing ends, including failure and cancellation paths.
+- Logs report status and character counts, not transcript contents.
+- Older transcript stores created by previous releases are not opened by the current app.
 
 ## License
 
-GNU General Public License v3.0 — see [LICENSE](LICENSE).
-
----
-
-## Acknowledgments
-
-- [WhisperKit](https://github.com/argmaxinc/WhisperKit) — Native Whisper + Core ML for Apple Silicon
-- [FluidAudio](https://github.com/FluidInference/FluidAudio) — Parakeet integration
-- [mlx-swift](https://github.com/ml-explore/mlx-swift) — GPU runtime for Cohere / Voxtral
-- [LLMkit](https://github.com/Beingpax/LLMkit) — LLM provider abstraction
-- [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts), [LaunchAtLogin-Modern](https://github.com/sindresorhus/LaunchAtLogin-Modern), [MediaRemoteAdapter](https://github.com/ejbills/mediaremote-adapter), [swift-atomics](https://github.com/apple/swift-atomics)
-- [SuperWhisper](https://superwhisper.com) — Menu bar icon and recording sound design
-- The original VoiceInk project, which this fork is based on
+VoiceInk is distributed under the [GNU GPL v3](LICENSE).

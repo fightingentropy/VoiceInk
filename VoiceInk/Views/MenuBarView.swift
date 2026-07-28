@@ -1,8 +1,6 @@
 import SwiftUI
 
 struct MenuBarView: View {
-    @EnvironmentObject var engine: VoiceInkEngine
-    @EnvironmentObject var transcriptionModelManager: TranscriptionModelManager
     @EnvironmentObject var recorderUIManager: RecorderUIManager
     @EnvironmentObject var menuBarManager: MenuBarManager
 
@@ -13,29 +11,6 @@ struct MenuBarView: View {
             }
 
             Divider()
-
-            if menuBarManager.isMinimalModeEnabled {
-                Text("Minimal Mode")
-                    .foregroundStyle(.secondary)
-            } else {
-                Button("Retry Last Transcription") {
-                    LastTranscriptionService.retryLastTranscription(
-                        from: engine.modelContext,
-                        transcriptionModelManager: transcriptionModelManager,
-                        serviceRegistry: engine.serviceRegistry
-                    )
-                }
-
-                Button("Copy Last Transcription") {
-                    LastTranscriptionService.copyLastTranscription(from: engine.modelContext)
-                }
-                .keyboardShortcut("c", modifiers: [.command, .shift])
-
-                Button("History") {
-                    menuBarManager.openHistoryWindow()
-                }
-                .keyboardShortcut("h", modifiers: [.command, .shift])
-            }
 
             Button("Settings") {
                 menuBarManager.openMainWindowAndNavigate(to: "Settings")

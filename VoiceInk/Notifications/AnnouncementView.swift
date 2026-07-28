@@ -11,7 +11,7 @@ struct AnnouncementView: View {
             HStack(alignment: .top) {
                 Text(title)
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(MonochromeStyle.primaryText)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
@@ -20,7 +20,7 @@ struct AnnouncementView: View {
                 Button(action: onClose) {
                     Image(systemName: "xmark")
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(MonochromeStyle.secondaryText)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -29,7 +29,7 @@ struct AnnouncementView: View {
                 ScrollView {
                     Text(description)
                         .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(MonochromeStyle.primaryText)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -43,7 +43,7 @@ struct AnnouncementView: View {
                         .foregroundColor(.black)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(Color.white)
+                        .background(MonochromeStyle.primaryText)
                         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -51,7 +51,7 @@ struct AnnouncementView: View {
                 Button(action: onClose) {
                     Text("Dismiss")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(MonochromeStyle.primaryText)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 6)
                 }
@@ -63,32 +63,14 @@ struct AnnouncementView: View {
         .frame(minWidth: 360, idealWidth: 420)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.clear)
-                .background(
-                    ZStack {
-                        // Match Mini Recorder background layers
-                        Color.black.opacity(0.9)
-                        LinearGradient(
-                            colors: [
-                                Color.black.opacity(0.95),
-                                Color(red: 0.15, green: 0.15, blue: 0.15).opacity(0.9)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        VisualEffectView(material: .hudWindow, blendingMode: .withinWindow)
-                            .opacity(0.05)
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                )
+                .fill(MonochromeStyle.subtleFill)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.3), lineWidth: 0.5)
+                .strokeBorder(MonochromeStyle.hairline, lineWidth: 0.75)
         )
     }
 }
 
 
  
-

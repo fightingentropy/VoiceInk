@@ -110,10 +110,6 @@ struct ModelSettingsView: View {
 
             Divider().padding(.vertical, 4)
 
-            BenchmarkSettingsSectionView()
-
-            Divider().padding(.vertical, 4)
-
             HStack {
                 Toggle(isOn: $convertSpokenPunctuation) {
                     Text("Convert spoken punctuation")

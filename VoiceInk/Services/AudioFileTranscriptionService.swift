@@ -31,8 +31,6 @@ class AudioTranscriptionService: ObservableObject {
     }
     
     func retranscribeAudio(from url: URL, using model: any TranscriptionModel) async throws -> Transcription {
-        let minimalModeEnabled = MinimalModePolicy.isEnabled()
-
         guard model.supportsAudioFileTranscription else {
             throw TranscriptionCapabilityError.audioFileInputUnsupported(modelName: model.displayName)
         }
@@ -49,7 +47,7 @@ class AudioTranscriptionService: ObservableObject {
             let transcriptionStart = Date()
             var text = try await serviceRegistry.transcribe(audioURL: url, model: model)
             let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
-            text = TranscriptionOutputFilter.filter(text, redactLogs: minimalModeEnabled)
+            text = TranscriptionOutputFilter.filter(text)
             text = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
             if UserDefaults.standard.bool(forKey: "IsTextFormattingEnabled") {
@@ -62,56 +60,16 @@ class AudioTranscriptionService: ObservableObject {
             let audioAsset = AVURLAsset(url: url)
             let duration = CMTimeGetSeconds(try await audioAsset.load(.duration))
 
-            if minimalModeEnabled {
-                let transientTranscription = Transcription(
-                    text: text,
-                    duration: duration,
-                    audioFileURL: url.absoluteString,
-                    transcriptionModelName: model.displayName,
-                    transcriptionDuration: transcriptionDuration
-                )
-                isTranscribing = false
-                logger.notice("Minimal Mode skipped retranscription history and audio-copy persistence")
-                return transientTranscription
-            }
-
-            let recordingsDirectory = AppStoragePaths.recordingsDirectory
-
-            let fileName = "retranscribed_\(UUID().uuidString).wav"
-            let permanentURL = recordingsDirectory.appendingPathComponent(fileName)
-
-            do {
-                try AppStoragePaths.createDirectoryIfNeeded(at: recordingsDirectory)
-                try FileManager.default.copyItem(at: url, to: permanentURL)
-            } catch {
-                logger.error("❌ Failed to create permanent copy of audio: \(error.localizedDescription, privacy: .public)")
-                isTranscribing = false
-                throw error
-            }
-            
-            let permanentURLString = permanentURL.absoluteString
-
-            let newTranscription = Transcription(
+            let transientTranscription = Transcription(
                 text: text,
                 duration: duration,
-                audioFileURL: permanentURLString,
+                audioFileURL: url.absoluteString,
                 transcriptionModelName: model.displayName,
                 transcriptionDuration: transcriptionDuration
             )
-            modelContext.insert(newTranscription)
-            do {
-                try modelContext.save()
-                NotificationCenter.default.post(name: .transcriptionCreated, object: newTranscription)
-                NotificationCenter.default.post(name: .transcriptionCompleted, object: newTranscription)
-            } catch {
-                logger.error("❌ Failed to save transcription: \(error.localizedDescription, privacy: .public)")
-            }
-
-            await MainActor.run {
-                isTranscribing = false
-            }
-
-            return newTranscription
+            isTranscribing = false
+            logger.notice("Retranscription completed without history or audio-copy persistence")
+            return transientTranscription
         } catch {
             logger.error("❌ Transcription failed: \(error.localizedDescription, privacy: .public)")
             currentError = .transcriptionFailed

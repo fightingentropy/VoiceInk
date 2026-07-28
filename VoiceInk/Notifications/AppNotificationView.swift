@@ -26,12 +26,7 @@ struct AppNotificationView: View {
         }
 
         var iconColor: Color {
-            switch self {
-            case .error: return .red
-            case .warning: return .yellow
-            case .info: return .blue
-            case .success: return .green
-            }
+            MonochromeStyle.primaryText
         }
     }
 
@@ -48,7 +43,7 @@ struct AppNotificationView: View {
                 Text(title)
                     .font(.system(size: 12))
                     .fontWeight(.medium)
-                    .foregroundColor(.white)
+                    .foregroundColor(MonochromeStyle.primaryText)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 
@@ -57,7 +52,7 @@ struct AppNotificationView: View {
                 Button(action: onClose) {
                     Image(systemName: "xmark")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(MonochromeStyle.secondaryText)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .frame(width: 16, height: 16)
@@ -68,40 +63,18 @@ struct AppNotificationView: View {
         .frame(minWidth: 220, maxWidth: 750, minHeight: 44)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.clear)
-                .background(
-                    ZStack {
-                        // Base dark background
-                        Color.black.opacity(0.9)
-                        
-                        // Subtle gradient overlay
-                        LinearGradient(
-                            colors: [
-                                Color.black.opacity(0.95),
-                                Color(red: 0.15, green: 0.15, blue: 0.15).opacity(0.9)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        
-                        // Very subtle visual effect for depth
-                        VisualEffectView(material: .hudWindow, blendingMode: .withinWindow)
-                            .opacity(0.05)
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                )
+                .fill(MonochromeStyle.subtleFill)
         )
         .overlay(
-            // Subtle inner border
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
+                .strokeBorder(MonochromeStyle.hairline, lineWidth: 0.75)
         )
         .overlay(
             VStack {
                 Spacer()
                 GeometryReader { geometry in
                     Rectangle()
-                        .fill(type.iconColor.opacity(0.8))
+                        .fill(MonochromeStyle.primaryText)
                         .frame(width: geometry.size.width * max(0, progress), height: 2)
                         .animation(.linear(duration: 0.1), value: progress)
                 }

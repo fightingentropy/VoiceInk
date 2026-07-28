@@ -135,33 +135,9 @@ class HotkeyManager: ObservableObject {
         self.recorderUIManager = recorderUIManager
         self.miniRecorderShortcutManager = MiniRecorderShortcutManager(engine: engine, recorderUIManager: recorderUIManager)
 
-        KeyboardShortcuts.onKeyUp(for: .pasteLastTranscription) { [weak self] in
-            guard let self = self else { return }
-            Task { @MainActor in
-                LastTranscriptionService.pasteLastTranscription(from: self.engine.modelContext)
-            }
-        }
-
-        KeyboardShortcuts.onKeyUp(for: .retryLastTranscription) { [weak self] in
-            guard let self = self else { return }
-            Task { @MainActor in
-                LastTranscriptionService.retryLastTranscription(
-                    from: self.engine.modelContext,
-                    transcriptionModelManager: self.engine.transcriptionModelManager,
-                    serviceRegistry: self.engine.serviceRegistry
-                )
-            }
-        }
-
-        KeyboardShortcuts.onKeyUp(for: .openHistoryWindow) { [weak self] in
-            guard let self = self else { return }
-            Task { @MainActor in
-                HistoryWindowController.shared.showHistoryWindow(
-                    modelContainer: self.engine.modelContext.container,
-                    engine: self.engine
-                )
-            }
-        }
+        KeyboardShortcuts.setShortcut(nil, for: .pasteLastTranscription)
+        KeyboardShortcuts.setShortcut(nil, for: .retryLastTranscription)
+        KeyboardShortcuts.setShortcut(nil, for: .openHistoryWindow)
 
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 100_000_000)

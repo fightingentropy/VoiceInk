@@ -1,15 +1,10 @@
 import SwiftUI
-import SwiftData
-import KeyboardShortcuts
 
-// ViewType enum with all cases
 enum ViewType: String, CaseIterable, Identifiable {
-    case metrics = "Dashboard"
     case transcribeAudio = "Transcribe Audio"
-    case history = "History"
-    case models = "AI Models"
+    case models = "Models"
     case permissions = "Permissions"
-    case audioInput = "Audio Input"
+    case audioInput = "Audio"
     case dictionary = "Dictionary"
     case settings = "Settings"
 
@@ -17,140 +12,173 @@ enum ViewType: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .metrics: return "gauge.medium"
-        case .transcribeAudio: return "waveform.circle.fill"
-        case .history: return "doc.text.fill"
-        case .models: return "brain.head.profile"
-        case .permissions: return "shield.fill"
-        case .audioInput: return "mic.fill"
-        case .dictionary: return "character.book.closed.fill"
-        case .settings: return "gearshape.fill"
+        case .transcribeAudio: return "waveform.circle"
+        case .models: return "waveform.badge.magnifyingglass"
+        case .permissions: return "lock.shield"
+        case .audioInput: return "mic"
+        case .dictionary: return "text.book.closed"
+        case .settings: return "slider.horizontal.3"
         }
-    }
-}
-
-struct VisualEffectView: NSViewRepresentable {
-    let material: NSVisualEffectView.Material
-    let blendingMode: NSVisualEffectView.BlendingMode
-
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let visualEffectView = NSVisualEffectView()
-        visualEffectView.material = material
-        visualEffectView.blendingMode = blendingMode
-        visualEffectView.state = .active
-        return visualEffectView
-    }
-
-    func updateNSView(_ visualEffectView: NSVisualEffectView, context: Context) {
-        visualEffectView.material = material
-        visualEffectView.blendingMode = blendingMode
     }
 }
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.colorScheme) private var colorScheme
-    @EnvironmentObject private var engine: VoiceInkEngine
-    @EnvironmentObject private var whisperModelManager: WhisperModelManager
-    @EnvironmentObject private var transcriptionModelManager: TranscriptionModelManager
-    @EnvironmentObject private var hotkeyManager: HotkeyManager
-    @State private var selectedView: ViewType? = .metrics
-    let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+    @State private var selectedView: ViewType = .settings
 
-    private var visibleViewTypes: [ViewType] {
-        ViewType.allCases
-    }
+    private let visibleViewTypes: [ViewType] = [
+        .models,
+        .permissions,
+        .audioInput,
+        .dictionary,
+        .settings
+    ]
 
     var body: some View {
-        NavigationSplitView {
-            List(selection: $selectedView) {
-                // App Header
-                HStack(spacing: 6) {
+        ZStack {
+            MonochromeStyle.canvas
+                .ignoresSafeArea()
+
+            HStack(spacing: 0) {
+                sidebar
+
+                Rectangle()
+                    .fill(MonochromeStyle.hairline)
+                    .frame(width: 0.75)
+
+                VStack(spacing: 0) {
+                    pageHeader
+
+                    Rectangle()
+                        .fill(MonochromeStyle.hairline)
+                        .frame(height: 0.75)
+
+                    detailView(for: selectedView)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+        }
+        .frame(minWidth: 760, minHeight: 540)
+        .preferredColorScheme(.dark)
+        .tint(.white)
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToDestination)) { notification in
+            guard let destination = notification.userInfo?["destination"] as? String else {
+                return
+            }
+
+            switch destination {
+            case "Settings":
+                selectedView = .settings
+            case "AI Models":
+                selectedView = .models
+            case "Permissions":
+                selectedView = .permissions
+            case "Transcribe Audio":
+                selectedView = .transcribeAudio
+            default:
+                break
+            }
+        }
+    }
+
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 9) {
+                Group {
                     if let appIcon = NSImage(named: "AppIcon") {
                         Image(nsImage: appIcon)
                             .resizable()
+                            .interpolation(.high)
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 24, height: 24)
-                            .cornerRadius(8)
+                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                     }
-
-                    Text("VoiceInk")
-                        .font(.system(size: 13, weight: .semibold))
-
-                    Spacer()
                 }
-                .padding(.vertical, 4)
+                .frame(width: 30, height: 30)
 
+                Text("VoiceInk")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(MonochromeStyle.primaryText)
+            }
+            .padding(.horizontal, 17)
+            .padding(.top, 51)
+            .padding(.bottom, 18)
+
+            VStack(spacing: 4) {
                 ForEach(visibleViewTypes) { viewType in
-                    if viewType == .history {
-                        Button(action: {
-                            HistoryWindowController.shared.showHistoryWindow(
-                                modelContainer: modelContext.container,
-                                engine: engine
-                            )
-                        }) {
-                            Label(viewType.rawValue, systemImage: viewType.icon)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    } else {
-                        NavigationLink(value: viewType) {
-                            Label(viewType.rawValue, systemImage: viewType.icon)
-                        }
-                    }
+                    navigationButton(for: viewType)
                 }
             }
-            .listStyle(.sidebar)
-            .navigationTitle("VoiceInk")
-            .navigationSplitViewColumnWidth(210)
-        } detail: {
-            if let selectedView = selectedView {
-                detailView(for: selectedView)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .navigationTitle(selectedView.rawValue)
-            } else {
-                Text("Select a view")
-                    .foregroundColor(.secondary)
-            }
+            .padding(.horizontal, 10)
+
+            Spacer()
         }
-        .navigationSplitViewStyle(.balanced)
-        .frame(minWidth: 940, minHeight: 700)
-        .onReceive(NotificationCenter.default.publisher(for: .navigateToDestination)) { notification in
-            if let destination = notification.userInfo?["destination"] as? String {
-                switch destination {
-                case "Settings":
-                    selectedView = .settings
-                case "AI Models":
-                    selectedView = .models
-                case "History":
-                    HistoryWindowController.shared.showHistoryWindow(
-                        modelContainer: modelContext.container,
-                        engine: engine
-                    )
-                case "Permissions":
-                    selectedView = .permissions
-                case "Transcribe Audio":
-                    selectedView = .transcribeAudio
-                default:
-                    break
-                }
-            }
-        }
+        .frame(width: 178)
+        .background(MonochromeStyle.sidebar)
     }
-    
+
+    private func navigationButton(for viewType: ViewType) -> some View {
+        let isSelected = selectedView == viewType
+
+        return Button {
+            withAnimation(.easeOut(duration: 0.16)) {
+                selectedView = viewType
+            }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: viewType.icon)
+                    .font(.system(size: 12, weight: .medium))
+                    .frame(width: 16)
+
+                Text(viewType.rawValue)
+                    .font(.system(size: 12.5, weight: isSelected ? .semibold : .medium))
+
+                Spacer()
+            }
+            .foregroundStyle(
+                isSelected
+                    ? MonochromeStyle.primaryText
+                    : MonochromeStyle.secondaryText
+            )
+            .padding(.horizontal, 11)
+            .frame(height: 34)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(isSelected ? MonochromeStyle.selectedFill : Color.clear)
+        )
+        .overlay(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .stroke(isSelected ? MonochromeStyle.hairline : Color.clear, lineWidth: 0.75)
+        )
+    }
+
+    private var pageHeader: some View {
+        HStack {
+            Text(selectedView.rawValue)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(MonochromeStyle.primaryText)
+
+            Spacer()
+
+            Circle()
+                .fill(MonochromeStyle.secondaryText)
+                .frame(width: 5, height: 5)
+        }
+        .padding(.leading, 19)
+        .padding(.trailing, 20)
+        .padding(.top, 45)
+        .padding(.bottom, 13)
+    }
+
     @ViewBuilder
     private func detailView(for viewType: ViewType) -> some View {
         switch viewType {
-        case .metrics:
-            MetricsView()
         case .models:
             ModelManagementView()
         case .transcribeAudio:
             AudioTranscribeView()
-        case .history:
-            Text("History")
-                .foregroundColor(.secondary)
         case .audioInput:
             AudioInputSettingsView()
         case .dictionary:

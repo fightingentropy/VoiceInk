@@ -51,14 +51,10 @@ class AudioTranscriptionManager: ObservableObject {
         errorMessage = nil
 
         currentTask = Task {
-            let minimalModeEnabled = MinimalModePolicy.isEnabled()
             var generatedRecordingURL: URL?
             defer {
                 if let generatedRecordingURL {
-                    MinimalModePolicy.discardRecording(
-                        at: generatedRecordingURL,
-                        when: minimalModeEnabled
-                    )
+                    EphemeralTranscriptionPolicy.discardRecording(at: generatedRecordingURL)
                 }
             }
 
@@ -94,7 +90,7 @@ class AudioTranscriptionManager: ObservableObject {
                 let transcriptionStart = Date()
                 var text = try await serviceRegistry.transcribe(audioURL: permanentURL, model: currentModel)
                 let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
-                text = TranscriptionOutputFilter.filter(text, redactLogs: minimalModeEnabled)
+                text = TranscriptionOutputFilter.filter(text)
                 text = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
                 if UserDefaults.standard.bool(forKey: "IsTextFormattingEnabled") {
@@ -106,27 +102,20 @@ class AudioTranscriptionManager: ObservableObject {
                 let transcription = Transcription(
                     text: text,
                     duration: duration,
-                    audioFileURL: minimalModeEnabled ? url.absoluteString : permanentURL.absoluteString,
+                    audioFileURL: url.absoluteString,
                     transcriptionModelName: currentModel.displayName,
                     transcriptionDuration: transcriptionDuration
                 )
 
-                if !minimalModeEnabled {
-                    modelContext.insert(transcription)
-                    try modelContext.save()
-                    NotificationCenter.default.post(name: .transcriptionCreated, object: transcription)
-                    NotificationCenter.default.post(name: .transcriptionCompleted, object: transcription)
-                } else {
-                    logger.notice("Minimal Mode skipped imported transcription history persistence")
-                }
+                logger.notice("Imported transcription completed without history persistence")
                 currentTranscription = transcription
                 
                 processingPhase = .completed
                 try? await Task.sleep(nanoseconds: 1_500_000_000)
-                await finishProcessing()
+                finishProcessing()
                 
             } catch {
-                await handleError(error)
+                handleError(error)
             }
         }
     }

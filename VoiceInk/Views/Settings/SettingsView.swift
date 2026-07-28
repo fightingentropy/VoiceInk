@@ -1,289 +1,43 @@
 import SwiftUI
-import Cocoa
 import KeyboardShortcuts
 import LaunchAtLogin
-import AVFoundation
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
-    @EnvironmentObject private var menuBarManager: MenuBarManager
     @EnvironmentObject private var hotkeyManager: HotkeyManager
     @EnvironmentObject private var transcriptionModelManager: TranscriptionModelManager
-    @EnvironmentObject private var updaterViewModel: UpdaterViewModel
-    @AppStorage("autoUpdateCheck") private var autoUpdateCheck = true
-    @StateObject private var deviceManager = AudioDeviceManager.shared
     @ObservedObject private var soundManager = SoundManager.shared
     @ObservedObject private var mediaController = MediaController.shared
     @ObservedObject private var playbackController = PlaybackController.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
-    @AppStorage("enableAnnouncements") private var enableAnnouncements = true
     @AppStorage("restoreClipboardAfterPaste") private var restoreClipboardAfterPaste = true
     @AppStorage("clipboardRestoreDelay") private var clipboardRestoreDelay = 2.0
     @AppStorage("useAppleScriptPaste") private var useAppleScriptPaste = false
-    @State private var showResetOnboardingAlert = false
-    @State private var currentShortcut = KeyboardShortcuts.getShortcut(for: .toggleMiniRecorder)
-    @State private var isCustomCancelEnabled = KeyboardShortcuts.getShortcut(for: .cancelRecorder) != nil
 
-    // Expansion states - all collapsed by default
+    @State private var showResetOnboardingAlert = false
+    @State private var isCustomCancelEnabled = KeyboardShortcuts.getShortcut(for: .cancelRecorder) != nil
     @State private var isCustomCancelExpanded = false
     @State private var isMiddleClickExpanded = false
     @State private var isSoundFeedbackExpanded = false
     @State private var isMuteSystemExpanded = false
     @State private var isRestoreClipboardExpanded = false
+    @State private var isPauseMediaExpanded = false
+    @State private var isMaintenanceExpanded = false
 
     var body: some View {
-        Form {
-            // MARK: - Minimal Mode
-            Section {
-                Toggle(isOn: $menuBarManager.isMinimalModeEnabled) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Minimal Mode")
-                        Text("Run from the menu bar and discard new transcript and audio history.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            } footer: {
-                Text("Minimal Mode pauses background announcements and update checks. It does not change the selected transcription model.")
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 14) {
+                shortcutsSection
+                recordingSection
+                applicationSection
+                maintenanceSection
             }
-
-            // MARK: - Shortcuts
-            Section {
-                LabeledContent("Hotkey 1") {
-                    HStack(spacing: 8) {
-                        hotkeyPicker(binding: $hotkeyManager.selectedHotkey1)
-                        if hotkeyManager.selectedHotkey1 == .custom {
-                            KeyboardShortcuts.Recorder(for: .toggleMiniRecorder)
-                                .controlSize(.small)
-                        }
-                    }
-                }
-
-                if hotkeyManager.selectedHotkey2 != .none {
-                    LabeledContent("Hotkey 2") {
-                        HStack(spacing: 8) {
-                            hotkeyPicker(binding: $hotkeyManager.selectedHotkey2)
-                            if hotkeyManager.selectedHotkey2 == .custom {
-                                KeyboardShortcuts.Recorder(for: .toggleMiniRecorder2)
-                                    .controlSize(.small)
-                            }
-                            Button {
-                                withAnimation { hotkeyManager.selectedHotkey2 = .none }
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .foregroundColor(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-
-                if hotkeyManager.selectedHotkey1 != .none && hotkeyManager.selectedHotkey2 == .none {
-                    Button("Add Second Hotkey") {
-                        withAnimation { hotkeyManager.selectedHotkey2 = .rightOption }
-                    }
-                }
-            } header: {
-                Text("Shortcuts")
-            } footer: {
-                Text("Quick tap for hands-free recording, hold for push-to-talk.")
-            }
-
-            // MARK: - Additional Shortcuts
-            Section("Additional Shortcuts") {
-                LabeledContent("Paste Last Transcription (Original)") {
-                    KeyboardShortcuts.Recorder(for: .pasteLastTranscription)
-                        .controlSize(.small)
-                }
-
-                LabeledContent("Retry Last Transcription") {
-                    KeyboardShortcuts.Recorder(for: .retryLastTranscription)
-                        .controlSize(.small)
-                }
-
-                // Custom Cancel - hierarchical
-                ExpandableSettingsRow(
-                    isExpanded: $isCustomCancelExpanded,
-                    isEnabled: $isCustomCancelEnabled,
-                    label: "Custom Cancel Shortcut"
-                ) {
-                    LabeledContent("Shortcut") {
-                        KeyboardShortcuts.Recorder(for: .cancelRecorder)
-                            .controlSize(.small)
-                    }
-                }
-                .onChange(of: isCustomCancelEnabled) { _, newValue in
-                    if !newValue {
-                        KeyboardShortcuts.setShortcut(nil, for: .cancelRecorder)
-                        isCustomCancelExpanded = false
-                    }
-                }
-
-                // Middle-Click
-                ExpandableSettingsRow(
-                    isExpanded: $isMiddleClickExpanded,
-                    isEnabled: $hotkeyManager.isMiddleClickToggleEnabled,
-                    label: "Middle-Click Recording"
-                ) {
-                    LabeledContent("Activation Delay") {
-                        HStack {
-                            TextField("", value: $hotkeyManager.middleClickActivationDelay, formatter: {
-                                let formatter = NumberFormatter()
-                                formatter.minimum = 0
-                                return formatter
-                            }())
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: 60)
-                            Text("ms")
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-            }
-
-            // MARK: - Recording Feedback
-            Section("Recording Feedback") {
-                // Sound Feedback
-                ExpandableSettingsRow(
-                    isExpanded: $isSoundFeedbackExpanded,
-                    isEnabled: $soundManager.isEnabled,
-                    label: "Sound Feedback"
-                ) {
-                    CustomSoundSettingsView()
-                }
-
-                // Mute System Audio
-                ExpandableSettingsRow(
-                    isExpanded: $isMuteSystemExpanded,
-                    isEnabled: $mediaController.isSystemMuteEnabled,
-                    label: "Mute Audio While Recording"
-                ) {
-                    Picker("Resume Delay", selection: $mediaController.audioResumptionDelay) {
-                        Text("0s").tag(0.0)
-                        Text("1s").tag(1.0)
-                        Text("2s").tag(2.0)
-                        Text("3s").tag(3.0)
-                        Text("4s").tag(4.0)
-                        Text("5s").tag(5.0)
-                    }
-                }
-
-                // Restore Clipboard
-                ExpandableSettingsRow(
-                    isExpanded: $isRestoreClipboardExpanded,
-                    isEnabled: $restoreClipboardAfterPaste,
-                    label: "Restore Clipboard After Paste"
-                ) {
-                    Picker("Restore Delay", selection: $clipboardRestoreDelay) {
-                        Text("250ms").tag(0.25)
-                        Text("500ms").tag(0.5)
-                        Text("1s").tag(1.0)
-                        Text("2s").tag(2.0)
-                        Text("3s").tag(3.0)
-                        Text("4s").tag(4.0)
-                        Text("5s").tag(5.0)
-                    }
-                }
-
-                // AppleScript Paste
-                Toggle(isOn: $useAppleScriptPaste) {
-                    HStack(spacing: 4) {
-                        Text("Use AppleScript Paste")
-                        InfoTip("Enable this if pasting doesn't work with your keyboard layout (e.g. Neo2). Uses AppleScript instead of simulated key events.")
-                    }
-                }
-            }
-
-            // MARK: - Experimental
-            ExperimentalSection()
-
-            // MARK: - General
-            Section("General") {
-                Toggle("Hide Dock Icon", isOn: $menuBarManager.isMenuBarOnly)
-
-                LaunchAtLogin.Toggle("Launch at Login")
-
-                #if !LOCAL_BUILD
-                Toggle("Automatically Check for Updates", isOn: $autoUpdateCheck)
-                    .onChange(of: autoUpdateCheck) { _, newValue in
-                        updaterViewModel.toggleAutoUpdates(newValue)
-                    }
-
-                HStack {
-                    Button("Check for Updates Now") {
-                        updaterViewModel.checkForUpdates()
-                    }
-                    .disabled(!updaterViewModel.canCheckForUpdates)
-                }
-                #endif
-
-                Toggle("Show Announcements", isOn: $enableAnnouncements)
-                    .onChange(of: enableAnnouncements) { _, newValue in
-                        if newValue && !menuBarManager.isMinimalModeEnabled {
-                            AnnouncementsService.shared.start()
-                        } else {
-                            AnnouncementsService.shared.stop()
-                        }
-                }
-
-                HStack {
-                    Button("Reset Onboarding") {
-                        showResetOnboardingAlert = true
-                    }
-                }
-            }
-
-            // MARK: - Privacy
-            Section {
-                AudioCleanupSettingsView()
-            } header: {
-                Text("Privacy")
-            } footer: {
-                Text("Control how VoiceInk handles your transcription data and audio recordings.")
-            }
-
-            // MARK: - Backup
-            Section {
-                LabeledContent("Export Settings") {
-                    Button("Export") {
-                        ImportExportService.shared.exportSettings(
-                            whisperPrompt: WhisperPrompt(),
-                            hotkeyManager: hotkeyManager,
-                            menuBarManager: menuBarManager,
-                            mediaController: mediaController,
-                            playbackController: playbackController,
-                            soundManager: soundManager,
-                            modelContext: modelContext
-                        )
-                    }
-                }
-
-                LabeledContent("Import Settings") {
-                    Button("Import") {
-                        ImportExportService.shared.importSettings(
-                            whisperPrompt: WhisperPrompt(),
-                            hotkeyManager: hotkeyManager,
-                            menuBarManager: menuBarManager,
-                            mediaController: mediaController,
-                            playbackController: playbackController,
-                            soundManager: soundManager,
-                            modelContext: modelContext,
-                            transcriptionModelManager: transcriptionModelManager
-                        )
-                    }
-                }
-            } header: {
-                Text("Backup")
-            } footer: {
-                Text("Export or import settings, dictionary, and custom models.")
-            }
-
-            // MARK: - Diagnostics
-            Section("Diagnostics") {
-                DiagnosticsSettingsView()
-            }
+            .padding(18)
+            .frame(maxWidth: 660)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .formStyle(.grouped)
+        .scrollIndicators(.hidden)
+        .background(Color.clear)
         .alert("Reset Onboarding", isPresented: $showResetOnboardingAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Reset", role: .destructive) {
@@ -296,19 +50,309 @@ struct SettingsView: View {
         }
     }
 
-    @ViewBuilder
-    private func hotkeyPicker(binding: Binding<HotkeyManager.HotkeyOption>) -> some View {
+    private var shortcutsSection: some View {
+        MonochromeSettingsSection(title: "Shortcuts") {
+            compactLabeledRow("Primary") {
+                HStack(spacing: 7) {
+                    hotkeyPicker(binding: $hotkeyManager.selectedHotkey1)
+                    if hotkeyManager.selectedHotkey1 == .custom {
+                        KeyboardShortcuts.Recorder(for: .toggleMiniRecorder)
+                            .controlSize(.small)
+                    }
+                }
+            }
+
+            if hotkeyManager.selectedHotkey2 != .none {
+                MonochromeDivider()
+
+                compactLabeledRow("Secondary") {
+                    HStack(spacing: 7) {
+                        hotkeyPicker(binding: $hotkeyManager.selectedHotkey2)
+                        if hotkeyManager.selectedHotkey2 == .custom {
+                            KeyboardShortcuts.Recorder(for: .toggleMiniRecorder2)
+                                .controlSize(.small)
+                        }
+                        Button {
+                            withAnimation(.easeOut(duration: 0.16)) {
+                                hotkeyManager.selectedHotkey2 = .none
+                            }
+                        } label: {
+                            Image(systemName: "minus")
+                                .font(.system(size: 10, weight: .semibold))
+                        }
+                        .buttonStyle(MonochromeIconButtonStyle())
+                    }
+                }
+            } else if hotkeyManager.selectedHotkey1 != .none {
+                MonochromeDivider()
+
+                Button {
+                    withAnimation(.easeOut(duration: 0.16)) {
+                        hotkeyManager.selectedHotkey2 = .rightOption
+                    }
+                } label: {
+                    Label("Add shortcut", systemImage: "plus")
+                }
+                .buttonStyle(MonochromeActionButtonStyle())
+                .padding(.vertical, 9)
+            }
+
+            MonochromeDivider()
+
+            ExpandableSettingsRow(
+                isExpanded: $isCustomCancelExpanded,
+                isEnabled: $isCustomCancelEnabled,
+                label: "Custom cancel"
+            ) {
+                compactLabeledRow("Shortcut") {
+                    KeyboardShortcuts.Recorder(for: .cancelRecorder)
+                        .controlSize(.small)
+                }
+            }
+            .onChange(of: isCustomCancelEnabled) { _, isEnabled in
+                if !isEnabled {
+                    KeyboardShortcuts.setShortcut(nil, for: .cancelRecorder)
+                    isCustomCancelExpanded = false
+                }
+            }
+
+            MonochromeDivider()
+
+            ExpandableSettingsRow(
+                isExpanded: $isMiddleClickExpanded,
+                isEnabled: $hotkeyManager.isMiddleClickToggleEnabled,
+                label: "Middle-click recording"
+            ) {
+                compactLabeledRow("Delay") {
+                    HStack(spacing: 6) {
+                        TextField(
+                            "",
+                            value: $hotkeyManager.middleClickActivationDelay,
+                            formatter: nonNegativeNumberFormatter
+                        )
+                        .textFieldStyle(.plain)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 42)
+
+                        Text("ms")
+                            .foregroundStyle(MonochromeStyle.secondaryText)
+                    }
+                }
+            }
+        }
+    }
+
+    private var recordingSection: some View {
+        MonochromeSettingsSection(title: "Recording") {
+            ExpandableSettingsRow(
+                isExpanded: $isSoundFeedbackExpanded,
+                isEnabled: $soundManager.isEnabled,
+                label: "Sound feedback"
+            ) {
+                CustomSoundSettingsView()
+            }
+
+            MonochromeDivider()
+
+            ExpandableSettingsRow(
+                isExpanded: $isMuteSystemExpanded,
+                isEnabled: $mediaController.isSystemMuteEnabled,
+                label: "Mute system audio"
+            ) {
+                compactLabeledRow("Resume delay") {
+                    delayPicker(selection: $mediaController.audioResumptionDelay)
+                }
+            }
+
+            MonochromeDivider()
+
+            ExpandableSettingsRow(
+                isExpanded: $isRestoreClipboardExpanded,
+                isEnabled: $restoreClipboardAfterPaste,
+                label: "Restore clipboard"
+            ) {
+                compactLabeledRow("Restore after") {
+                    Picker("", selection: $clipboardRestoreDelay) {
+                        Text("250 ms").tag(0.25)
+                        Text("500 ms").tag(0.5)
+                        Text("1 sec").tag(1.0)
+                        Text("2 sec").tag(2.0)
+                        Text("3 sec").tag(3.0)
+                        Text("4 sec").tag(4.0)
+                        Text("5 sec").tag(5.0)
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .controlSize(.small)
+                    .frame(width: 95)
+                }
+            }
+
+            MonochromeDivider()
+
+            MonochromeToggleRow(isOn: $useAppleScriptPaste) {
+                HStack(spacing: 5) {
+                    Text("AppleScript paste")
+                    InfoTip("Use AppleScript if normal paste does not work with your keyboard layout.")
+                }
+            }
+
+            MonochromeDivider()
+
+            ExpandableSettingsRow(
+                isExpanded: $isPauseMediaExpanded,
+                isEnabled: $playbackController.isPauseMediaEnabled,
+                label: "Pause playing media",
+                infoMessage: "Pauses media during recording and resumes it afterwards."
+            ) {
+                compactLabeledRow("Resume delay") {
+                    delayPicker(selection: $mediaController.audioResumptionDelay)
+                }
+            }
+        }
+    }
+
+    private var applicationSection: some View {
+        MonochromeSettingsSection(title: "App") {
+            LaunchAtLogin.Toggle("Launch at login")
+                .font(.system(size: 12.5, weight: .medium))
+                .foregroundStyle(MonochromeStyle.primaryText)
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+                .tint(.white)
+                .frame(minHeight: 38)
+
+            MonochromeDivider()
+
+            HStack {
+                Text("Onboarding")
+                    .font(.system(size: 12.5, weight: .medium))
+                    .foregroundStyle(MonochromeStyle.primaryText)
+
+                Spacer()
+
+                Button("Reset") {
+                    showResetOnboardingAlert = true
+                }
+                .buttonStyle(MonochromeActionButtonStyle())
+            }
+            .frame(minHeight: 42)
+        }
+    }
+
+    private var maintenanceSection: some View {
+        MonochromeSettingsSection(title: "Maintenance") {
+            Button {
+                withAnimation(.easeOut(duration: 0.16)) {
+                    isMaintenanceExpanded.toggle()
+                }
+            } label: {
+                HStack {
+                    Text("Backup & diagnostics")
+                        .font(.system(size: 12.5, weight: .medium))
+                        .foregroundStyle(MonochromeStyle.primaryText)
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(MonochromeStyle.secondaryText)
+                        .rotationEffect(.degrees(isMaintenanceExpanded ? 90 : 0))
+                }
+                .contentShape(Rectangle())
+                .frame(minHeight: 40)
+            }
+            .buttonStyle(.plain)
+
+            if isMaintenanceExpanded {
+                MonochromeDivider()
+
+                HStack(spacing: 8) {
+                    Button("Export") {
+                        ImportExportService.shared.exportSettings(
+                            hotkeyManager: hotkeyManager,
+                            mediaController: mediaController,
+                            playbackController: playbackController,
+                            soundManager: soundManager,
+                            modelContext: modelContext
+                        )
+                    }
+
+                    Button("Import") {
+                        ImportExportService.shared.importSettings(
+                            hotkeyManager: hotkeyManager,
+                            mediaController: mediaController,
+                            playbackController: playbackController,
+                            soundManager: soundManager,
+                            modelContext: modelContext,
+                            transcriptionModelManager: transcriptionModelManager
+                        )
+                    }
+                }
+                .buttonStyle(MonochromeActionButtonStyle())
+                .padding(.vertical, 10)
+
+                MonochromeDivider()
+
+                DiagnosticsSettingsView()
+                    .padding(.vertical, 8)
+            }
+        }
+    }
+
+    private func compactLabeledRow<Content: View>(
+        _ title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        HStack(spacing: 12) {
+            Text(title)
+                .font(.system(size: 12.5, weight: .medium))
+                .foregroundStyle(MonochromeStyle.primaryText)
+
+            Spacer(minLength: 16)
+
+            content()
+        }
+        .frame(minHeight: 40)
+    }
+
+    private func hotkeyPicker(
+        binding: Binding<HotkeyManager.HotkeyOption>
+    ) -> some View {
         Picker("", selection: binding) {
             ForEach(HotkeyManager.HotkeyOption.allCases, id: \.self) { option in
                 Text(option.displayName).tag(option)
             }
         }
         .labelsHidden()
-        .frame(width: 140)
+        .pickerStyle(.menu)
+        .controlSize(.small)
+        .frame(width: 155)
+    }
+
+    private func delayPicker(
+        selection: Binding<Double>
+    ) -> some View {
+        Picker("", selection: selection) {
+            Text("0 sec").tag(0.0)
+            Text("1 sec").tag(1.0)
+            Text("2 sec").tag(2.0)
+            Text("3 sec").tag(3.0)
+            Text("4 sec").tag(4.0)
+            Text("5 sec").tag(5.0)
+        }
+        .labelsHidden()
+        .pickerStyle(.menu)
+        .controlSize(.small)
+        .frame(width: 82)
+    }
+
+    private var nonNegativeNumberFormatter: NumberFormatter {
+        let formatter = NumberFormatter()
+        formatter.minimum = 0
+        return formatter
     }
 }
-
-// MARK: - Expandable Settings Row (entire row clickable)
 
 struct ExpandableSettingsRow<Content: View>: View {
     @Binding var isExpanded: Bool
@@ -318,107 +362,69 @@ struct ExpandableSettingsRow<Content: View>: View {
     var infoURL: String? = nil
     @ViewBuilder let content: () -> Content
 
-    @State private var isHandlingToggleChange = false
-
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Main row - entire area is tappable
-            HStack {
-                Toggle(isOn: $isEnabled) {
-                    HStack(spacing: 4) {
-                        Text(label)
-                        if let message = infoMessage {
-                            if let url = infoURL {
-                                InfoTip(message, learnMoreURL: url)
-                            } else {
-                                InfoTip(message)
-                            }
+            HStack(spacing: 10) {
+                HStack(spacing: 5) {
+                    Text(label)
+                        .font(.system(size: 12.5, weight: .medium))
+
+                    if let infoMessage {
+                        if let infoURL {
+                            InfoTip(infoMessage, learnMoreURL: infoURL)
+                        } else {
+                            InfoTip(infoMessage)
                         }
                     }
                 }
+                .foregroundStyle(MonochromeStyle.primaryText)
 
-                Spacer()
+                Spacer(minLength: 14)
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.secondary)
-                    .rotationEffect(.degrees(isEnabled && isExpanded ? 90 : 0))
-                    .opacity(isEnabled ? 1 : 0.4)
-            }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                guard !isHandlingToggleChange else { return }
-                if isEnabled {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                Toggle("", isOn: $isEnabled)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.mini)
+                    .tint(.white)
+
+                Button {
+                    guard isEnabled else { return }
+                    withAnimation(.easeOut(duration: 0.16)) {
                         isExpanded.toggle()
                     }
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .rotationEffect(.degrees(isEnabled && isExpanded ? 90 : 0))
+                        .opacity(isEnabled ? 1 : 0.25)
                 }
+                .buttonStyle(MonochromeIconButtonStyle())
+                .disabled(!isEnabled)
             }
+            .frame(minHeight: 40)
 
-            // Expanded content with proper spacing
             if isEnabled && isExpanded {
                 VStack(alignment: .leading, spacing: 8) {
+                    MonochromeDivider()
                     content()
                 }
-                .padding(.top, 12)
-                .padding(.leading, 4)
+                .padding(.bottom, 9)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: isExpanded)
         .onChange(of: isEnabled) { _, newValue in
-            isHandlingToggleChange = true
-            if newValue {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isExpanded = true
-                }
-            } else {
-                isExpanded = false
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                isHandlingToggleChange = false
+            withAnimation(.easeOut(duration: 0.16)) {
+                isExpanded = newValue
             }
         }
     }
 }
-
-// MARK: - Experimental Section
-
-struct ExperimentalSection: View {
-    @ObservedObject private var playbackController = PlaybackController.shared
-    @ObservedObject private var mediaController = MediaController.shared
-    @State private var isPauseMediaExpanded = false
-
-    var body: some View {
-        Section {
-            ExpandableSettingsRow(
-                isExpanded: $isPauseMediaExpanded,
-                isEnabled: $playbackController.isPauseMediaEnabled,
-                label: "Pause Media While Recording",
-                infoMessage: "Pauses playing media when recording starts and resumes when done."
-            ) {
-                Picker("Resume Delay", selection: $mediaController.audioResumptionDelay) {
-                    Text("0s").tag(0.0)
-                    Text("1s").tag(1.0)
-                    Text("2s").tag(2.0)
-                    Text("3s").tag(3.0)
-                    Text("4s").tag(4.0)
-                    Text("5s").tag(5.0)
-                }
-            }
-        } header: {
-            Text("Experimental")
-        }
-    }
-}
-
-// MARK: - Text Extension
 
 extension Text {
     func settingsDescription() -> some View {
         self
-            .font(.system(size: 12))
-            .foregroundColor(.secondary)
+            .font(.system(size: 11))
+            .foregroundStyle(MonochromeStyle.secondaryText)
             .fixedSize(horizontal: false, vertical: true)
     }
 }

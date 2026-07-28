@@ -72,7 +72,7 @@ struct ModelManagementView: View {
                 }) {
                     Image(systemName: "gear")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(isShowingSettings ? Color.accentColor : Color.secondary)
+                        .foregroundStyle(isShowingSettings ? MonochromeStyle.primaryText : MonochromeStyle.secondaryText)
                 }
                 .buttonStyle(.borderless)
             }

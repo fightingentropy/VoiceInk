@@ -92,10 +92,10 @@ struct CloudModelCardView: View {
             if isCurrent {
                 Text("Default")
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(MonochromeStyle.primaryText)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(Capsule().fill(Color.accentColor.opacity(0.15)))
+                    .background(Capsule().fill(MonochromeStyle.raisedFill))
             } else if isConfiguredState {
                 Text("Configured")
                     .font(.caption.weight(.medium))
@@ -239,16 +239,16 @@ struct CloudModelCardView: View {
                 if let error = verificationError {
                     Text(error)
                         .font(.caption)
-                        .foregroundColor(Color(.systemRed))
+                        .foregroundColor(MonochromeStyle.secondaryText)
                 } else {
                     Text("Verification failed")
                         .font(.caption)
-                        .foregroundColor(Color(.systemRed))
+                        .foregroundColor(MonochromeStyle.secondaryText)
                 }
             } else if verificationStatus == .success {
                 Text(successMessage)
                     .font(.caption)
-                    .foregroundColor(Color(.systemGreen))
+                    .foregroundColor(MonochromeStyle.primaryText)
             }
         }
     }

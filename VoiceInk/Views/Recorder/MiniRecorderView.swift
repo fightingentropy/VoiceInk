@@ -22,18 +22,13 @@ struct MiniRecorderView<S: RecorderStateProvider & ObservableObject>: View {
         .padding(.horizontal, 10)
     }
 
-    @ViewBuilder
     private var recorderPill: some View {
-        if #available(macOS 26.0, *) {
-            contentLayout
-                .frame(width: width)
-                .glassEffect(.regular.tint(.black.opacity(0.4)), in: .rect(cornerRadius: cornerRadius))
-        } else {
-            contentLayout
-                .frame(width: width)
-                .background(Color.black.opacity(0.9))
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        }
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+
+        return contentLayout
+            .frame(width: width)
+            .background(MonochromeStyle.subtleFill, in: shape)
+            .overlay(shape.stroke(MonochromeStyle.hairline, lineWidth: 0.75))
     }
 
     var body: some View {

@@ -15,18 +15,16 @@ struct CardBackground: View {
 
     var body: some View {
         shape
-            .fill(.thinMaterial)
-            .overlay {
-                if isSelected && useAccentGradientWhenSelected {
-                    shape.fill(Color.accentColor.opacity(0.12))
-                }
-            }
+            .fill(isSelected ? MonochromeStyle.selectedFill : MonochromeStyle.subtleFill)
+            .monochromeSurface(
+                cornerRadius: cornerRadius,
+                tint: isSelected ? MonochromeStyle.selectedFill : MonochromeStyle.subtleFill
+            )
             .overlay(
                 shape.strokeBorder(
-                    isSelected ? Color.accentColor.opacity(0.5) : Color.primary.opacity(0.07),
-                    lineWidth: 1
+                    MonochromeStyle.hairline,
+                    lineWidth: 0.75
                 )
             )
-            .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
     }
 }
