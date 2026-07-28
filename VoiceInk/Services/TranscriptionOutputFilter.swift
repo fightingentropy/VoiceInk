@@ -10,7 +10,10 @@ struct TranscriptionOutputFilter {
         #"\{.*?\}"#      // {}
     ]
 
-    static func filter(_ text: String) -> String {
+    static func filter(
+        _ text: String,
+        redactLogs: Bool = MinimalModePolicy.isEnabled()
+    ) -> String {
         var filteredText = text
 
         // Remove <TAG>...</TAG> blocks
@@ -44,7 +47,13 @@ struct TranscriptionOutputFilter {
         filteredText = filteredText.trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Log results
-        if filteredText != text {
+        if redactLogs {
+            if filteredText != text {
+                logger.notice("📝 Output filter modified the transcript")
+            } else {
+                logger.notice("📝 Output filter left the transcript unchanged")
+            }
+        } else if filteredText != text {
             logger.notice("📝 Output filter result: \(filteredText, privacy: .public)")
         } else {
             logger.notice("📝 Output filter result (unchanged): \(filteredText, privacy: .public)")

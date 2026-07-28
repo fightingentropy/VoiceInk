@@ -35,6 +35,7 @@ If you want a signed, auto-updating distribution channel, that infrastructure is
 - 🎯 **Global hotkeys** — Customizable push-to-talk or toggle shortcuts via [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts), including modifier-only hotkeys (e.g. hold Right Option).
 - 🧪 **Benchmark suite** — Run WER/CER benchmarks against a synthetic corpus or your own recent recordings; exports JSON + Markdown reports.
 - 🗂️ **History & retention** — Searchable transcript history, automatic audio/transcription cleanup with configurable retention.
+- 🪶 **Minimal Mode** — Menu-bar-only dictation that keeps your selected model unchanged, discards new transcript/audio history, and pauses background announcements and update checks.
 - 🤐 **Privacy-first** — Local models never transmit audio. Cloud providers are only hit when you enable them.
 
 ---
@@ -312,6 +313,7 @@ Removed from this fork: **Sparkle** (auto-updater).
 - **Local models** send nothing over the network after their initial asset download.
 - **Cloud transcription** sends audio to ElevenLabs or your configured OpenAI-compatible endpoint — only when a cloud model is the active transcription model.
 - **Storage** is local SwiftData + audio files under `~/Library/Application Support/VoiceInk/`. The dictionary store is replicated to iCloud on signed builds only (disabled for local / `LOCAL_BUILD`).
+- **Minimal Mode** skips new transcript/benchmark persistence, deletes its temporary recording after transcription, redacts transcript content from logs, hides history actions from the menu bar, and pauses automatic announcements and update checks.
 - **No analytics, telemetry, crash reporting, or update pings** are sent. There is no backend.
 
 ---

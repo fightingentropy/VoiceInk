@@ -329,9 +329,12 @@ struct VoiceInkApp: App {
                         // Migrate dictionary data from UserDefaults to SwiftData (one-time operation)
                         DictionaryMigrationService.shared.migrateIfNeeded(context: container.mainContext)
 
+                        updaterViewModel.setMinimalModeEnabled(menuBarManager.isMinimalModeEnabled)
                         updaterViewModel.silentlyCheckForUpdates()
 
-                        if enableAnnouncements {
+                        if MinimalModePolicy.allowsBackgroundNetworkActivity(
+                            requested: enableAnnouncements
+                        ) {
                             AnnouncementsService.shared.start()
                         }
 
@@ -358,6 +361,15 @@ struct VoiceInkApp: App {
 
                         // Stop the automatic audio cleanup process
                         audioCleanupManager.stopAutomaticCleanup()
+                    }
+                    .onChange(of: menuBarManager.isMinimalModeEnabled) { _, isEnabled in
+                        updaterViewModel.setMinimalModeEnabled(isEnabled)
+
+                        if isEnabled {
+                            AnnouncementsService.shared.stop()
+                        } else if enableAnnouncements {
+                            AnnouncementsService.shared.start()
+                        }
                     }
             } else {
                 OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)
@@ -447,6 +459,8 @@ class UpdaterViewModel: ObservableObject {
     func checkForUpdates() { }
 
     func silentlyCheckForUpdates() { }
+
+    func setMinimalModeEnabled(_ enabled: Bool) { }
     #else
     @AppStorage("autoUpdateCheck") private var autoUpdateCheck = true
 
@@ -458,7 +472,8 @@ class UpdaterViewModel: ObservableObject {
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
 
         // Enable automatic update checking
-        updaterController.updater.automaticallyChecksForUpdates = autoUpdateCheck
+        updaterController.updater.automaticallyChecksForUpdates =
+            MinimalModePolicy.allowsBackgroundNetworkActivity(requested: autoUpdateCheck)
         updaterController.updater.updateCheckInterval = 24 * 60 * 60
 
         updaterController.updater.publisher(for: \.canCheckForUpdates)
@@ -466,7 +481,8 @@ class UpdaterViewModel: ObservableObject {
     }
 
     func toggleAutoUpdates(_ value: Bool) {
-        updaterController.updater.automaticallyChecksForUpdates = value
+        updaterController.updater.automaticallyChecksForUpdates =
+            MinimalModePolicy.allowsBackgroundNetworkActivity(requested: value)
     }
 
     func checkForUpdates() {
@@ -475,8 +491,15 @@ class UpdaterViewModel: ObservableObject {
     }
 
     func silentlyCheckForUpdates() {
+        guard MinimalModePolicy.allowsBackgroundNetworkActivity(requested: autoUpdateCheck) else {
+            return
+        }
         // This checks for updates in the background without showing UI unless an update is found
         updaterController.updater.checkForUpdatesInBackground()
+    }
+
+    func setMinimalModeEnabled(_ enabled: Bool) {
+        updaterController.updater.automaticallyChecksForUpdates = !enabled && autoUpdateCheck
     }
     #endif
 }

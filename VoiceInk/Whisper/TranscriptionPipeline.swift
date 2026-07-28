@@ -66,6 +66,21 @@ class TranscriptionPipeline {
         onCleanup: @escaping () async -> Void,
         onDismiss: @escaping () async -> Void
     ) async {
+        let minimalModeEnabled = MinimalModePolicy.isEnabled()
+        defer {
+            if minimalModeEnabled {
+                let discarded = MinimalModePolicy.discardRecording(
+                    at: audioURL,
+                    when: true
+                )
+                if discarded {
+                    logger.notice("Minimal Mode discarded the temporary recording")
+                } else if FileManager.default.fileExists(atPath: audioURL.path) {
+                    logger.error("Minimal Mode could not discard the temporary recording")
+                }
+            }
+        }
+
         if shouldCancel() {
             await onCleanup()
             return
@@ -92,9 +107,17 @@ class TranscriptionPipeline {
             } else {
                 text = try await serviceRegistry.transcribe(audioURL: audioURL, model: model)
             }
-            logger.notice("📝 Transcript: \(text, privacy: .public)")
-            text = TranscriptionOutputFilter.filter(text)
-            logger.notice("📝 Output filter result: \(text, privacy: .public)")
+            if minimalModeEnabled {
+                logger.notice("📝 Transcript received (\(text.count, privacy: .public) characters)")
+            } else {
+                logger.notice("📝 Transcript: \(text, privacy: .public)")
+            }
+            text = TranscriptionOutputFilter.filter(text, redactLogs: minimalModeEnabled)
+            if minimalModeEnabled {
+                logger.notice("📝 Output filter completed (\(text.count, privacy: .public) characters)")
+            } else {
+                logger.notice("📝 Output filter result: \(text, privacy: .public)")
+            }
             let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
 
             if shouldCancel() { await onCleanup(); return }
@@ -103,23 +126,39 @@ class TranscriptionPipeline {
 
             if UserDefaults.standard.bool(forKey: "IsTextFormattingEnabled") {
                 text = WhisperTextFormatter.format(text)
-                logger.notice("📝 Formatted transcript: \(text, privacy: .public)")
+                if minimalModeEnabled {
+                    logger.notice("📝 Transcript formatting completed")
+                } else {
+                    logger.notice("📝 Formatted transcript: \(text, privacy: .public)")
+                }
             }
 
             let frontmostAppContext = Self.frontmostAppContext()
 
             if UserDefaults.standard.bool(forKey: "ConvertSpokenPunctuation") {
                 text = SpokenPunctuationFormatter.apply(text, frontmostAppContext: frontmostAppContext)
-                logger.notice("📝 SpokenPunctuation: \(text, privacy: .public)")
+                if minimalModeEnabled {
+                    logger.notice("📝 Spoken punctuation conversion completed")
+                } else {
+                    logger.notice("📝 SpokenPunctuation: \(text, privacy: .public)")
+                }
             }
 
             if UserDefaults.standard.bool(forKey: "ConvertLiteralDictationTokens") {
                 text = DictationLiteralFormatter.apply(text, frontmostAppContext: frontmostAppContext)
-                logger.notice("📝 LiteralDictationTokens: \(text, privacy: .public)")
+                if minimalModeEnabled {
+                    logger.notice("📝 Literal dictation conversion completed")
+                } else {
+                    logger.notice("📝 LiteralDictationTokens: \(text, privacy: .public)")
+                }
             }
 
             text = WordReplacementService.shared.applyReplacements(to: text, using: modelContext)
-            logger.notice("📝 WordReplacement: \(text, privacy: .public)")
+            if minimalModeEnabled {
+                logger.notice("📝 Word replacement completed")
+            } else {
+                logger.notice("📝 WordReplacement: \(text, privacy: .public)")
+            }
 
             let audioAsset = AVURLAsset(url: audioURL)
             let actualDuration = (try? CMTimeGetSeconds(await audioAsset.load(.duration))) ?? 0.0
@@ -172,11 +211,13 @@ class TranscriptionPipeline {
 
         await onDismiss()
 
-        if let persistencePayload {
+        if let persistencePayload, !minimalModeEnabled {
             persistTranscription(
                 payload: persistencePayload,
                 audioURL: audioURL
             )
+        } else if minimalModeEnabled {
+            logger.notice("Minimal Mode skipped transcription history and benchmark persistence")
         }
     }
 

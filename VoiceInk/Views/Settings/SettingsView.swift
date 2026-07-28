@@ -33,6 +33,20 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            // MARK: - Minimal Mode
+            Section {
+                Toggle(isOn: $menuBarManager.isMinimalModeEnabled) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Minimal Mode")
+                        Text("Run from the menu bar and discard new transcript and audio history.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } footer: {
+                Text("Minimal Mode pauses background announcements and update checks. It does not change the selected transcription model.")
+            }
+
             // MARK: - Shortcuts
             Section {
                 LabeledContent("Hotkey 1") {
@@ -205,7 +219,7 @@ struct SettingsView: View {
 
                 Toggle("Show Announcements", isOn: $enableAnnouncements)
                     .onChange(of: enableAnnouncements) { _, newValue in
-                        if newValue {
+                        if newValue && !menuBarManager.isMinimalModeEnabled {
                             AnnouncementsService.shared.start()
                         } else {
                             AnnouncementsService.shared.stop()

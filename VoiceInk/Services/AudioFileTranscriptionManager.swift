@@ -51,6 +51,17 @@ class AudioTranscriptionManager: ObservableObject {
         errorMessage = nil
 
         currentTask = Task {
+            let minimalModeEnabled = MinimalModePolicy.isEnabled()
+            var generatedRecordingURL: URL?
+            defer {
+                if let generatedRecordingURL {
+                    MinimalModePolicy.discardRecording(
+                        at: generatedRecordingURL,
+                        when: minimalModeEnabled
+                    )
+                }
+            }
+
             do {
                 guard let currentModel = engine.transcriptionModelManager.currentTranscriptionModel else {
                     throw TranscriptionError.noModelSelected
@@ -74,6 +85,7 @@ class AudioTranscriptionManager: ObservableObject {
 
                 let fileName = "transcribed_\(UUID().uuidString).wav"
                 let permanentURL = recordingsDirectory.appendingPathComponent(fileName)
+                generatedRecordingURL = permanentURL
 
                 try AppStoragePaths.createDirectoryIfNeeded(at: recordingsDirectory)
                 try audioProcessor.saveSamplesAsWav(samples: samples, to: permanentURL)
@@ -82,7 +94,7 @@ class AudioTranscriptionManager: ObservableObject {
                 let transcriptionStart = Date()
                 var text = try await serviceRegistry.transcribe(audioURL: permanentURL, model: currentModel)
                 let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
-                text = TranscriptionOutputFilter.filter(text)
+                text = TranscriptionOutputFilter.filter(text, redactLogs: minimalModeEnabled)
                 text = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
                 if UserDefaults.standard.bool(forKey: "IsTextFormattingEnabled") {
@@ -94,14 +106,19 @@ class AudioTranscriptionManager: ObservableObject {
                 let transcription = Transcription(
                     text: text,
                     duration: duration,
-                    audioFileURL: permanentURL.absoluteString,
+                    audioFileURL: minimalModeEnabled ? url.absoluteString : permanentURL.absoluteString,
                     transcriptionModelName: currentModel.displayName,
                     transcriptionDuration: transcriptionDuration
                 )
-                modelContext.insert(transcription)
-                try modelContext.save()
-                NotificationCenter.default.post(name: .transcriptionCreated, object: transcription)
-                NotificationCenter.default.post(name: .transcriptionCompleted, object: transcription)
+
+                if !minimalModeEnabled {
+                    modelContext.insert(transcription)
+                    try modelContext.save()
+                    NotificationCenter.default.post(name: .transcriptionCreated, object: transcription)
+                    NotificationCenter.default.post(name: .transcriptionCompleted, object: transcription)
+                } else {
+                    logger.notice("Minimal Mode skipped imported transcription history persistence")
+                }
                 currentTranscription = transcription
                 
                 processingPhase = .completed

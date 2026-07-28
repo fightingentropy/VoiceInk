@@ -9,8 +9,21 @@ class MenuBarManager: ObservableObject {
     @Published var isMenuBarOnly: Bool {
         didSet {
             UserDefaults.standard.set(isMenuBarOnly, forKey: "IsMenuBarOnly")
-            updateAppActivationPolicy()
+            if !isMinimalModeEnabled {
+                updateAppActivationPolicy()
+            }
         }
+    }
+    @Published var isMinimalModeEnabled: Bool {
+        didSet {
+            MinimalModePolicy.setEnabled(isMinimalModeEnabled)
+            // Keep the currently open Settings window in the foreground.
+            // The normal window-close path applies the menu-bar-only policy.
+        }
+    }
+
+    var shouldHideDockIcon: Bool {
+        isMenuBarOnly || isMinimalModeEnabled
     }
 
     private var modelContainer: ModelContainer?
@@ -18,6 +31,7 @@ class MenuBarManager: ObservableObject {
 
     init() {
         self.isMenuBarOnly = UserDefaults.standard.bool(forKey: "IsMenuBarOnly")
+        self.isMinimalModeEnabled = MinimalModePolicy.isEnabled()
         updateAppActivationPolicy()
 
         NotificationCenter.default.addObserver(
@@ -33,7 +47,9 @@ class MenuBarManager: ObservableObject {
     }
 
     @objc private func windowDidClose(_ notification: Notification) {
-        guard isMenuBarOnly else { return }
+        guard shouldHideDockIcon,
+              let window = notification.object as? NSWindow,
+              window.identifier != nil else { return }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             let hasVisibleWindows = NSApplication.shared.windows.contains {
@@ -67,7 +83,7 @@ class MenuBarManager: ObservableObject {
     
     private func updateAppActivationPolicy() {
         let application = NSApplication.shared
-        if isMenuBarOnly {
+        if shouldHideDockIcon {
             application.setActivationPolicy(.accessory)
             WindowManager.shared.hideMainWindow()
         } else {

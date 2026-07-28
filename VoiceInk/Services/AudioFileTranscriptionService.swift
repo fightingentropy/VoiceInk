@@ -31,6 +31,8 @@ class AudioTranscriptionService: ObservableObject {
     }
     
     func retranscribeAudio(from url: URL, using model: any TranscriptionModel) async throws -> Transcription {
+        let minimalModeEnabled = MinimalModePolicy.isEnabled()
+
         guard model.supportsAudioFileTranscription else {
             throw TranscriptionCapabilityError.audioFileInputUnsupported(modelName: model.displayName)
         }
@@ -47,7 +49,7 @@ class AudioTranscriptionService: ObservableObject {
             let transcriptionStart = Date()
             var text = try await serviceRegistry.transcribe(audioURL: url, model: model)
             let transcriptionDuration = Date().timeIntervalSince(transcriptionStart)
-            text = TranscriptionOutputFilter.filter(text)
+            text = TranscriptionOutputFilter.filter(text, redactLogs: minimalModeEnabled)
             text = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
             if UserDefaults.standard.bool(forKey: "IsTextFormattingEnabled") {
@@ -59,6 +61,20 @@ class AudioTranscriptionService: ObservableObject {
 
             let audioAsset = AVURLAsset(url: url)
             let duration = CMTimeGetSeconds(try await audioAsset.load(.duration))
+
+            if minimalModeEnabled {
+                let transientTranscription = Transcription(
+                    text: text,
+                    duration: duration,
+                    audioFileURL: url.absoluteString,
+                    transcriptionModelName: model.displayName,
+                    transcriptionDuration: transcriptionDuration
+                )
+                isTranscribing = false
+                logger.notice("Minimal Mode skipped retranscription history and audio-copy persistence")
+                return transientTranscription
+            }
+
             let recordingsDirectory = AppStoragePaths.recordingsDirectory
 
             let fileName = "retranscribed_\(UUID().uuidString).wav"

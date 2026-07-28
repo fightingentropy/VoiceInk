@@ -38,6 +38,7 @@ enum AppDefaults {
 
             // UI & Behavior
             "IsMenuBarOnly": false,
+            MinimalModePolicy.enabledKey: false,
             // Hotkey
             "isMiddleClickToggleEnabled": false,
             "middleClickActivationDelay": 200,

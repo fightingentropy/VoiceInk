@@ -14,23 +14,28 @@ struct MenuBarView: View {
 
             Divider()
 
-            Button("Retry Last Transcription") {
-                LastTranscriptionService.retryLastTranscription(
-                    from: engine.modelContext,
-                    transcriptionModelManager: transcriptionModelManager,
-                    serviceRegistry: engine.serviceRegistry
-                )
-            }
+            if menuBarManager.isMinimalModeEnabled {
+                Text("Minimal Mode")
+                    .foregroundStyle(.secondary)
+            } else {
+                Button("Retry Last Transcription") {
+                    LastTranscriptionService.retryLastTranscription(
+                        from: engine.modelContext,
+                        transcriptionModelManager: transcriptionModelManager,
+                        serviceRegistry: engine.serviceRegistry
+                    )
+                }
 
-            Button("Copy Last Transcription") {
-                LastTranscriptionService.copyLastTranscription(from: engine.modelContext)
-            }
-            .keyboardShortcut("c", modifiers: [.command, .shift])
+                Button("Copy Last Transcription") {
+                    LastTranscriptionService.copyLastTranscription(from: engine.modelContext)
+                }
+                .keyboardShortcut("c", modifiers: [.command, .shift])
 
-            Button("History") {
-                menuBarManager.openHistoryWindow()
+                Button("History") {
+                    menuBarManager.openHistoryWindow()
+                }
+                .keyboardShortcut("h", modifiers: [.command, .shift])
             }
-            .keyboardShortcut("h", modifiers: [.command, .shift])
 
             Button("Settings") {
                 menuBarManager.openMainWindowAndNavigate(to: "Settings")
