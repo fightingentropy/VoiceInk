@@ -137,7 +137,7 @@ enum SystemResourceGuard {
             return .moderate
         case .localVoxtral, .cohereTranscribe:
             return .heavy
-        case .elevenLabs, .xAI, .custom:
+        case .elevenLabs, .openAI, .xAI, .custom:
             // Network-bound: negligible local thermal impact.
             return .light
         }

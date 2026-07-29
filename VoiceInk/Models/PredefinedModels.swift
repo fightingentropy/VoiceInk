@@ -204,6 +204,16 @@ import Foundation
            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .elevenLabs)
        ),
        CloudModel(
+           name: "gpt-live-transcribe",
+           displayName: "GPT Live Transcribe (OpenAI)",
+           description: "OpenAI's fastest current speech-to-text model, streamed live with minimal transcription delay.",
+           provider: .openAI,
+           speed: 1.0,
+           accuracy: 0.98,
+           isMultilingual: true,
+           supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .openAI)
+       ),
+       CloudModel(
            name: "xai-stt",
            displayName: "xAI Speech-to-Text",
            description: "xAI's cloud speech-to-text provider with realtime streaming and file transcription fallback.",

@@ -91,6 +91,8 @@ class TranscriptionServiceRegistry {
             return model.name == "scribe_v2"
         case .xAI:
             return model.name == "xai-stt"
+        case .openAI:
+            return model.name == "gpt-live-transcribe"
         default:
             return false
         }

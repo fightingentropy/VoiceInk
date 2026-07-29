@@ -96,7 +96,7 @@ struct AddCustomModelCardView: View {
                         FormField(title: "Display Name", text: $displayName, placeholder: "My Custom Model")
                         FormField(title: "API Endpoint", text: $apiEndpoint, placeholder: "https://api.example.com/v1/audio/transcriptions")
                         FormField(title: "API Key", text: $apiKey, placeholder: "your-api-key", isSecure: true)
-                        FormField(title: "Model Name", text: $modelName, placeholder: "whisper-1")
+                        FormField(title: "Model Name", text: $modelName, placeholder: "gpt-transcribe")
                         
                         Toggle("Multilingual Model", isOn: $isMultilingual)
                     }

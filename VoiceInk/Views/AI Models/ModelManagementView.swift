@@ -174,6 +174,7 @@ struct ModelManagementView: View {
             "parakeet-tdt-0.6b-v2",
             "voxtral-mini-realtime-local",
             "scribe_v2",
+            "gpt-live-transcribe",
             "xai-stt"
         ]
         let currentModelName = transcriptionModelManager.currentTranscriptionModel?.name

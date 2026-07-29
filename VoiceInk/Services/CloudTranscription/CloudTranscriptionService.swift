@@ -35,6 +35,7 @@ enum CloudTranscriptionError: Error, LocalizedError {
 
 final class CloudTranscriptionService: TranscriptionService, @unchecked Sendable {
     private lazy var openAICompatibleService = OpenAICompatibleTranscriptionService()
+    private lazy var openAITranscriptionService = OpenAITranscriptionService()
     private lazy var xAITranscriptionService = XAITranscriptionService()
 
     init() {}
@@ -63,6 +64,15 @@ final class CloudTranscriptionService: TranscriptionService, @unchecked Sendable
                     fileName: fileName,
                     apiKey: apiKey,
                     language: language
+                )
+
+            case .openAI:
+                let apiKey = try requireAPIKey(forProvider: model.provider.apiKeyProviderName)
+                return try await openAITranscriptionService.transcribe(
+                    audioData: audioData,
+                    fileName: fileName,
+                    apiKey: apiKey,
+                    prompt: transcriptionPrompt()
                 )
 
             case .custom:
@@ -102,6 +112,11 @@ final class CloudTranscriptionService: TranscriptionService, @unchecked Sendable
     private func selectedLanguage() -> String? {
         let lang = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "auto"
         return (lang == "auto" || lang.isEmpty) ? nil : lang
+    }
+
+    private func transcriptionPrompt() -> String? {
+        let prompt = UserDefaults.standard.string(forKey: "TranscriptionPrompt") ?? ""
+        return prompt.isEmpty ? nil : prompt
     }
 
     private func mapLLMKitError(_ error: LLMKitError) -> CloudTranscriptionError {

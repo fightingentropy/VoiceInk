@@ -72,9 +72,7 @@ class TranscriptionModelManager: ObservableObject {
                 return true
             case .cohereTranscribe:
                 return CohereNativeModelManager.shared.isModelDownloaded()
-            case .elevenLabs:
-                return APIKeyManager.shared.hasAPIKey(forProvider: model.provider.apiKeyProviderName)
-            case .xAI:
+            case .elevenLabs, .openAI, .xAI:
                 return APIKeyManager.shared.hasAPIKey(forProvider: model.provider.apiKeyProviderName)
             case .custom:
                 return true

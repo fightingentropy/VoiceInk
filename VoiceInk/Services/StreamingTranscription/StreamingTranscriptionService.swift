@@ -163,6 +163,8 @@ final class StreamingTranscriptionService {
             return ElevenLabsStreamingProvider()
         case .xAI:
             return XAIStreamingProvider()
+        case .openAI:
+            return OpenAIStreamingProvider()
         default:
             throw StreamingTranscriptionError.unsupportedProvider(String(describing: model.provider))
         }

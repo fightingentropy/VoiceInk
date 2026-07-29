@@ -7,6 +7,7 @@ enum ModelProvider: String, Codable, Hashable, CaseIterable, Sendable {
     case cohereTranscribe = "Cohere Transcribe"
     case parakeet = "Parakeet"
     case elevenLabs = "ElevenLabs"
+    case openAI = "OpenAI"
     case xAI = "xAI"
     case custom = "Custom"
     case nativeApple = "Native Apple"
@@ -18,6 +19,8 @@ extension ModelProvider {
         switch self {
         case .elevenLabs:
             return "ElevenLabs"
+        case .openAI:
+            return "OpenAI"
         case .xAI:
             return "xAI"
         default:
@@ -70,7 +73,7 @@ extension TranscriptionModel {
             return .streamingPCM
         case .cohereTranscribe:
             return .recorderPCM
-        case .elevenLabs, .xAI, .custom:
+        case .elevenLabs, .openAI, .xAI, .custom:
             return nil
         }
     }
