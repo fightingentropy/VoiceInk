@@ -12,7 +12,9 @@ actor OpenAIStreamingProvider: StreamingTranscriptionProvider {
     private nonisolated let eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation
     private var partialTranscripts: [String: String] = [:]
     private var resampler = OpenAIPCM16Resampler()
+    private var isAwaitingFinalization = false
 
+    nonisolated let finalizationMode: StreamingFinalizationMode = .providerSignal
     nonisolated let transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
 
     init() {
@@ -40,6 +42,7 @@ actor OpenAIStreamingProvider: StreamingTranscriptionProvider {
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         partialTranscripts.removeAll(keepingCapacity: true)
         resampler.reset()
+        isAwaitingFinalization = false
 
         var request = URLRequest(url: Self.webSocketURL)
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -84,7 +87,13 @@ actor OpenAIStreamingProvider: StreamingTranscriptionProvider {
             try await sendAudio(remainingAudio, on: webSocketTask)
         }
 
-        try await webSocketTask.send(.string(#"{"type":"input_audio_buffer.commit"}"#))
+        isAwaitingFinalization = true
+        do {
+            try await webSocketTask.send(.string(#"{"type":"input_audio_buffer.commit"}"#))
+        } catch {
+            isAwaitingFinalization = false
+            throw error
+        }
     }
 
     func disconnect() async {
@@ -95,6 +104,7 @@ actor OpenAIStreamingProvider: StreamingTranscriptionProvider {
         webSocketTask = nil
         partialTranscripts.removeAll(keepingCapacity: false)
         resampler.reset()
+        isAwaitingFinalization = false
         eventsContinuation.finish()
     }
 
@@ -244,6 +254,10 @@ actor OpenAIStreamingProvider: StreamingTranscriptionProvider {
             let itemID = event.itemID ?? "active"
             partialTranscripts.removeValue(forKey: itemID)
             eventsContinuation.yield(.committed(text: event.transcript ?? ""))
+            if isAwaitingFinalization {
+                isAwaitingFinalization = false
+                eventsContinuation.yield(.finalized)
+            }
         case "error":
             eventsContinuation.yield(
                 .error(StreamingTranscriptionError.serverError(event.error?.message ?? "OpenAI Realtime error"))

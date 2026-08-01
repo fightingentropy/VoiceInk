@@ -383,7 +383,7 @@ private actor EventRecorder {
             if !trimmed.isEmpty {
                 partialTexts.append(trimmed)
             }
-        case .sessionStarted, .error:
+        case .sessionStarted, .finalized, .error:
             break
         }
     }

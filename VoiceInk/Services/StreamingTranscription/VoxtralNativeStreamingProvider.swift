@@ -7,6 +7,7 @@ actor VoxtralNativeStreamingProvider: StreamingTranscriptionProvider {
     private var nativeLease: VoxtralNativePreparedLease?
     private nonisolated let eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation
 
+    nonisolated let finalizationMode: StreamingFinalizationMode = .providerSignal
     nonisolated let transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
 
     init() {
@@ -65,6 +66,7 @@ actor VoxtralNativeStreamingProvider: StreamingTranscriptionProvider {
 
         do {
             try await engine.finalize()
+            eventsContinuation.yield(.finalized)
         } catch {
             eventsContinuation.yield(.error(error))
             throw error

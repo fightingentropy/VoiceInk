@@ -427,7 +427,7 @@ private actor BenchmarkEventRecorder {
             if !trimmed.isEmpty {
                 partialTexts.append(trimmed)
             }
-        case .sessionStarted, .error:
+        case .sessionStarted, .finalized, .error:
             break
         }
     }

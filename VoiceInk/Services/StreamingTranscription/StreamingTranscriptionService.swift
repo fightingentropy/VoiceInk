@@ -112,6 +112,7 @@ final class StreamingTranscriptionService: NSObject {
     private var eventConsumerTask: Task<Void, Never>?
     private var state: StreamingState = .idle
     private var committedSegments: [String] = []
+    private var providerDidFinalize = false
     private var streamingFailure: Error?
 
     init(
@@ -166,6 +167,7 @@ final class StreamingTranscriptionService: NSObject {
         self.provider = provider
         streamingFailure = nil
         committedSegments = []
+        providerDidFinalize = false
         state = .connecting
         audioRouter.install(pipe)
 
@@ -225,8 +227,12 @@ final class StreamingTranscriptionService: NSObject {
                 throw StreamingTranscriptionError.audioBufferOverflow
             }
 
+            let finalizationMode = provider.finalizationMode
             try await provider.commit()
-            let finalText = try await waitForFinalCommit(sessionID: sessionID)
+            let finalText = try await waitForFinalCommit(
+                sessionID: sessionID,
+                mode: finalizationMode
+            )
             state = .done
             await cleanupStreaming(sessionID: sessionID, finalState: .idle)
             return finalText
@@ -252,6 +258,7 @@ final class StreamingTranscriptionService: NSObject {
         audioPipe = nil
         streamingFailure = nil
         committedSegments = []
+        providerDidFinalize = false
         state = .idle
 
         sendTask?.cancel()
@@ -359,6 +366,8 @@ final class StreamingTranscriptionService: NSObject {
                     if self.state == .streaming {
                         self.onPartialTranscript?(text)
                     }
+                case .finalized:
+                    self.providerDidFinalize = true
                 case .sessionStarted:
                     break
                 case .error(let error):
@@ -375,15 +384,22 @@ final class StreamingTranscriptionService: NSObject {
         logger.error("Streaming session failed: \(error.localizedDescription, privacy: .public)")
     }
 
-    /// Wait for the first committed segment and then a bounded quiet period so
-    /// trailing provider segments are not cut off. The overall deadline prevents
-    /// a provider that never finishes from holding the recording indefinitely.
-    private func waitForFinalCommit(sessionID: UUID) async throws -> String {
+    /// Waits for the provider's definitive completion signal when available.
+    /// Providers without one retain the bounded quiet-period fallback so trailing
+    /// transcript segments are never cut off.
+    private func waitForFinalCommit(
+        sessionID: UUID,
+        mode: StreamingFinalizationMode
+    ) async throws -> String {
         let deadline = Date().addingTimeInterval(10)
         var observedSegmentCount = committedSegments.count
         var lastChange = Date()
+        let pollIntervalNanoseconds: UInt64 = switch mode {
+        case .providerSignal: 5_000_000
+        case .trailingQuietPeriod: 50_000_000
+        }
 
-        while Date() < deadline {
+        finalizationLoop: while Date() < deadline {
             try Task.checkCancellation()
             guard activeSessionID == sessionID else {
                 throw CancellationError()
@@ -398,11 +414,18 @@ final class StreamingTranscriptionService: NSObject {
                 lastChange = Date()
             }
 
-            if observedSegmentCount > 0, Date().timeIntervalSince(lastChange) >= 0.35 {
-                break
+            switch mode {
+            case .providerSignal:
+                if providerDidFinalize {
+                    break finalizationLoop
+                }
+            case .trailingQuietPeriod:
+                if observedSegmentCount > 0, Date().timeIntervalSince(lastChange) >= 0.35 {
+                    break finalizationLoop
+                }
             }
 
-            try await Task.sleep(nanoseconds: 50_000_000)
+            try await Task.sleep(nanoseconds: pollIntervalNanoseconds)
         }
 
         if committedSegments.isEmpty {
@@ -423,6 +446,7 @@ final class StreamingTranscriptionService: NSObject {
         audioPipe = nil
         streamingFailure = nil
         committedSegments = []
+        providerDidFinalize = false
 
         sendTask?.cancel()
         sendTask = nil

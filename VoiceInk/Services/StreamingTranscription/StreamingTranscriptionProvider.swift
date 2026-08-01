@@ -5,7 +5,19 @@ enum StreamingTranscriptionEvent {
     case sessionStarted
     case partial(text: String)
     case committed(text: String)
+    /// The provider has definitively finished emitting transcript segments for
+    /// the most recent manual audio commit.
+    case finalized
     case error(Error)
+}
+
+/// Describes how a provider proves that all transcript segments have arrived.
+enum StreamingFinalizationMode: Sendable, Equatable {
+    /// Preserve the bounded trailing quiet period for providers whose SDK does
+    /// not expose an unambiguous end-of-transcript event.
+    case trailingQuietPeriod
+    /// Return as soon as the provider emits `.finalized` after a manual commit.
+    case providerSignal
 }
 
 /// Errors specific to streaming transcription
@@ -40,6 +52,9 @@ enum StreamingTranscriptionError: LocalizedError {
 
 /// Protocol for streaming transcription providers.
 protocol StreamingTranscriptionProvider: AnyObject, Sendable {
+    /// How this provider signals that a manual commit is fully transcribed.
+    nonisolated var finalizationMode: StreamingFinalizationMode { get }
+
     /// Connect to the streaming transcription endpoint
     func connect(model: any TranscriptionModel, language: String?) async throws
 
@@ -54,4 +69,10 @@ protocol StreamingTranscriptionProvider: AnyObject, Sendable {
 
     /// Stream of transcription events from the provider
     var transcriptionEvents: AsyncStream<StreamingTranscriptionEvent> { get }
+}
+
+extension StreamingTranscriptionProvider {
+    nonisolated var finalizationMode: StreamingFinalizationMode {
+        .trailingQuietPeriod
+    }
 }

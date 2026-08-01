@@ -4,8 +4,10 @@ actor XAIStreamingProvider: StreamingTranscriptionProvider {
     private var webSocketTask: URLSessionWebSocketTask?
     private var receiveTask: Task<Void, Never>?
     private var isConnected = false
+    private var isAwaitingFinalization = false
     private nonisolated let eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation
 
+    nonisolated let finalizationMode: StreamingFinalizationMode = .providerSignal
     nonisolated let transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
 
     init() {
@@ -17,6 +19,7 @@ actor XAIStreamingProvider: StreamingTranscriptionProvider {
     deinit {
         receiveTask?.cancel()
         webSocketTask?.cancel(with: .goingAway, reason: nil)
+        isAwaitingFinalization = false
         eventsContinuation.finish()
     }
 
@@ -60,7 +63,13 @@ actor XAIStreamingProvider: StreamingTranscriptionProvider {
             throw StreamingTranscriptionError.notConnected
         }
 
-        try await webSocketTask.send(.string(#"{"type":"audio.done"}"#))
+        isAwaitingFinalization = true
+        do {
+            try await webSocketTask.send(.string(#"{"type":"audio.done"}"#))
+        } catch {
+            isAwaitingFinalization = false
+            throw error
+        }
     }
 
     func disconnect() async {
@@ -69,6 +78,7 @@ actor XAIStreamingProvider: StreamingTranscriptionProvider {
         receiveTask = nil
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
+        isAwaitingFinalization = false
         eventsContinuation.finish()
     }
 
@@ -184,6 +194,10 @@ actor XAIStreamingProvider: StreamingTranscriptionProvider {
             }
         case "transcript.done":
             eventsContinuation.yield(.committed(text: event.text ?? ""))
+            if isAwaitingFinalization {
+                isAwaitingFinalization = false
+                eventsContinuation.yield(.finalized)
+            }
         case "error":
             eventsContinuation.yield(.error(StreamingTranscriptionError.serverError(event.message ?? "xAI streaming error")))
         default:

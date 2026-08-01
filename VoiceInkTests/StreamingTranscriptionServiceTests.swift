@@ -79,6 +79,42 @@ struct StreamingTranscriptionServiceTests {
     }
 
     @Test
+    func providerFinalizationSignalSkipsTrailingQuietPeriod() async throws {
+        let provider = FakeStreamingProvider(
+            committedSegments: ["ready"],
+            finalizationMode: .providerSignal
+        )
+        let service = StreamingTranscriptionService(providerFactory: { _ in provider })
+
+        try await service.startStreaming(model: model)
+        let start = ContinuousClock.now
+        let text = try await service.stopAndGetFinalText()
+        let elapsed = ContinuousClock.now - start
+
+        #expect(text == "ready")
+        #expect(elapsed < .milliseconds(150))
+    }
+
+    @Test
+    func providerFinalizationSignalWaitsForDefinitiveCompletion() async throws {
+        let provider = FakeStreamingProvider(
+            committedSegments: ["ready"],
+            finalizationMode: .providerSignal,
+            finalizationSignalDelayNanoseconds: 150_000_000
+        )
+        let service = StreamingTranscriptionService(providerFactory: { _ in provider })
+
+        try await service.startStreaming(model: model)
+        let start = ContinuousClock.now
+        let text = try await service.stopAndGetFinalText()
+        let elapsed = ContinuousClock.now - start
+
+        #expect(text == "ready")
+        #expect(elapsed >= .milliseconds(100))
+        #expect(elapsed < .milliseconds(300))
+    }
+
+    @Test
     func sendFailureIsObservableAndDoesNotPoisonTheNextSession() async throws {
         let failed = FakeStreamingProvider(
             committedSegments: [],
@@ -262,18 +298,22 @@ private actor FakeStreamingProvider: StreamingTranscriptionProvider {
     private let delayBetweenSegmentsNanoseconds: UInt64
     private let sendError: StreamingTranscriptionError?
     private let sendDelayNanoseconds: UInt64
+    private let finalizationSignalDelayNanoseconds: UInt64
     private var chunks: [Data] = []
     private var disconnects = 0
     private var sendAttempts = 0
     private var commits = 0
 
+    nonisolated let finalizationMode: StreamingFinalizationMode
     nonisolated let transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
 
     init(
         committedSegments: [String],
         delayBetweenSegmentsNanoseconds: UInt64 = 0,
         sendError: StreamingTranscriptionError? = nil,
-        sendDelayNanoseconds: UInt64 = 0
+        sendDelayNanoseconds: UInt64 = 0,
+        finalizationMode: StreamingFinalizationMode = .trailingQuietPeriod,
+        finalizationSignalDelayNanoseconds: UInt64 = 0
     ) {
         (transcriptionEvents, continuation) = AsyncStream.makeStream(
             of: StreamingTranscriptionEvent.self
@@ -282,6 +322,8 @@ private actor FakeStreamingProvider: StreamingTranscriptionProvider {
         self.delayBetweenSegmentsNanoseconds = delayBetweenSegmentsNanoseconds
         self.sendError = sendError
         self.sendDelayNanoseconds = sendDelayNanoseconds
+        self.finalizationMode = finalizationMode
+        self.finalizationSignalDelayNanoseconds = finalizationSignalDelayNanoseconds
     }
 
     var sentChunks: [Data] {
@@ -322,6 +364,19 @@ private actor FakeStreamingProvider: StreamingTranscriptionProvider {
                 try await Task.sleep(nanoseconds: delayBetweenSegmentsNanoseconds)
             }
             continuation.yield(.committed(text: segment))
+        }
+
+        if finalizationMode == .providerSignal {
+            let continuation = continuation
+            let delay = finalizationSignalDelayNanoseconds
+            if delay == 0 {
+                continuation.yield(.finalized)
+            } else {
+                Task {
+                    try? await Task.sleep(nanoseconds: delay)
+                    continuation.yield(.finalized)
+                }
+            }
         }
     }
 

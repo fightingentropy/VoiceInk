@@ -12,6 +12,7 @@ actor ParakeetStreamingProvider: StreamingTranscriptionProvider {
     private var streamingManager: SlidingWindowAsrManager?
     private nonisolated let eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation
 
+    nonisolated let finalizationMode: StreamingFinalizationMode = .providerSignal
     nonisolated let transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
 
     init(parakeetService: ParakeetTranscriptionService) {
@@ -53,6 +54,7 @@ actor ParakeetStreamingProvider: StreamingTranscriptionProvider {
 
         let finalText = try await manager.finish()
         eventsContinuation.yield(.committed(text: finalText))
+        eventsContinuation.yield(.finalized)
     }
 
     func disconnect() async {
