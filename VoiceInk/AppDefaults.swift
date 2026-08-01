@@ -2,6 +2,7 @@ import Foundation
 
 enum AppDefaults {
     static let pasteLiveTranscriptImmediatelyKey = "PasteLiveTranscriptImmediately"
+    static let pasteLiveTranscriptImmediatelyDefault = true
 
     static func registerDefaults() {
         clearRemovedFeatureValues()
@@ -27,7 +28,7 @@ enum AppDefaults {
             "ConvertLiteralDictationTokens": true,
             "SelectedLanguage": "en",
             "AppendTrailingSpace": true,
-            pasteLiveTranscriptImmediatelyKey: false,
+            pasteLiveTranscriptImmediatelyKey: pasteLiveTranscriptImmediatelyDefault,
             "RecorderType": "mini",
 
             // Cleanup

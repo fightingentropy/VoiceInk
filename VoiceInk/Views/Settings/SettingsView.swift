@@ -13,7 +13,7 @@ struct SettingsView: View {
     @AppStorage("restoreClipboardAfterPaste") private var restoreClipboardAfterPaste = true
     @AppStorage("clipboardRestoreDelay") private var clipboardRestoreDelay = 2.0
     @AppStorage(AppDefaults.pasteLiveTranscriptImmediatelyKey)
-    private var pasteLiveTranscriptImmediately = false
+    private var pasteLiveTranscriptImmediately = AppDefaults.pasteLiveTranscriptImmediatelyDefault
 
     @State private var showResetOnboardingAlert = false
     @State private var isCustomCancelEnabled = KeyboardShortcuts.getShortcut(for: .cancelRecorder) != nil
@@ -213,6 +213,10 @@ struct SettingsView: View {
                     .toggleStyle(.switch)
                     .controlSize(.small)
                     .tint(.accentColor)
+
+                Color.clear
+                    .frame(width: 26, height: 26)
+                    .accessibilityHidden(true)
             }
             .frame(minHeight: 46)
 

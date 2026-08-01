@@ -10,6 +10,10 @@ import Testing
 
 struct VoiceInkTests {
 
+    @Test func immediateLiveTranscriptPasteIsEnabledByDefault() {
+        #expect(AppDefaults.pasteLiveTranscriptImmediatelyDefault)
+    }
+
     @Test func appStoragePathsStayInsideVoiceInkAppSupportFolder() async throws {
         let appSupportPath = AppStoragePaths.applicationSupportDirectory.path
 
