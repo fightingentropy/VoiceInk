@@ -12,6 +12,8 @@ struct SettingsView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
     @AppStorage("restoreClipboardAfterPaste") private var restoreClipboardAfterPaste = true
     @AppStorage("clipboardRestoreDelay") private var clipboardRestoreDelay = 2.0
+    @AppStorage(AppDefaults.pasteLiveTranscriptImmediatelyKey)
+    private var pasteLiveTranscriptImmediately = false
 
     @State private var showResetOnboardingAlert = false
     @State private var isCustomCancelEnabled = KeyboardShortcuts.getShortcut(for: .cancelRecorder) != nil
@@ -190,6 +192,29 @@ struct SettingsView: View {
                     .frame(width: 95)
                 }
             }
+
+            MonochromeDivider()
+
+            HStack(spacing: 10) {
+                HStack(spacing: 5) {
+                    Text("Paste live text immediately")
+                        .font(.body)
+
+                    InfoTip(
+                        "Pastes exactly the live words shown when you release the shortcut. This skips the provider's final correction, so the last word or punctuation may be incomplete. If no live text is available yet, VoiceInk waits for the final result instead."
+                    )
+                }
+                .foregroundStyle(MonochromeStyle.primaryText)
+
+                Spacer(minLength: 14)
+
+                Toggle("", isOn: $pasteLiveTranscriptImmediately)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .tint(.accentColor)
+            }
+            .frame(minHeight: 46)
 
             MonochromeDivider()
 

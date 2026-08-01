@@ -102,8 +102,12 @@ struct RecorderStatusDisplay: View {
     }
 
     var body: some View {
+        let hasTranscript = !partialTranscript
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .isEmpty
+
         Group {
-            if currentState == .transcribing {
+            if currentState == .transcribing && !hasTranscript {
                 ProcessingStatusDisplay(mode: .transcribing, color: .white, isCompact: style == .compact)
                     .transition(.opacity)
             } else {

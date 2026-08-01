@@ -12,11 +12,11 @@ struct MiniRecorderPillLayout {
 
     static func size(
         for transcript: String,
-        isRecording: Bool,
+        isTranscriptVisible: Bool,
         maximumWidth: CGFloat = maximumWidth
     ) -> CGSize {
         let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard isRecording, !trimmed.isEmpty else {
+        guard isTranscriptVisible, !trimmed.isEmpty else {
             return collapsedSize
         }
 
@@ -50,9 +50,13 @@ struct MiniRecorderView<S: RecorderStateProvider & ObservableObject>: View {
 
     private let windowPadding: CGFloat = 16
 
-    private var hasLiveTranscript: Bool {
-        stateProvider.recordingState == .recording
-            && !stateProvider.partialTranscript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    private var hasVisibleTranscript: Bool {
+        let stateShowsTranscript = stateProvider.recordingState == .recording
+            || stateProvider.recordingState == .transcribing
+        return stateShowsTranscript
+            && !stateProvider.partialTranscript
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .isEmpty
     }
 
     private func contentLayout(pillSize: CGSize) -> some View {
@@ -64,7 +68,7 @@ struct MiniRecorderView<S: RecorderStateProvider & ObservableObject>: View {
             )
         }
         .frame(height: pillSize.height)
-        .padding(.horizontal, hasLiveTranscript ? 14 : 0)
+        .padding(.horizontal, hasVisibleTranscript ? 14 : 0)
     }
 
     private func recorderPill(pillSize: CGSize) -> some View {
@@ -81,7 +85,7 @@ struct MiniRecorderView<S: RecorderStateProvider & ObservableObject>: View {
         if windowManager.isVisible {
             let pillSize = MiniRecorderPillLayout.size(
                 for: stateProvider.partialTranscript,
-                isRecording: stateProvider.recordingState == .recording
+                isTranscriptVisible: hasVisibleTranscript
             )
             let panelSize = CGSize(
                 width: pillSize.width + windowPadding,

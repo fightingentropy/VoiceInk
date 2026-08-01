@@ -6,6 +6,19 @@ import AppKit
 import os
 import Darwin
 
+enum LiveTranscriptReleasePolicy {
+    static func immediateText(
+        from transcript: String,
+        isEnabled: Bool,
+        hasStreamingSession: Bool
+    ) -> String? {
+        guard isEnabled, hasStreamingSession else { return nil }
+
+        let visibleText = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        return visibleText.isEmpty ? nil : visibleText
+    }
+}
+
 @MainActor
 class VoiceInkEngine: NSObject, ObservableObject {
     @Published var recordingState: RecordingState = .idle
@@ -74,8 +87,20 @@ class VoiceInkEngine: NSObject, ObservableObject {
         logger.notice("toggleRecord called – state=\(String(describing: self.recordingState), privacy: .public)")
 
         if recordingState == .recording {
-            partialTranscript = ""
+            let immediateText = LiveTranscriptReleasePolicy.immediateText(
+                from: partialTranscript,
+                isEnabled: UserDefaults.standard.bool(
+                    forKey: AppDefaults.pasteLiveTranscriptImmediatelyKey
+                ),
+                hasStreamingSession: currentSession is StreamingTranscriptionSession
+            )
             recordingState = .transcribing
+
+            if let immediateText {
+                await pasteLiveTranscriptImmediately(immediateText)
+                return
+            }
+
             await recorder.stopRecording()
 
             if let recordedFile {
@@ -95,6 +120,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
                 recordingState = .idle
                 await cleanupResources()
             }
+            partialTranscript = ""
         } else {
             logger.notice("toggleRecord: entering start-recording branch")
             guard let preflightModel = transcriptionModelManager.currentTranscriptionModel else {
@@ -263,6 +289,47 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
     private func requestRecordPermission(response: @escaping (Bool) -> Void) {
         response(true)
+    }
+
+    private func pasteLiveTranscriptImmediately(_ text: String) async {
+        logger.notice("Pasting the visible live transcript without provider finalization")
+        activityGeneration &+= 1
+
+        Task {
+            let isSystemMuteEnabled = UserDefaults.standard.bool(forKey: "isSystemMuteEnabled")
+            if isSystemMuteEnabled {
+                try? await Task.sleep(nanoseconds: 200_000_000)
+            }
+            SoundManager.shared.playStopSound()
+        }
+
+        let session = currentSession
+        currentSession = nil
+        session?.cancel()
+
+        let appendSpace = UserDefaults.standard.bool(forKey: "AppendTrailingSpace")
+        CursorPaster.pasteAtCursor(text + (appendSpace ? " " : ""))
+
+        recorderUIManager?.hideRecorderPanel()
+        recorderUIManager?.isMiniRecorderVisible = false
+
+        await recorder.stopRecording()
+
+        if let recordedFile {
+            _ = EphemeralTranscriptionPolicy.discardRecording(at: recordedFile)
+            self.recordedFile = nil
+        }
+
+        if let recorderUIManager {
+            await recorderUIManager.dismissMiniRecorder()
+        } else {
+            recordingState = .idle
+            await cleanupResources()
+        }
+
+        partialTranscript = ""
+        shouldCancelRecording = false
+        scheduleIdleUnloadIfNeeded()
     }
 
     // MARK: - Pipeline Dispatch

@@ -37,6 +37,7 @@ final class SystemInfoService: @unchecked Sendable {
         TRANSCRIPTION SETTINGS:
         Selected Model: \(getCurrentTranscriptionModel())
         Selected Language: \(getCurrentLanguage())
+        Paste Live Transcript Immediately: \(UserDefaults.standard.bool(forKey: AppDefaults.pasteLiveTranscriptImmediatelyKey))
 
         UI SETTINGS:
         Menu Bar Only: true

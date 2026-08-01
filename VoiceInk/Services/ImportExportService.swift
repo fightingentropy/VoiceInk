@@ -18,6 +18,7 @@ struct GeneralSettings: Codable {
     let isPauseMediaEnabled: Bool?
     let audioResumptionDelay: Double?
     let isTextFormattingEnabled: Bool?
+    let pasteLiveTranscriptImmediately: Bool?
     let restoreClipboardAfterPaste: Bool?
     let clipboardRestoreDelay: Double?
 }
@@ -71,6 +72,9 @@ final class ImportExportService {
             isPauseMediaEnabled: playbackController.isPauseMediaEnabled,
             audioResumptionDelay: mediaController.audioResumptionDelay,
             isTextFormattingEnabled: UserDefaults.standard.bool(forKey: keyIsTextFormattingEnabled),
+            pasteLiveTranscriptImmediately: UserDefaults.standard.bool(
+                forKey: AppDefaults.pasteLiveTranscriptImmediatelyKey
+            ),
             restoreClipboardAfterPaste: UserDefaults.standard.bool(forKey: "restoreClipboardAfterPaste"),
             clipboardRestoreDelay: UserDefaults.standard.double(forKey: "clipboardRestoreDelay")
         )
@@ -220,6 +224,12 @@ final class ImportExportService {
                         }
                         if let textFormattingEnabled = general.isTextFormattingEnabled {
                             UserDefaults.standard.set(textFormattingEnabled, forKey: self.keyIsTextFormattingEnabled)
+                        }
+                        if let pasteLiveTranscriptImmediately = general.pasteLiveTranscriptImmediately {
+                            UserDefaults.standard.set(
+                                pasteLiveTranscriptImmediately,
+                                forKey: AppDefaults.pasteLiveTranscriptImmediatelyKey
+                            )
                         }
                         if let restoreClipboard = general.restoreClipboardAfterPaste {
                             UserDefaults.standard.set(restoreClipboard, forKey: "restoreClipboardAfterPaste")

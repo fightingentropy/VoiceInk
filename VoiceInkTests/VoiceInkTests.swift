@@ -21,22 +21,55 @@ struct VoiceInkTests {
     }
 
     @Test func miniRecorderPillExpandsWithTranscriptAndWrapsInsteadOfTruncating() {
-        let collapsed = MiniRecorderPillLayout.size(for: "", isRecording: true)
-        let short = MiniRecorderPillLayout.size(for: "hello", isRecording: true)
+        let collapsed = MiniRecorderPillLayout.size(for: "", isTranscriptVisible: true)
+        let short = MiniRecorderPillLayout.size(for: "hello", isTranscriptVisible: true)
         let sentence = MiniRecorderPillLayout.size(
             for: "hello this sentence should remain visible as the live transcript grows",
-            isRecording: true
+            isTranscriptVisible: true
         )
         let long = MiniRecorderPillLayout.size(
             for: String(repeating: "the complete live transcript remains visible ", count: 12),
-            isRecording: true
+            isTranscriptVisible: true
         )
+        let hidden = MiniRecorderPillLayout.size(for: "hello", isTranscriptVisible: false)
 
         #expect(collapsed == MiniRecorderPillLayout.collapsedSize)
+        #expect(hidden == MiniRecorderPillLayout.collapsedSize)
         #expect(short.width > collapsed.width)
         #expect(sentence.width > short.width)
         #expect(long.width == MiniRecorderPillLayout.maximumWidth)
         #expect(long.height > MiniRecorderPillLayout.expandedHeight)
+    }
+
+    @Test func immediateLiveTranscriptRequiresTheOptionAStreamingSessionAndVisibleText() {
+        #expect(
+            LiveTranscriptReleasePolicy.immediateText(
+                from: "  exact live words  ",
+                isEnabled: true,
+                hasStreamingSession: true
+            ) == "exact live words"
+        )
+        #expect(
+            LiveTranscriptReleasePolicy.immediateText(
+                from: "exact live words",
+                isEnabled: false,
+                hasStreamingSession: true
+            ) == nil
+        )
+        #expect(
+            LiveTranscriptReleasePolicy.immediateText(
+                from: "exact live words",
+                isEnabled: true,
+                hasStreamingSession: false
+            ) == nil
+        )
+        #expect(
+            LiveTranscriptReleasePolicy.immediateText(
+                from: "  \n ",
+                isEnabled: true,
+                hasStreamingSession: true
+            ) == nil
+        )
     }
 
 }
