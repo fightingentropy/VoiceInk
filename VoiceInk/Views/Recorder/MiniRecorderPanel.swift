@@ -2,6 +2,8 @@ import SwiftUI
 import AppKit
 
 class MiniRecorderPanel: NSPanel {
+    static let initialContentSize = CGSize(width: 64, height: 36)
+
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
     
@@ -30,32 +32,55 @@ class MiniRecorderPanel: NSPanel {
         standardWindowButton(.closeButton)?.isHidden = true
     }
     
-    static func calculateWindowMetrics() -> NSRect {
-        guard let screen = NSScreen.main else {
-            return NSRect(x: 0, y: 0, width: 320, height: 44)
+    static func calculateWindowMetrics(
+        contentSize: CGSize = initialContentSize,
+        screen: NSScreen? = NSScreen.main
+    ) -> NSRect {
+        guard let screen else {
+            return NSRect(origin: .zero, size: contentSize)
         }
 
-        let width: CGFloat = 320
-        let height: CGFloat = 44
         let padding: CGFloat = 24
 
         let visibleFrame = screen.visibleFrame
         let centerX = visibleFrame.midX
-        let xPosition = centerX - (width / 2)
+        let xPosition = centerX - (contentSize.width / 2)
         let yPosition = visibleFrame.minY + padding
 
         return NSRect(
             x: xPosition,
             y: yPosition,
-            width: width,
-            height: height
+            width: contentSize.width,
+            height: contentSize.height
         )
     }
 
     func show() {
-        let metrics = MiniRecorderPanel.calculateWindowMetrics()
-        setFrame(metrics, display: true)
         orderFrontRegardless()
+    }
+
+    func resize(to requestedSize: CGSize) {
+        guard let screen = screen ?? NSScreen.main else { return }
+
+        let visibleFrame = screen.visibleFrame
+        let width = min(requestedSize.width, visibleFrame.width - 32)
+        let height = min(requestedSize.height, visibleFrame.height - 32)
+        let currentCenterX = frame.midX
+        let currentMinY = frame.minY
+        let x = min(
+            max(currentCenterX - (width / 2), visibleFrame.minX + 16),
+            visibleFrame.maxX - width - 16
+        )
+        let y = min(
+            max(currentMinY, visibleFrame.minY + 16),
+            visibleFrame.maxY - height - 16
+        )
+        let targetFrame = NSRect(x: x, y: y, width: width, height: height)
+
+        guard abs(frame.width - width) > 0.5 || abs(frame.height - height) > 0.5 else {
+            return
+        }
+        setFrame(targetFrame, display: true)
     }
     
     func hide(completion: @MainActor @escaping () -> Void) {

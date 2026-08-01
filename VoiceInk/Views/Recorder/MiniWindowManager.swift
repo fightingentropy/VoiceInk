@@ -58,7 +58,7 @@ class MiniWindowManager: ObservableObject {
     private func initializeWindow(screen: NSScreen) {
         deinitializeWindow()
 
-        let metrics = MiniRecorderPanel.calculateWindowMetrics()
+        let metrics = MiniRecorderPanel.calculateWindowMetrics(screen: screen)
         let panel = MiniRecorderPanel(contentRect: metrics)
 
         let miniRecorderView = makeView(self)
@@ -69,6 +69,10 @@ class MiniWindowManager: ObservableObject {
         self.windowController = NSWindowController(window: panel)
 
         panel.orderFrontRegardless()
+    }
+
+    func resize(to size: CGSize) {
+        miniPanel?.resize(to: size)
     }
 
     private func deinitializeWindow() {

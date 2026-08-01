@@ -20,4 +20,23 @@ struct VoiceInkTests {
         #expect(AppStoragePaths.whisperKitModelsDirectory.deletingLastPathComponent() == AppStoragePaths.modelsDirectory)
     }
 
+    @Test func miniRecorderPillExpandsWithTranscriptAndWrapsInsteadOfTruncating() {
+        let collapsed = MiniRecorderPillLayout.size(for: "", isRecording: true)
+        let short = MiniRecorderPillLayout.size(for: "hello", isRecording: true)
+        let sentence = MiniRecorderPillLayout.size(
+            for: "hello this sentence should remain visible as the live transcript grows",
+            isRecording: true
+        )
+        let long = MiniRecorderPillLayout.size(
+            for: String(repeating: "the complete live transcript remains visible ", count: 12),
+            isRecording: true
+        )
+
+        #expect(collapsed == MiniRecorderPillLayout.collapsedSize)
+        #expect(short.width > collapsed.width)
+        #expect(sentence.width > short.width)
+        #expect(long.width == MiniRecorderPillLayout.maximumWidth)
+        #expect(long.height > MiniRecorderPillLayout.expandedHeight)
+    }
+
 }

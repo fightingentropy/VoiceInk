@@ -116,7 +116,7 @@ struct RecorderStatusDisplay: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: style == .compact ? 18 : 28)
+        .frame(minHeight: style == .compact ? 18 : 28)
         .animation(.easeInOut(duration: 0.2), value: currentState)
     }
 }
@@ -139,13 +139,13 @@ private struct LiveTranscriptStatusDisplay: View {
     var body: some View {
         Group {
             if hasTranscript {
-                HStack(spacing: 4) {
+                HStack(alignment: .bottom, spacing: 4) {
                     Text(displayText)
                         .font(.system(size: isCompact ? 12 : 13, weight: .medium))
                         .foregroundStyle(.white.opacity(0.96))
-                        .lineLimit(1)
-                        .truncationMode(.head)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
                     if isListening {
                         RoundedRectangle(cornerRadius: 0.5)
