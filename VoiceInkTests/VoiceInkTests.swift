@@ -5,6 +5,7 @@
 //  Created by Prakash Joshi on 15/10/2024.
 //
 
+import Foundation
 import Testing
 @testable import VoiceInk
 
@@ -12,6 +13,20 @@ struct VoiceInkTests {
 
     @Test func immediateLiveTranscriptPasteIsEnabledByDefault() {
         #expect(AppDefaults.pasteLiveTranscriptImmediatelyDefault)
+    }
+
+    @Test func removedMiddleClickPreferencesAreCleared() {
+        let suiteName = "VoiceInkTests.middleClickMigration.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        defaults.set(true, forKey: "isMiddleClickToggleEnabled")
+        defaults.set(200, forKey: "middleClickActivationDelay")
+
+        AppDefaults.clearRemovedFeatureValues(in: defaults)
+
+        #expect(defaults.object(forKey: "isMiddleClickToggleEnabled") == nil)
+        #expect(defaults.object(forKey: "middleClickActivationDelay") == nil)
     }
 
     @Test func appStoragePathsStayInsideVoiceInkAppSupportFolder() async throws {

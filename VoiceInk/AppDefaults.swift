@@ -5,7 +5,7 @@ enum AppDefaults {
     static let pasteLiveTranscriptImmediatelyDefault = true
 
     static func registerDefaults() {
-        clearRemovedFeatureValues()
+        clearRemovedFeatureValues(in: .standard)
 
         UserDefaults.standard.register(defaults: [
             // Onboarding & General
@@ -37,11 +37,6 @@ enum AppDefaults {
             "IsAudioCleanupEnabled": false,
             "AudioRetentionPeriod": 7,
 
-            // UI & Behavior
-            // Hotkey
-            "isMiddleClickToggleEnabled": false,
-            "middleClickActivationDelay": 200,
-
             // Model
             "PrewarmModelOnWake": false,
             "LocalModelWarmRetentionSeconds": LocalModelWarmRetention.fiveMinutes.rawValue,
@@ -49,7 +44,7 @@ enum AppDefaults {
         ])
     }
 
-    private static func clearRemovedFeatureValues() {
+    static func clearRemovedFeatureValues(in defaults: UserDefaults) {
         let keys = [
             "isAIEnhancementEnabled",
             "useClipboardContext",
@@ -66,11 +61,13 @@ enum AppDefaults {
             "customPowerModeEmojis",
             "useAppleScriptPaste",
             "CustomVocabularyItems",
+            "isMiddleClickToggleEnabled",
+            "middleClickActivationDelay",
             "RecorderType"
         ]
 
         for key in keys {
-            UserDefaults.standard.removeObject(forKey: key)
+            defaults.removeObject(forKey: key)
         }
     }
 }

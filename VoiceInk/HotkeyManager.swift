@@ -33,18 +33,6 @@ class HotkeyManager: ObservableObject {
             setupHotkeyMonitoring()
         }
     }
-    @Published var isMiddleClickToggleEnabled: Bool {
-        didSet {
-            UserDefaults.standard.set(isMiddleClickToggleEnabled, forKey: "isMiddleClickToggleEnabled")
-            setupHotkeyMonitoring()
-        }
-    }
-    @Published var middleClickActivationDelay: Int {
-        didSet {
-            UserDefaults.standard.set(middleClickActivationDelay, forKey: "middleClickActivationDelay")
-        }
-    }
-    
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "HotkeyManager")
     private var engine: VoiceInkEngine
     private var recorderUIManager: RecorderUIManager
@@ -58,10 +46,6 @@ class HotkeyManager: ObservableObject {
     // NSEvent monitoring for modifier keys
     private let globalEventMonitor = EventMonitorToken()
     private let localEventMonitor = EventMonitorToken()
-    
-    // Middle-click event monitoring
-    private var middleClickMonitors: [EventMonitorToken] = []
-    private var middleClickTask: Task<Void, Never>?
     
     // Key state tracking
     private var currentKeyState = false
@@ -128,9 +112,6 @@ class HotkeyManager: ObservableObject {
         self.selectedHotkey1 = HotkeyOption(rawValue: UserDefaults.standard.string(forKey: "selectedHotkey1") ?? "") ?? .rightCommand
         self.selectedHotkey2 = HotkeyOption(rawValue: UserDefaults.standard.string(forKey: "selectedHotkey2") ?? "") ?? .none
 
-        self.isMiddleClickToggleEnabled = UserDefaults.standard.bool(forKey: "isMiddleClickToggleEnabled")
-        self.middleClickActivationDelay = UserDefaults.standard.integer(forKey: "middleClickActivationDelay")
-
         self.engine = engine
         self.recorderUIManager = recorderUIManager
         self.miniRecorderShortcutManager = MiniRecorderShortcutManager(engine: engine, recorderUIManager: recorderUIManager)
@@ -150,7 +131,6 @@ class HotkeyManager: ObservableObject {
         
         setupModifierKeyMonitoring()
         setupCustomShortcutMonitoring()
-        setupMiddleClickMonitoring()
     }
     
     private func setupModifierKeyMonitoring() {
@@ -171,42 +151,6 @@ class HotkeyManager: ObservableObject {
             }
             return event
         }
-    }
-    
-    private func setupMiddleClickMonitoring() {
-        guard isMiddleClickToggleEnabled else { return }
-
-        // Mouse Down
-        let downMonitor = EventMonitorToken()
-        downMonitor.value = NSEvent.addGlobalMonitorForEvents(matching: .otherMouseDown) { [weak self] event in
-            guard let self = self, event.buttonNumber == 2 else { return }
-
-            self.middleClickTask?.cancel()
-            self.middleClickTask = Task {
-                do {
-                    let delay = UInt64(self.middleClickActivationDelay) * 1_000_000 // ms to ns
-                    try await Task.sleep(nanoseconds: delay)
-                    
-                    guard self.isMiddleClickToggleEnabled, !Task.isCancelled else { return }
-                    
-                    Task { @MainActor in
-                        guard self.canProcessHotkeyAction else { return }
-                        await self.recorderUIManager.toggleMiniRecorder()
-                    }
-                } catch {
-                    // Cancelled
-                }
-            }
-        }
-
-        // Mouse Up
-        let upMonitor = EventMonitorToken()
-        upMonitor.value = NSEvent.addGlobalMonitorForEvents(matching: .otherMouseUp) { [weak self] event in
-            guard let self = self, event.buttonNumber == 2 else { return }
-            self.middleClickTask?.cancel()
-        }
-
-        middleClickMonitors = [downMonitor, upMonitor]
     }
     
     private func setupCustomShortcutMonitoring() {
@@ -242,14 +186,6 @@ class HotkeyManager: ObservableObject {
             NSEvent.removeMonitor(monitor)
             localEventMonitor.value = nil
         }
-        
-        for monitor in middleClickMonitors {
-            if let value = monitor.value {
-                NSEvent.removeMonitor(value)
-            }
-        }
-        middleClickMonitors = []
-        middleClickTask?.cancel()
         
         resetKeyStates()
     }
@@ -408,11 +344,6 @@ class HotkeyManager: ObservableObject {
     deinit {
         globalEventMonitor.value.map(NSEvent.removeMonitor)
         localEventMonitor.value.map(NSEvent.removeMonitor)
-        for monitor in middleClickMonitors {
-            monitor.value.map(NSEvent.removeMonitor)
-        }
-        middleClickMonitors = []
-        middleClickTask?.cancel()
         fnDebounceTask?.cancel()
     }
 }

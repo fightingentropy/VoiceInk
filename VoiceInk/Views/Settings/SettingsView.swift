@@ -18,7 +18,6 @@ struct SettingsView: View {
     @State private var showResetOnboardingAlert = false
     @State private var isCustomCancelEnabled = KeyboardShortcuts.getShortcut(for: .cancelRecorder) != nil
     @State private var isCustomCancelExpanded = false
-    @State private var isMiddleClickExpanded = false
     @State private var isSoundFeedbackExpanded = false
     @State private var isMuteSystemExpanded = false
     @State private var isRestoreClipboardExpanded = false
@@ -121,29 +120,6 @@ struct SettingsView: View {
                 }
             }
 
-            MonochromeDivider()
-
-            ExpandableSettingsRow(
-                isExpanded: $isMiddleClickExpanded,
-                isEnabled: $hotkeyManager.isMiddleClickToggleEnabled,
-                label: "Middle-click recording"
-            ) {
-                compactLabeledRow("Delay") {
-                    HStack(spacing: 6) {
-                        TextField(
-                            "",
-                            value: $hotkeyManager.middleClickActivationDelay,
-                            formatter: nonNegativeNumberFormatter
-                        )
-                        .textFieldStyle(.plain)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 42)
-
-                        Text("ms")
-                            .foregroundStyle(MonochromeStyle.secondaryText)
-                    }
-                }
-            }
         }
     }
 
@@ -372,11 +348,6 @@ struct SettingsView: View {
         .frame(width: 82)
     }
 
-    private var nonNegativeNumberFormatter: NumberFormatter {
-        let formatter = NumberFormatter()
-        formatter.minimum = 0
-        return formatter
-    }
 }
 
 struct ExpandableSettingsRow<Content: View>: View {
