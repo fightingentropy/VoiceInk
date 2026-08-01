@@ -12,7 +12,6 @@ struct SettingsView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
     @AppStorage("restoreClipboardAfterPaste") private var restoreClipboardAfterPaste = true
     @AppStorage("clipboardRestoreDelay") private var clipboardRestoreDelay = 2.0
-    @AppStorage("useAppleScriptPaste") private var useAppleScriptPaste = false
 
     @State private var showResetOnboardingAlert = false
     @State private var isCustomCancelEnabled = KeyboardShortcuts.getShortcut(for: .cancelRecorder) != nil
@@ -189,15 +188,6 @@ struct SettingsView: View {
                     .pickerStyle(.menu)
                     .controlSize(.small)
                     .frame(width: 95)
-                }
-            }
-
-            MonochromeDivider()
-
-            MonochromeToggleRow(isOn: $useAppleScriptPaste) {
-                HStack(spacing: 5) {
-                    Text("AppleScript paste")
-                    InfoTip("Use AppleScript if normal paste does not work with your keyboard layout.")
                 }
             }
 

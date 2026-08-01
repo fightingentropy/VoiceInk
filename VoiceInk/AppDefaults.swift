@@ -11,7 +11,6 @@ enum AppDefaults {
             // Clipboard
             "restoreClipboardAfterPaste": true,
             "clipboardRestoreDelay": 2.0,
-            "useAppleScriptPaste": false,
 
             // Audio & Media
             "isSystemMuteEnabled": true,
@@ -61,6 +60,7 @@ enum AppDefaults {
             "powerModeConfigurationsV2",
             "powerModeActiveSession.v1",
             "customPowerModeEmojis",
+            "useAppleScriptPaste",
             "CustomVocabularyItems",
             "RecorderType"
         ]

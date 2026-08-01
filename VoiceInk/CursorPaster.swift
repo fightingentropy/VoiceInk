@@ -29,11 +29,7 @@ class CursorPaster {
         _ = ClipboardManager.setClipboard(text, transient: shouldRestoreClipboard)
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            if UserDefaults.standard.bool(forKey: "useAppleScriptPaste") {
-                pasteUsingAppleScript()
-            } else {
-                pasteFromClipboard()
-            }
+            pasteFromClipboard()
         }
 
         if shouldRestoreClipboard {
@@ -48,29 +44,6 @@ class CursorPaster {
                     }
                 }
             }
-        }
-    }
-
-    // MARK: - AppleScript paste
-
-    // Pre-compiled AppleScript for pasting. Compiled once on first use to avoid per-paste overhead.
-    private static let pasteScript: NSAppleScript? = {
-        let script = NSAppleScript(source: """
-            tell application "System Events"
-                keystroke "v" using command down
-            end tell
-            """)
-        var error: NSDictionary?
-        script?.compileAndReturnError(&error)
-        return script
-    }()
-
-    // Paste via AppleScript. Works with custom keyboard layouts (e.g. Neo2) where CGEvent-based paste fails.
-    private static func pasteUsingAppleScript() {
-        var error: NSDictionary?
-        pasteScript?.executeAndReturnError(&error)
-        if let error = error {
-            logger.error("AppleScript paste failed: \(error, privacy: .public)")
         }
     }
 

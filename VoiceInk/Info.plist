@@ -6,8 +6,6 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>VoiceInk needs access to your microphone to record audio for transcription.</string>
-	<key>NSAppleEventsUsageDescription</key>
-	<string>VoiceInk needs permission to paste transcribed text when AppleScript paste is enabled.</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>

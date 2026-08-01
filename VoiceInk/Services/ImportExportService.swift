@@ -20,7 +20,6 @@ struct GeneralSettings: Codable {
     let isTextFormattingEnabled: Bool?
     let restoreClipboardAfterPaste: Bool?
     let clipboardRestoreDelay: Double?
-    let useAppleScriptPaste: Bool?
 }
 
 struct VoiceInkExportedSettings: Codable {
@@ -73,8 +72,7 @@ final class ImportExportService {
             audioResumptionDelay: mediaController.audioResumptionDelay,
             isTextFormattingEnabled: UserDefaults.standard.bool(forKey: keyIsTextFormattingEnabled),
             restoreClipboardAfterPaste: UserDefaults.standard.bool(forKey: "restoreClipboardAfterPaste"),
-            clipboardRestoreDelay: UserDefaults.standard.double(forKey: "clipboardRestoreDelay"),
-            useAppleScriptPaste: UserDefaults.standard.bool(forKey: "useAppleScriptPaste")
+            clipboardRestoreDelay: UserDefaults.standard.double(forKey: "clipboardRestoreDelay")
         )
 
         let exportedSettings = VoiceInkExportedSettings(
@@ -228,9 +226,6 @@ final class ImportExportService {
                         }
                         if let clipboardDelay = general.clipboardRestoreDelay {
                             UserDefaults.standard.set(clipboardDelay, forKey: "clipboardRestoreDelay")
-                        }
-                        if let appleScriptPaste = general.useAppleScriptPaste {
-                            UserDefaults.standard.set(appleScriptPaste, forKey: "useAppleScriptPaste")
                         }
                     }
 
