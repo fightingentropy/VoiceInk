@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import os
 
@@ -12,150 +13,280 @@ enum StreamingState {
     case cancelled
 }
 
-/// Manages a streaming transcription lifecycle: buffers audio chunks, sends them to the provider, and collects the final text.
-@MainActor
-final class StreamingTranscriptionService {
+/// A one-shot audio pipe. Each streaming session gets a fresh instance so a closed
+/// buffer or finished signal stream can never leak into the next dictation.
+private final class StreamingAudioPipe: @unchecked Sendable {
+    let buffer: BoundedPCMChunkBuffer
+    let signals: AsyncStream<Void>
 
-    private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "StreamingTranscriptionService")
-    private var provider: StreamingTranscriptionProvider?
-    private var sendTask: Task<Void, Never>?
-    private var eventConsumerTask: Task<Void, Never>?
-    private let audioBuffer: BoundedPCMChunkBuffer
-    private let bufferSignalStream: AsyncStream<Void>
-    private let bufferSignalContinuation: AsyncStream<Void>.Continuation
-    private var state: StreamingState = .idle
-    private var committedSegments: [String] = []
-    private var onPartialTranscript: (@Sendable (String) -> Void)?
+    private let continuation: AsyncStream<Void>.Continuation
+    private let lock = NSLock()
+    private var isClosed = false
 
-    init(onPartialTranscript: (@Sendable (String) -> Void)? = nil) {
-        let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "StreamingTranscriptionService")
-        let (bufferSignalStream, bufferSignalContinuation) = AsyncStream.makeStream(
+    init(logger: Logger) {
+        let (signals, continuation) = AsyncStream.makeStream(
             of: Void.self,
             bufferingPolicy: .bufferingNewest(1)
         )
-        self.audioBuffer = BoundedPCMChunkBuffer(
+        self.signals = signals
+        self.continuation = continuation
+        self.buffer = BoundedPCMChunkBuffer(
             capacityBytes: BoundedPCMChunkBuffer.defaultCapacityBytes,
             logger: logger,
             label: "Streaming transcription"
         )
-        self.bufferSignalStream = bufferSignalStream
-        self.bufferSignalContinuation = bufferSignalContinuation
-        self.onPartialTranscript = onPartialTranscript
     }
 
-    deinit {
-        onPartialTranscript = nil
+    func send(_ data: Data) {
+        lock.lock()
+        guard !isClosed else {
+            lock.unlock()
+            return
+        }
+        buffer.append(data)
+        continuation.yield()
+        lock.unlock()
+    }
+
+    func close() {
+        lock.lock()
+        guard !isClosed else {
+            lock.unlock()
+            return
+        }
+        isClosed = true
+        buffer.close()
+        continuation.finish()
+        lock.unlock()
+    }
+
+    func clear() {
+        buffer.clear()
+    }
+}
+
+/// Thread-safe bridge used by the real-time audio callback. The callback never
+/// touches MainActor state and always targets the currently installed session.
+private final class StreamingAudioRouter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var pipe: StreamingAudioPipe?
+
+    func install(_ pipe: StreamingAudioPipe) {
+        lock.lock()
+        self.pipe = pipe
+        lock.unlock()
+    }
+
+    func remove(_ expectedPipe: StreamingAudioPipe) {
+        lock.lock()
+        if pipe === expectedPipe {
+            pipe = nil
+        }
+        lock.unlock()
+    }
+
+    func send(_ data: Data) {
+        lock.lock()
+        let currentPipe = pipe
+        lock.unlock()
+        currentPipe?.send(data)
+    }
+}
+
+/// Manages a streaming transcription lifecycle: buffers audio chunks, sends them to the provider, and collects the final text.
+@MainActor
+final class StreamingTranscriptionService: NSObject {
+
+    typealias ProviderFactory = (any TranscriptionModel) throws -> any StreamingTranscriptionProvider
+
+    private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "StreamingTranscriptionService")
+    private let providerFactory: ProviderFactory
+    private let audioRouter = StreamingAudioRouter()
+    private let onPartialTranscript: (@Sendable (String) -> Void)?
+    private let workspaceNotificationCenter: NotificationCenter
+
+    private var activeSessionID: UUID?
+    private var provider: (any StreamingTranscriptionProvider)?
+    private var audioPipe: StreamingAudioPipe?
+    private var sendTask: Task<Void, Error>?
+    private var eventConsumerTask: Task<Void, Never>?
+    private var state: StreamingState = .idle
+    private var committedSegments: [String] = []
+    private var streamingFailure: Error?
+
+    init(
+        onPartialTranscript: (@Sendable (String) -> Void)? = nil,
+        providerFactory: ProviderFactory? = nil,
+        workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
+    ) {
+        self.onPartialTranscript = onPartialTranscript
+        self.providerFactory = providerFactory ?? Self.createProvider
+        self.workspaceNotificationCenter = workspaceNotificationCenter
+        super.init()
+
+        workspaceNotificationCenter.addObserver(
+            self,
+            selector: #selector(workspaceWillSleep(_:)),
+            name: NSWorkspace.willSleepNotification,
+            object: nil
+        )
+        workspaceNotificationCenter.addObserver(
+            self,
+            selector: #selector(workspaceDidWake(_:)),
+            name: NSWorkspace.didWakeNotification,
+            object: nil
+        )
+    }
+
+    isolated deinit {
+        workspaceNotificationCenter.removeObserver(self)
         sendTask?.cancel()
         eventConsumerTask?.cancel()
-        audioBuffer.close()
-        bufferSignalContinuation.finish()
-        commitSignal?.finish()
+        if let audioPipe {
+            audioRouter.remove(audioPipe)
+            audioPipe.close()
+        }
     }
-
-    /// Signal used to notify `waitForFinalCommit` when a new committed segment arrives.
-    private var commitSignal: AsyncStream<Void>.Continuation?
 
     /// Whether the streaming connection is fully established and actively sending.
     var isActive: Bool { state == .streaming || state == .committing }
 
     /// Start a streaming transcription session for the given model.
     func startStreaming(model: any TranscriptionModel) async throws {
-        state = .connecting
-        committedSegments = []
+        guard activeSessionID == nil else {
+            throw StreamingTranscriptionError.connectionFailed("A streaming session is already active")
+        }
 
-        let provider = try createProvider(for: model)
+        let sessionID = UUID()
+        let pipe = StreamingAudioPipe(logger: logger)
+        let provider = try providerFactory(model)
+
+        activeSessionID = sessionID
+        audioPipe = pipe
         self.provider = provider
+        streamingFailure = nil
+        committedSegments = []
+        state = .connecting
+        audioRouter.install(pipe)
 
         let selectedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "auto"
 
-        try await provider.connect(model: model, language: selectedLanguage)
+        do {
+            try await provider.connect(model: model, language: selectedLanguage)
+        } catch {
+            if activeSessionID == sessionID {
+                await cleanupStreaming(sessionID: sessionID, finalState: .failed)
+            } else {
+                await provider.disconnect()
+            }
+            throw error
+        }
 
-        // If cancel() was called while we were awaiting the connection, tear down immediately.
-        if state == .cancelled {
+        // Cancellation or a replacement session may have happened while connect suspended.
+        guard activeSessionID == sessionID else {
             await provider.disconnect()
-            self.provider = nil
-            return
+            throw CancellationError()
         }
 
         state = .streaming
-        startSendLoop()
-        startEventConsumer()
+        startSendLoop(provider: provider, pipe: pipe, sessionID: sessionID)
+        startEventConsumer(provider: provider, sessionID: sessionID)
 
         logger.notice("Streaming started for model: \(model.displayName, privacy: .public)")
     }
 
     /// Buffers an audio chunk for sending. Safe to call from the audio callback thread.
     nonisolated func sendAudioChunk(_ data: Data) {
-        audioBuffer.append(data)
-        bufferSignalContinuation.yield()
+        audioRouter.send(data)
     }
 
     /// Stops streaming, commits remaining audio, and returns the final transcribed text.
     func stopAndGetFinalText() async throws -> String {
-        guard let provider = provider, state == .streaming else {
+        guard let sessionID = activeSessionID,
+              let provider,
+              let pipe = audioPipe else {
             throw StreamingTranscriptionError.notConnected
         }
 
-        state = .committing
-
-        // Finish the chunk source so the send loop drains remaining chunks and exits naturally.
-        await drainRemainingChunks()
-
-        // Set up the commit signal BEFORE sending commit to avoid a race with the response.
-        let (signalStream, signalContinuation) = AsyncStream.makeStream(of: Void.self)
-        self.commitSignal = signalContinuation
-
-        // Send commit to finalize any remaining audio
-        do {
-            try await provider.commit()
-        } catch {
-            commitSignal?.finish()
-            commitSignal = nil
-            logger.error("Failed to send commit: \(error.localizedDescription, privacy: .public)")
-            state = .failed
-            await cleanupStreaming()
-            throw error
+        if let streamingFailure {
+            await cleanupStreaming(sessionID: sessionID, finalState: .failed)
+            throw streamingFailure
         }
 
-        // Wait for the server to acknowledge our commit (or timeout)
-        let finalText = await waitForFinalCommit(signalStream: signalStream)
+        guard state == .streaming else {
+            throw StreamingTranscriptionError.notConnected
+        }
+        state = .committing
 
-        state = .done
-        await cleanupStreaming()
+        do {
+            try await drainRemainingChunks(pipe: pipe)
 
-        return finalText
+            if pipe.buffer.hasTrimmedAudio {
+                throw StreamingTranscriptionError.audioBufferOverflow
+            }
+
+            try await provider.commit()
+            let finalText = try await waitForFinalCommit(sessionID: sessionID)
+            state = .done
+            await cleanupStreaming(sessionID: sessionID, finalState: .idle)
+            return finalText
+        } catch {
+            logger.error("Streaming finalization failed: \(error.localizedDescription, privacy: .public)")
+            await cleanupStreaming(sessionID: sessionID, finalState: .failed)
+            throw error
+        }
     }
 
     /// Cancels the streaming session without waiting for results.
     func cancel() {
-        state = .cancelled
-        onPartialTranscript = nil
-        eventConsumerTask?.cancel()
-        eventConsumerTask = nil
-        sendTask?.cancel()
-        sendTask = nil
-        audioBuffer.close()
-        audioBuffer.clear()
-        bufferSignalContinuation.finish()
-
-        // Clean up commit signal if waiting
-        commitSignal?.finish()
-        commitSignal = nil
+        guard let sessionID = activeSessionID else {
+            state = .idle
+            return
+        }
 
         let providerToDisconnect = provider
+        let pipeToClose = audioPipe
+
+        activeSessionID = nil
         provider = nil
+        audioPipe = nil
+        streamingFailure = nil
+        committedSegments = []
+        state = .idle
+
+        sendTask?.cancel()
+        sendTask = nil
+        eventConsumerTask?.cancel()
+        eventConsumerTask = nil
+
+        if let pipeToClose {
+            audioRouter.remove(pipeToClose)
+            pipeToClose.close()
+            pipeToClose.clear()
+        }
 
         Task { [providerToDisconnect] in
             await providerToDisconnect?.disconnect()
         }
 
-        committedSegments = []
-        logger.notice("Streaming cancelled")
+        logger.notice("Streaming session \(sessionID.uuidString, privacy: .private) cancelled")
     }
 
     // MARK: - Private
 
-    private func createProvider(for model: any TranscriptionModel) throws -> StreamingTranscriptionProvider {
+    @objc private func workspaceWillSleep(_ notification: Notification) {
+        _ = notification
+        guard activeSessionID != nil else { return }
+        logger.notice("Cancelling streaming transcription before system sleep")
+        cancel()
+    }
+
+    @objc private func workspaceDidWake(_ notification: Notification) {
+        _ = notification
+        logger.notice("System wake observed; the next dictation will create a fresh streaming session")
+    }
+
+    private static func createProvider(for model: any TranscriptionModel) throws -> any StreamingTranscriptionProvider {
         switch model.provider {
         case .localVoxtral:
             return VoxtralNativeStreamingProvider()
@@ -170,57 +301,59 @@ final class StreamingTranscriptionService {
         }
     }
 
-    /// Consumes audio chunks from the AsyncStream and sends them to the provider.
-    private func startSendLoop() {
-        let provider = provider
-        let signalStream = bufferSignalStream
-        let audioBuffer = audioBuffer
-
-        sendTask = Task { [weak self, provider, signalStream, audioBuffer] in
-            let sendChunks: ([Data]) async -> Void = { chunks in
-                for chunk in chunks {
-                    do {
-                        try await provider?.sendAudioChunk(chunk)
-                    } catch {
-                        self?.logger.error("Failed to send audio chunk: \(error.localizedDescription, privacy: .public)")
+    private func startSendLoop(
+        provider: any StreamingTranscriptionProvider,
+        pipe: StreamingAudioPipe,
+        sessionID: UUID
+    ) {
+        sendTask = Task { [weak self, provider, pipe] in
+            do {
+                for await _ in pipe.signals {
+                    try Task.checkCancellation()
+                    for chunk in pipe.buffer.drain() {
+                        try await provider.sendAudioChunk(chunk)
                     }
                 }
-            }
 
-            for await _ in signalStream {
-                await sendChunks(audioBuffer.drain())
+                for chunk in pipe.buffer.drain() {
+                    try Task.checkCancellation()
+                    try await provider.sendAudioChunk(chunk)
+                }
+            } catch {
+                self?.recordStreamingFailure(error, sessionID: sessionID)
+                throw error
             }
-
-            await sendChunks(audioBuffer.drain())
         }
-
-        bufferSignalContinuation.yield()
     }
 
-    /// Finishes the chunk source and waits for the send loop to process all remaining buffered chunks.
-    private func drainRemainingChunks() async {
-        audioBuffer.close()
-        bufferSignalContinuation.finish()
-        await sendTask?.value
+    /// Closes this session's source and waits for its sender to drain or fail.
+    private func drainRemainingChunks(pipe: StreamingAudioPipe) async throws {
+        audioRouter.remove(pipe)
+        pipe.close()
+        try await sendTask?.value
         sendTask = nil
+
+        if let streamingFailure {
+            throw streamingFailure
+        }
     }
 
     /// Consumes transcription events throughout the session, accumulating committed segments.
-    private func startEventConsumer() {
-        guard let provider = provider else { return }
+    private func startEventConsumer(
+        provider: any StreamingTranscriptionProvider,
+        sessionID: UUID
+    ) {
         let events = provider.transcriptionEvents
 
         eventConsumerTask = Task { [weak self, events] in
             for await event in events {
-                guard let self = self else { break }
+                guard let self, self.activeSessionID == sessionID else { break }
+
                 switch event {
                 case .committed(let text):
                     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
                     if !trimmed.isEmpty {
                         self.committedSegments.append(trimmed)
-                    }
-                    if self.state == .committing {
-                        self.commitSignal?.yield()
                     }
                 case .partial(let text):
                     if self.state == .streaming {
@@ -229,61 +362,80 @@ final class StreamingTranscriptionService {
                 case .sessionStarted:
                     break
                 case .error(let error):
-                    self.logger.error("Streaming event error: \(error.localizedDescription, privacy: .public)")
+                    self.recordStreamingFailure(error, sessionID: sessionID)
                 }
-            }  
+            }
         }
     }
 
-    /// Waits for the server to acknowledge our explicit commit, with a 10-second timeout.
-    private func waitForFinalCommit(signalStream: AsyncStream<Void>) async -> String {
-        let signalTask = Task {
-            for await _ in signalStream {
-                return true
+    private func recordStreamingFailure(_ error: Error, sessionID: UUID) {
+        guard activeSessionID == sessionID, streamingFailure == nil else { return }
+        streamingFailure = error
+        state = .failed
+        logger.error("Streaming session failed: \(error.localizedDescription, privacy: .public)")
+    }
+
+    /// Wait for the first committed segment and then a bounded quiet period so
+    /// trailing provider segments are not cut off. The overall deadline prevents
+    /// a provider that never finishes from holding the recording indefinitely.
+    private func waitForFinalCommit(sessionID: UUID) async throws -> String {
+        let deadline = Date().addingTimeInterval(10)
+        var observedSegmentCount = committedSegments.count
+        var lastChange = Date()
+
+        while Date() < deadline {
+            try Task.checkCancellation()
+            guard activeSessionID == sessionID else {
+                throw CancellationError()
             }
-            return false
+
+            if let streamingFailure {
+                throw streamingFailure
+            }
+
+            if committedSegments.count != observedSegmentCount {
+                observedSegmentCount = committedSegments.count
+                lastChange = Date()
+            }
+
+            if observedSegmentCount > 0, Date().timeIntervalSince(lastChange) >= 0.35 {
+                break
+            }
+
+            try await Task.sleep(nanoseconds: 50_000_000)
         }
-        let timeoutTask = Task {
-            try? await Task.sleep(nanoseconds: 10_000_000_000)
-            return false
-        }
 
-        let receivedInTime = await withTaskGroup(of: Bool.self) { group in
-            group.addTask { await signalTask.value }
-            group.addTask { await timeoutTask.value }
-
-            let result = await group.next() ?? false
-            signalTask.cancel()
-            timeoutTask.cancel()
-            group.cancelAll()
-            return result
-        }
-
-        // Clean up the signal
-        commitSignal?.finish()
-        commitSignal = nil
-
-        if !receivedInTime && committedSegments.isEmpty {
+        if committedSegments.isEmpty {
             logger.warning("No transcript received from streaming")
         }
 
-        return committedSegments.isEmpty ? "" : committedSegments.joined(separator: " ")
+        return committedSegments.joined(separator: " ")
     }
 
-    private func cleanupStreaming() async {
-        onPartialTranscript = nil
-        eventConsumerTask?.cancel()
-        eventConsumerTask = nil
+    private func cleanupStreaming(sessionID: UUID, finalState: StreamingState) async {
+        guard activeSessionID == sessionID else { return }
+
+        let providerToDisconnect = provider
+        let pipeToClose = audioPipe
+
+        activeSessionID = nil
+        provider = nil
+        audioPipe = nil
+        streamingFailure = nil
+        committedSegments = []
+
         sendTask?.cancel()
         sendTask = nil
-        audioBuffer.close()
-        audioBuffer.clear()
-        bufferSignalContinuation.finish()
-        commitSignal?.finish()
-        commitSignal = nil
-        await provider?.disconnect()
-        provider = nil
-        state = .idle
-        committedSegments = []
+        eventConsumerTask?.cancel()
+        eventConsumerTask = nil
+
+        if let pipeToClose {
+            audioRouter.remove(pipeToClose)
+            pipeToClose.close()
+            pipeToClose.clear()
+        }
+
+        await providerToDisconnect?.disconnect()
+        state = finalState == .failed ? .idle : finalState
     }
 }

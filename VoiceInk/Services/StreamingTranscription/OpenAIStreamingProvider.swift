@@ -1,6 +1,6 @@
 import Foundation
 
-final class OpenAIStreamingProvider: StreamingTranscriptionProvider, @unchecked Sendable {
+actor OpenAIStreamingProvider: StreamingTranscriptionProvider {
     static let modelName = "gpt-live-transcribe"
     static let inputSampleRate = 24_000
     static let transcriptionDelay = "minimal"
@@ -9,22 +9,22 @@ final class OpenAIStreamingProvider: StreamingTranscriptionProvider, @unchecked 
     private var webSocketTask: URLSessionWebSocketTask?
     private var receiveTask: Task<Void, Never>?
     private var isConnected = false
-    private var eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation?
+    private nonisolated let eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation
     private var partialTranscripts: [String: String] = [:]
     private var resampler = OpenAIPCM16Resampler()
 
-    private(set) var transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
+    nonisolated let transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
 
     init() {
-        var continuation: AsyncStream<StreamingTranscriptionEvent>.Continuation!
-        transcriptionEvents = AsyncStream { continuation = $0 }
-        eventsContinuation = continuation
+        (transcriptionEvents, eventsContinuation) = AsyncStream.makeStream(
+            of: StreamingTranscriptionEvent.self
+        )
     }
 
     deinit {
         receiveTask?.cancel()
         webSocketTask?.cancel(with: .goingAway, reason: nil)
-        eventsContinuation?.finish()
+        eventsContinuation.finish()
     }
 
     func connect(model: any TranscriptionModel, language: String?) async throws {
@@ -95,7 +95,7 @@ final class OpenAIStreamingProvider: StreamingTranscriptionProvider, @unchecked 
         webSocketTask = nil
         partialTranscripts.removeAll(keepingCapacity: false)
         resampler.reset()
-        eventsContinuation?.finish()
+        eventsContinuation.finish()
     }
 
     static func makeSessionUpdate(language: String?, prompt: String?) throws -> String {
@@ -200,7 +200,7 @@ final class OpenAIStreamingProvider: StreamingTranscriptionProvider, @unchecked 
                 try await task.send(.string(try Self.makeSessionUpdate(language: language, prompt: prompt)))
                 didSendConfiguration = true
             case "session.updated":
-                eventsContinuation?.yield(.sessionStarted)
+                eventsContinuation.yield(.sessionStarted)
                 return
             case "error":
                 throw StreamingTranscriptionError.serverError(event.error?.message ?? "OpenAI Realtime error")
@@ -213,17 +213,20 @@ final class OpenAIStreamingProvider: StreamingTranscriptionProvider, @unchecked 
     private func startReceiveLoop(on task: URLSessionWebSocketTask) {
         receiveTask = Task { [weak self, weak task] in
             guard let self, let task else { return }
+            await self.receiveEvents(on: task)
+        }
+    }
 
-            while !Task.isCancelled {
-                do {
-                    let event = try self.decodeEvent(from: try await task.receive())
-                    self.handleEvent(event)
-                } catch {
-                    if !Task.isCancelled {
-                        self.eventsContinuation?.yield(.error(self.mapConnectionError(error)))
-                    }
-                    break
+    private func receiveEvents(on task: URLSessionWebSocketTask) async {
+        while !Task.isCancelled {
+            do {
+                let event = try decodeEvent(from: try await task.receive())
+                handleEvent(event)
+            } catch {
+                if !Task.isCancelled {
+                    eventsContinuation.yield(.error(mapConnectionError(error)))
                 }
+                break
             }
         }
     }
@@ -235,14 +238,14 @@ final class OpenAIStreamingProvider: StreamingTranscriptionProvider, @unchecked 
             let accumulated = partialTranscripts[itemID, default: ""] + (event.delta ?? "")
             partialTranscripts[itemID] = accumulated
             if !accumulated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                eventsContinuation?.yield(.partial(text: accumulated))
+                eventsContinuation.yield(.partial(text: accumulated))
             }
         case "conversation.item.input_audio_transcription.completed":
             let itemID = event.itemID ?? "active"
             partialTranscripts.removeValue(forKey: itemID)
-            eventsContinuation?.yield(.committed(text: event.transcript ?? ""))
+            eventsContinuation.yield(.committed(text: event.transcript ?? ""))
         case "error":
-            eventsContinuation?.yield(
+            eventsContinuation.yield(
                 .error(StreamingTranscriptionError.serverError(event.error?.message ?? "OpenAI Realtime error"))
             )
         default:

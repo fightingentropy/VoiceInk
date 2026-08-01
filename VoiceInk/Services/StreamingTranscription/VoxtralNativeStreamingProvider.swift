@@ -1,18 +1,18 @@
 import Foundation
 import os
 
-final class VoxtralNativeStreamingProvider: StreamingTranscriptionProvider, @unchecked Sendable {
+actor VoxtralNativeStreamingProvider: StreamingTranscriptionProvider {
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "VoxtralNativeStreaming")
     private var engine: VoxtralNativeStreamingEngine?
     private var nativeLease: VoxtralNativePreparedLease?
-    private var eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation?
+    private nonisolated let eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation
 
-    private(set) var transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
+    nonisolated let transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
 
     init() {
-        var continuation: AsyncStream<StreamingTranscriptionEvent>.Continuation!
-        transcriptionEvents = AsyncStream { continuation = $0 }
-        eventsContinuation = continuation
+        (transcriptionEvents, eventsContinuation) = AsyncStream.makeStream(
+            of: StreamingTranscriptionEvent.self
+        )
     }
 
     deinit {
@@ -21,7 +21,7 @@ final class VoxtralNativeStreamingProvider: StreamingTranscriptionProvider, @unc
                 await nativeLease.release()
             }
         }
-        eventsContinuation?.finish()
+        eventsContinuation.finish()
     }
 
     func connect(model: any TranscriptionModel, language: String?) async throws {
@@ -36,12 +36,12 @@ final class VoxtralNativeStreamingProvider: StreamingTranscriptionProvider, @unc
         )
         let engine = VoxtralNativeStreamingEngine(
             preparedState: lease.preparedState,
-            continuation: eventsContinuation!
+            continuation: eventsContinuation
         )
 
         nativeLease = lease
         self.engine = engine
-        eventsContinuation?.yield(.sessionStarted)
+        eventsContinuation.yield(.sessionStarted)
         logger.notice("Using native Voxtral MLX provider for \(modelReference, privacy: .public)")
     }
 
@@ -53,7 +53,7 @@ final class VoxtralNativeStreamingProvider: StreamingTranscriptionProvider, @unc
         do {
             try await engine.ingestPCM16(data)
         } catch {
-            eventsContinuation?.yield(.error(error))
+            eventsContinuation.yield(.error(error))
             throw error
         }
     }
@@ -66,7 +66,7 @@ final class VoxtralNativeStreamingProvider: StreamingTranscriptionProvider, @unc
         do {
             try await engine.finalize()
         } catch {
-            eventsContinuation?.yield(.error(error))
+            eventsContinuation.yield(.error(error))
             throw error
         }
     }
@@ -82,6 +82,6 @@ final class VoxtralNativeStreamingProvider: StreamingTranscriptionProvider, @unc
         }
 
         engine = nil
-        eventsContinuation?.finish()
+        eventsContinuation.finish()
     }
 }

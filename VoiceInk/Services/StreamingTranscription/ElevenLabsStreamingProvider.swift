@@ -2,23 +2,23 @@ import Foundation
 import LLMkit
 
 /// ElevenLabs streaming provider wrapping `LLMkit.ElevenLabsStreamingClient`.
-final class ElevenLabsStreamingProvider: StreamingTranscriptionProvider, @unchecked Sendable {
+actor ElevenLabsStreamingProvider: StreamingTranscriptionProvider {
 
     private let client = LLMkit.ElevenLabsStreamingClient()
-    private var eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation?
+    private nonisolated let eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation
     private var forwardingTask: Task<Void, Never>?
 
-    private(set) var transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
+    nonisolated let transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
 
     init() {
-        var continuation: AsyncStream<StreamingTranscriptionEvent>.Continuation!
-        transcriptionEvents = AsyncStream { continuation = $0 }
-        eventsContinuation = continuation
+        (transcriptionEvents, eventsContinuation) = AsyncStream.makeStream(
+            of: StreamingTranscriptionEvent.self
+        )
     }
 
     deinit {
         forwardingTask?.cancel()
-        eventsContinuation?.finish()
+        eventsContinuation.finish()
     }
 
     func connect(model: any TranscriptionModel, language: String?) async throws {
@@ -60,7 +60,7 @@ final class ElevenLabsStreamingProvider: StreamingTranscriptionProvider, @unchec
         forwardingTask?.cancel()
         forwardingTask = nil
         await client.disconnect()
-        eventsContinuation?.finish()
+        eventsContinuation.finish()
     }
 
     // MARK: - Private
@@ -71,13 +71,13 @@ final class ElevenLabsStreamingProvider: StreamingTranscriptionProvider, @unchec
             for await event in self.client.transcriptionEvents {
                 switch event {
                 case .sessionStarted:
-                    self.eventsContinuation?.yield(.sessionStarted)
+                    self.eventsContinuation.yield(.sessionStarted)
                 case .partial(let text):
-                    self.eventsContinuation?.yield(.partial(text: text))
+                    self.eventsContinuation.yield(.partial(text: text))
                 case .committed(let text):
-                    self.eventsContinuation?.yield(.committed(text: text))
+                    self.eventsContinuation.yield(.committed(text: text))
                 case .error(let message):
-                    self.eventsContinuation?.yield(.error(StreamingTranscriptionError.serverError(message)))
+                    self.eventsContinuation.yield(.error(StreamingTranscriptionError.serverError(message)))
                 }
             }
         }

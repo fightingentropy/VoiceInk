@@ -26,15 +26,17 @@ struct SettingsView: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 14) {
+            LazyVStack(alignment: .leading, spacing: 22) {
                 shortcutsSection
                 recordingSection
                 applicationSection
                 maintenanceSection
             }
-            .padding(18)
-            .frame(maxWidth: 660)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 28)
+            .padding(.top, 24)
+            .padding(.bottom, 32)
+            .frame(maxWidth: 760)
+            .frame(maxWidth: .infinity, alignment: .center)
         }
         .scrollIndicators(.hidden)
         .background(Color.clear)
@@ -80,7 +82,8 @@ struct SettingsView: View {
                             Image(systemName: "minus")
                                 .font(.system(size: 10, weight: .semibold))
                         }
-                        .buttonStyle(MonochromeIconButtonStyle())
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
                     }
                 }
             } else if hotkeyManager.selectedHotkey1 != .none {
@@ -93,8 +96,9 @@ struct SettingsView: View {
                 } label: {
                     Label("Add shortcut", systemImage: "plus")
                 }
-                .buttonStyle(MonochromeActionButtonStyle())
-                .padding(.vertical, 9)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .padding(.vertical, 10)
             }
 
             MonochromeDivider()
@@ -215,18 +219,18 @@ struct SettingsView: View {
     private var applicationSection: some View {
         MonochromeSettingsSection(title: "App") {
             LaunchAtLogin.Toggle("Launch at login")
-                .font(.system(size: 12.5, weight: .medium))
+                .font(.body)
                 .foregroundStyle(MonochromeStyle.primaryText)
                 .toggleStyle(.switch)
-                .controlSize(.mini)
-                .tint(.white)
-                .frame(minHeight: 38)
+                .controlSize(.small)
+                .tint(.accentColor)
+                .frame(minHeight: 44)
 
             MonochromeDivider()
 
             HStack {
                 Text("Onboarding")
-                    .font(.system(size: 12.5, weight: .medium))
+                    .font(.body)
                     .foregroundStyle(MonochromeStyle.primaryText)
 
                 Spacer()
@@ -234,9 +238,10 @@ struct SettingsView: View {
                 Button("Reset") {
                     showResetOnboardingAlert = true
                 }
-                .buttonStyle(MonochromeActionButtonStyle())
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
-            .frame(minHeight: 42)
+            .frame(minHeight: 46)
         }
     }
 
@@ -249,18 +254,18 @@ struct SettingsView: View {
             } label: {
                 HStack {
                     Text("Backup & diagnostics")
-                        .font(.system(size: 12.5, weight: .medium))
+                        .font(.body)
                         .foregroundStyle(MonochromeStyle.primaryText)
 
                     Spacer()
 
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(MonochromeStyle.secondaryText)
+                    Image(systemName: "chevron.forward")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.tertiary)
                         .rotationEffect(.degrees(isMaintenanceExpanded ? 90 : 0))
                 }
                 .contentShape(Rectangle())
-                .frame(minHeight: 40)
+                .frame(minHeight: 46)
             }
             .buttonStyle(.plain)
 
@@ -289,7 +294,8 @@ struct SettingsView: View {
                         )
                     }
                 }
-                .buttonStyle(MonochromeActionButtonStyle())
+                .buttonStyle(.bordered)
+                .controlSize(.small)
                 .padding(.vertical, 10)
 
                 MonochromeDivider()
@@ -306,14 +312,14 @@ struct SettingsView: View {
     ) -> some View {
         HStack(spacing: 12) {
             Text(title)
-                .font(.system(size: 12.5, weight: .medium))
+                .font(.body)
                 .foregroundStyle(MonochromeStyle.primaryText)
 
             Spacer(minLength: 16)
 
             content()
         }
-        .frame(minHeight: 40)
+        .frame(minHeight: 46)
     }
 
     private func hotkeyPicker(
@@ -367,7 +373,7 @@ struct ExpandableSettingsRow<Content: View>: View {
             HStack(spacing: 10) {
                 HStack(spacing: 5) {
                     Text(label)
-                        .font(.system(size: 12.5, weight: .medium))
+                        .font(.body)
 
                     if let infoMessage {
                         if let infoURL {
@@ -384,8 +390,8 @@ struct ExpandableSettingsRow<Content: View>: View {
                 Toggle("", isOn: $isEnabled)
                     .labelsHidden()
                     .toggleStyle(.switch)
-                    .controlSize(.mini)
-                    .tint(.white)
+                    .controlSize(.small)
+                    .tint(.accentColor)
 
                 Button {
                     guard isEnabled else { return }
@@ -393,15 +399,17 @@ struct ExpandableSettingsRow<Content: View>: View {
                         isExpanded.toggle()
                     }
                 } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
+                    Image(systemName: "chevron.forward")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.tertiary)
                         .rotationEffect(.degrees(isEnabled && isExpanded ? 90 : 0))
                         .opacity(isEnabled ? 1 : 0.25)
                 }
                 .buttonStyle(MonochromeIconButtonStyle())
                 .disabled(!isEnabled)
+                .help(isExpanded ? "Hide options" : "Show options")
             }
-            .frame(minHeight: 40)
+            .frame(minHeight: 46)
 
             if isEnabled && isExpanded {
                 VStack(alignment: .leading, spacing: 8) {

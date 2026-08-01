@@ -33,6 +33,7 @@ playground.xcworkspace
 build/
 .codex-build/
 *.profraw
+Signing.local.mk
 
 # CocoaPods
 #

@@ -15,6 +15,7 @@ enum StreamingTranscriptionError: LocalizedError {
     case timeout
     case serverError(String)
     case notConnected
+    case audioBufferOverflow
     case unsupportedProvider(String)
 
     var errorDescription: String? {
@@ -29,6 +30,8 @@ enum StreamingTranscriptionError: LocalizedError {
             return "Streaming server error: \(message)"
         case .notConnected:
             return "Not connected to streaming transcription service"
+        case .audioBufferOverflow:
+            return "Streaming audio could not be delivered without dropping buffered samples"
         case .unsupportedProvider(let provider):
             return "Streaming is not supported for provider: \(provider)"
         }
