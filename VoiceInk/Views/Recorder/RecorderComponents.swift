@@ -90,13 +90,13 @@ struct RecorderStatusDisplay: View {
     }
 
     let currentState: RecordingState
-    let audioMeter: AudioMeter
+    let partialTranscript: String
     let menuBarHeight: CGFloat?
     let style: Style
 
-    init(currentState: RecordingState, audioMeter: AudioMeter, menuBarHeight: CGFloat? = nil, style: Style = .regular) {
+    init(currentState: RecordingState, partialTranscript: String, menuBarHeight: CGFloat? = nil, style: Style = .regular) {
         self.currentState = currentState
-        self.audioMeter = audioMeter
+        self.partialTranscript = partialTranscript
         self.menuBarHeight = menuBarHeight
         self.style = style
     }
@@ -106,58 +106,66 @@ struct RecorderStatusDisplay: View {
             if currentState == .transcribing {
                 ProcessingStatusDisplay(mode: .transcribing, color: .white, isCompact: style == .compact)
                     .transition(.opacity)
-            } else if currentState == .recording {
-                AudioVisualizer(
-                    audioMeter: audioMeter,
-                    color: .white,
-                    isActive: currentState == .recording,
-                    barCount: visualizerBarCount,
-                    barWidth: visualizerBarWidth,
-                    barSpacing: visualizerBarSpacing,
-                    minHeight: visualizerMinHeight,
-                    maxHeight: visualizerMaxHeight,
-                    opacity: visualizerOpacity
-                )
-                .scaleEffect(y: menuBarHeight != nil ? min(1.0, (menuBarHeight! - 8) / 25) : 1.0, anchor: .center)
-                .transition(.opacity)
             } else {
-                StaticVisualizer(
-                    color: .white,
-                    barCount: visualizerBarCount,
-                    barWidth: visualizerBarWidth,
-                    staticHeight: visualizerMinHeight,
-                    barSpacing: visualizerBarSpacing,
-                    opacity: style == .compact ? 0.36 : 0.5
+                LiveTranscriptStatusDisplay(
+                    text: partialTranscript,
+                    isListening: currentState == .recording,
+                    isCompact: style == .compact
                 )
-                    .scaleEffect(y: menuBarHeight != nil ? min(1.0, (menuBarHeight! - 8) / 25) : 1.0, anchor: .center)
-                    .transition(.opacity)
+                .transition(.opacity)
             }
         }
-        .frame(width: style == .compact ? 42 : nil, height: style == .compact ? 18 : nil)
+        .frame(maxWidth: .infinity)
+        .frame(height: style == .compact ? 18 : 28)
         .animation(.easeInOut(duration: 0.2), value: currentState)
     }
+}
 
-    private var visualizerBarCount: Int {
-        style == .compact ? 9 : 15
+private struct LiveTranscriptStatusDisplay: View {
+    let text: String
+    let isListening: Bool
+    let isCompact: Bool
+
+    @State private var isCaretVisible = true
+
+    private var displayText: String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var visualizerBarWidth: CGFloat {
-        style == .compact ? 2 : 3
+    private var hasTranscript: Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private var visualizerBarSpacing: CGFloat {
-        2
-    }
+    var body: some View {
+        Group {
+            if hasTranscript {
+                HStack(spacing: 4) {
+                    Text(displayText)
+                        .font(.system(size: isCompact ? 12 : 13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.96))
+                        .lineLimit(1)
+                        .truncationMode(.head)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
 
-    private var visualizerMinHeight: CGFloat {
-        style == .compact ? 3 : 4
-    }
-
-    private var visualizerMaxHeight: CGFloat {
-        style == .compact ? 16 : 28
-    }
-
-    private var visualizerOpacity: Double {
-        style == .compact ? 0.72 : 0.85
+                    if isListening {
+                        RoundedRectangle(cornerRadius: 0.5)
+                            .fill(.white.opacity(0.9))
+                            .frame(width: 1, height: isCompact ? 12 : 14)
+                            .opacity(isCaretVisible ? 1 : 0.18)
+                    }
+                }
+            } else {
+                Color.clear
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true)) {
+                isCaretVisible = false
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(hasTranscript ? displayText : (isListening ? "Listening" : "Starting"))
+        .accessibilityAddTraits(.updatesFrequently)
+        .animation(nil, value: text)
     }
 }

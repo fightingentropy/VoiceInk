@@ -32,10 +32,10 @@ class MiniRecorderPanel: NSPanel {
     
     static func calculateWindowMetrics() -> NSRect {
         guard let screen = NSScreen.main else {
-            return NSRect(x: 0, y: 0, width: 76, height: 44)
+            return NSRect(x: 0, y: 0, width: 320, height: 44)
         }
 
-        let width: CGFloat = 76
+        let width: CGFloat = 320
         let height: CGFloat = 44
         let padding: CGFloat = 24
 
