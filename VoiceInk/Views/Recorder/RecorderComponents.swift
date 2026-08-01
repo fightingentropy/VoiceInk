@@ -129,11 +129,7 @@ private struct LiveTranscriptStatusDisplay: View {
     @State private var isCaretVisible = true
 
     private var displayText: String {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            return isListening ? "Listening…" : "Starting…"
-        }
-        return trimmed
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private var hasTranscript: Bool {
@@ -141,19 +137,25 @@ private struct LiveTranscriptStatusDisplay: View {
     }
 
     var body: some View {
-        HStack(spacing: 4) {
-            Text(displayText)
-                .font(.system(size: isCompact ? 12 : 13, weight: .medium))
-                .foregroundStyle(.white.opacity(hasTranscript ? 0.92 : 0.58))
-                .lineLimit(1)
-                .truncationMode(.head)
-                .frame(maxWidth: .infinity, alignment: hasTranscript ? .trailing : .center)
+        Group {
+            if hasTranscript {
+                HStack(spacing: 4) {
+                    Text(displayText)
+                        .font(.system(size: isCompact ? 12 : 13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.96))
+                        .lineLimit(1)
+                        .truncationMode(.head)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
 
-            if isListening {
-                RoundedRectangle(cornerRadius: 0.5)
-                    .fill(.white.opacity(0.85))
-                    .frame(width: 1, height: isCompact ? 12 : 14)
-                    .opacity(isCaretVisible ? 1 : 0.18)
+                    if isListening {
+                        RoundedRectangle(cornerRadius: 0.5)
+                            .fill(.white.opacity(0.9))
+                            .frame(width: 1, height: isCompact ? 12 : 14)
+                            .opacity(isCaretVisible ? 1 : 0.18)
+                    }
+                }
+            } else {
+                Color.clear
             }
         }
         .onAppear {
