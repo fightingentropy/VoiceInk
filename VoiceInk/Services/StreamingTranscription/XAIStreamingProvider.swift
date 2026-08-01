@@ -1,23 +1,23 @@
 import Foundation
 
-final class XAIStreamingProvider: StreamingTranscriptionProvider, @unchecked Sendable {
+actor XAIStreamingProvider: StreamingTranscriptionProvider {
     private var webSocketTask: URLSessionWebSocketTask?
     private var receiveTask: Task<Void, Never>?
     private var isConnected = false
-    private var eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation?
+    private nonisolated let eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation
 
-    private(set) var transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
+    nonisolated let transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
 
     init() {
-        var continuation: AsyncStream<StreamingTranscriptionEvent>.Continuation!
-        transcriptionEvents = AsyncStream { continuation = $0 }
-        eventsContinuation = continuation
+        (transcriptionEvents, eventsContinuation) = AsyncStream.makeStream(
+            of: StreamingTranscriptionEvent.self
+        )
     }
 
     deinit {
         receiveTask?.cancel()
         webSocketTask?.cancel(with: .goingAway, reason: nil)
-        eventsContinuation?.finish()
+        eventsContinuation.finish()
     }
 
     func connect(model: any TranscriptionModel, language: String?) async throws {
@@ -69,7 +69,7 @@ final class XAIStreamingProvider: StreamingTranscriptionProvider, @unchecked Sen
         receiveTask = nil
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
-        eventsContinuation?.finish()
+        eventsContinuation.finish()
     }
 
     // MARK: - Private
@@ -138,7 +138,7 @@ final class XAIStreamingProvider: StreamingTranscriptionProvider, @unchecked Sen
             let event = try decodeEvent(from: try await task.receive())
             switch event.type {
             case "transcript.created":
-                eventsContinuation?.yield(.sessionStarted)
+                eventsContinuation.yield(.sessionStarted)
                 return
             case "error":
                 throw StreamingTranscriptionError.serverError(event.message ?? "xAI streaming error")
@@ -151,17 +151,20 @@ final class XAIStreamingProvider: StreamingTranscriptionProvider, @unchecked Sen
     private func startReceiveLoop(on task: URLSessionWebSocketTask) {
         receiveTask = Task { [weak self, weak task] in
             guard let self, let task else { return }
+            await self.receiveEvents(on: task)
+        }
+    }
 
-            while !Task.isCancelled {
-                do {
-                    let event = try self.decodeEvent(from: try await task.receive())
-                    self.handleEvent(event)
-                } catch {
-                    if !Task.isCancelled {
-                        self.eventsContinuation?.yield(.error(self.mapConnectionError(error)))
-                    }
-                    break
+    private func receiveEvents(on task: URLSessionWebSocketTask) async {
+        while !Task.isCancelled {
+            do {
+                let event = try decodeEvent(from: try await task.receive())
+                handleEvent(event)
+            } catch {
+                if !Task.isCancelled {
+                    eventsContinuation.yield(.error(mapConnectionError(error)))
                 }
+                break
             }
         }
     }
@@ -169,20 +172,20 @@ final class XAIStreamingProvider: StreamingTranscriptionProvider, @unchecked Sen
     private func handleEvent(_ event: EventPayload) {
         switch event.type {
         case "transcript.created":
-            eventsContinuation?.yield(.sessionStarted)
+            eventsContinuation.yield(.sessionStarted)
         case "transcript.partial":
             let text = event.text ?? ""
             guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
 
             if event.isFinal == true && event.speechFinal == true {
-                eventsContinuation?.yield(.committed(text: text))
+                eventsContinuation.yield(.committed(text: text))
             } else {
-                eventsContinuation?.yield(.partial(text: text))
+                eventsContinuation.yield(.partial(text: text))
             }
         case "transcript.done":
-            eventsContinuation?.yield(.committed(text: event.text ?? ""))
+            eventsContinuation.yield(.committed(text: event.text ?? ""))
         case "error":
-            eventsContinuation?.yield(.error(StreamingTranscriptionError.serverError(event.message ?? "xAI streaming error")))
+            eventsContinuation.yield(.error(StreamingTranscriptionError.serverError(event.message ?? "xAI streaming error")))
         default:
             break
         }

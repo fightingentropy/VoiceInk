@@ -12,18 +12,29 @@ enum ViewType: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .transcribeAudio: return "waveform.circle"
-        case .models: return "waveform.badge.magnifyingglass"
+        case .transcribeAudio: return "waveform.badge.plus"
+        case .models: return "brain.head.profile"
         case .permissions: return "lock.shield"
-        case .audioInput: return "mic"
-        case .dictionary: return "text.book.closed"
-        case .settings: return "slider.horizontal.3"
+        case .audioInput: return "waveform"
+        case .dictionary: return "book.closed"
+        case .settings: return "gearshape"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .transcribeAudio: return "Transcribe an existing audio or video file"
+        case .models: return "Choose and manage transcription models"
+        case .permissions: return "Review the access VoiceInk needs"
+        case .audioInput: return "Configure microphones and input priority"
+        case .dictionary: return "Teach VoiceInk names, phrases, and replacements"
+        case .settings: return "Shortcuts, recording behavior, and app preferences"
         }
     }
 }
 
 struct ContentView: View {
-    @State private var selectedView: ViewType = .settings
+    @State private var selectedView: ViewType? = .settings
 
     private let visibleViewTypes: [ViewType] = [
         .models,
@@ -33,33 +44,26 @@ struct ContentView: View {
         .settings
     ]
 
+    private var currentView: ViewType {
+        selectedView ?? .settings
+    }
+
     var body: some View {
-        ZStack {
-            MonochromeStyle.canvas
-                .ignoresSafeArea()
+        NavigationSplitView {
+            sidebar
+                .navigationSplitViewColumnWidth(min: 204, ideal: 224, max: 260)
+        } detail: {
+            VStack(spacing: 0) {
+                pageHeader
 
-            HStack(spacing: 0) {
-                sidebar
-
-                Rectangle()
-                    .fill(MonochromeStyle.hairline)
-                    .frame(width: 0.75)
-
-                VStack(spacing: 0) {
-                    pageHeader
-
-                    Rectangle()
-                        .fill(MonochromeStyle.hairline)
-                        .frame(height: 0.75)
-
-                    detailView(for: selectedView)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
+                detailView(for: currentView)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .background(MonochromeStyle.canvas)
         }
+        .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 760, minHeight: 540)
         .preferredColorScheme(.dark)
-        .tint(.white)
         .onReceive(NotificationCenter.default.publisher(for: .navigateToDestination)) { notification in
             guard let destination = notification.userInfo?["destination"] as? String else {
                 return
@@ -81,95 +85,79 @@ struct ContentView: View {
     }
 
     private var sidebar: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 9) {
-                Group {
-                    if let appIcon = NSImage(named: "AppIcon") {
-                        Image(nsImage: appIcon)
-                            .resizable()
-                            .interpolation(.high)
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 24, height: 24)
-                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                    }
+        VStack(spacing: 0) {
+            brandHeader
+
+            List(visibleViewTypes, selection: $selectedView) { viewType in
+                Label {
+                    Text(viewType.rawValue)
+                } icon: {
+                    Image(systemName: viewType.icon)
+                        .symbolRenderingMode(.hierarchical)
+                        .font(.system(size: 17, weight: .medium))
+                        .frame(width: 22)
                 }
-                .frame(width: 30, height: 30)
-
-                Text("VoiceInk")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(MonochromeStyle.primaryText)
+                .font(.system(size: 16, weight: selectedView == viewType ? .semibold : .regular))
+                .foregroundStyle(selectedView == viewType ? .primary : .secondary)
+                .padding(.vertical, 6)
+                .padding(.horizontal, 2)
+                .tag(viewType)
+                .accessibilityIdentifier("sidebar.\(viewType.id)")
             }
-            .padding(.horizontal, 17)
-            .padding(.top, 51)
-            .padding(.bottom, 18)
-
-            VStack(spacing: 4) {
-                ForEach(visibleViewTypes) { viewType in
-                    navigationButton(for: viewType)
-                }
-            }
-            .padding(.horizontal, 10)
-
-            Spacer()
+            .listStyle(.sidebar)
+            .scrollContentBackground(.hidden)
+            .safeAreaPadding(.horizontal, 7)
         }
-        .frame(width: 178)
-        .background(MonochromeStyle.sidebar)
+        .background(.ultraThinMaterial)
     }
 
-    private func navigationButton(for viewType: ViewType) -> some View {
-        let isSelected = selectedView == viewType
-
-        return Button {
-            withAnimation(.easeOut(duration: 0.16)) {
-                selectedView = viewType
+    private var brandHeader: some View {
+        HStack(spacing: 11) {
+            Group {
+                if let appIcon = NSImage(named: "AppIcon") {
+                    Image(nsImage: appIcon)
+                        .resizable()
+                        .interpolation(.high)
+                        .aspectRatio(contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                } else {
+                    Image(systemName: "waveform")
+                        .symbolRenderingMode(.hierarchical)
+                }
             }
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: viewType.icon)
-                    .font(.system(size: 12, weight: .medium))
-                    .frame(width: 16)
+            .frame(width: 34, height: 34)
 
-                Text(viewType.rawValue)
-                    .font(.system(size: 12.5, weight: isSelected ? .semibold : .medium))
+            Text("VoiceInk")
+                .font(.system(size: 17, weight: .semibold))
 
-                Spacer()
-            }
-            .foregroundStyle(
-                isSelected
-                    ? MonochromeStyle.primaryText
-                    : MonochromeStyle.secondaryText
-            )
-            .padding(.horizontal, 11)
-            .frame(height: 34)
-            .contentShape(Rectangle())
+            Spacer(minLength: 0)
         }
-        .buttonStyle(.plain)
-        .background(
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(isSelected ? MonochromeStyle.selectedFill : Color.clear)
-        )
-        .overlay(
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .stroke(isSelected ? MonochromeStyle.hairline : Color.clear, lineWidth: 0.75)
-        )
+        .padding(.horizontal, 18)
+        .padding(.top, 14)
+        .padding(.bottom, 20)
     }
 
     private var pageHeader: some View {
-        HStack {
-            Text(selectedView.rawValue)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(MonochromeStyle.primaryText)
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(currentView.rawValue)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(.primary)
+
+                Text(currentView.subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
 
             Spacer()
-
-            Circle()
-                .fill(MonochromeStyle.secondaryText)
-                .frame(width: 5, height: 5)
         }
-        .padding(.leading, 19)
-        .padding(.trailing, 20)
-        .padding(.top, 45)
-        .padding(.bottom, 13)
+        .padding(.horizontal, 28)
+        .padding(.top, 40)
+        .padding(.bottom, 18)
+        .background(.bar)
+        .overlay(alignment: .bottom) {
+            Divider()
+        }
     }
 
     @ViewBuilder

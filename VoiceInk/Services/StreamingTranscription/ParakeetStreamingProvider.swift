@@ -5,24 +5,24 @@ import os
 
 /// On-device streaming transcription provider using FluidAudio's SlidingWindowAsrManager
 /// with Parakeet TDT v2.
-final class ParakeetStreamingProvider: StreamingTranscriptionProvider, @unchecked Sendable {
+actor ParakeetStreamingProvider: StreamingTranscriptionProvider {
 
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "ParakeetStreaming")
     private let parakeetService: ParakeetTranscriptionService
     private var streamingManager: SlidingWindowAsrManager?
-    private var eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation?
+    private nonisolated let eventsContinuation: AsyncStream<StreamingTranscriptionEvent>.Continuation
 
-    private(set) var transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
+    nonisolated let transcriptionEvents: AsyncStream<StreamingTranscriptionEvent>
 
     init(parakeetService: ParakeetTranscriptionService) {
         self.parakeetService = parakeetService
-        var continuation: AsyncStream<StreamingTranscriptionEvent>.Continuation!
-        transcriptionEvents = AsyncStream { continuation = $0 }
-        eventsContinuation = continuation
+        (transcriptionEvents, eventsContinuation) = AsyncStream.makeStream(
+            of: StreamingTranscriptionEvent.self
+        )
     }
 
     deinit {
-        eventsContinuation?.finish()
+        eventsContinuation.finish()
     }
 
     func connect(model: any TranscriptionModel, language: String?) async throws {
@@ -33,7 +33,7 @@ final class ParakeetStreamingProvider: StreamingTranscriptionProvider, @unchecke
         try await manager.startStreaming()
         self.streamingManager = manager
 
-        eventsContinuation?.yield(.sessionStarted)
+        eventsContinuation.yield(.sessionStarted)
         logger.notice("Parakeet streaming started for \(model.displayName, privacy: .public)")
     }
 
@@ -52,7 +52,7 @@ final class ParakeetStreamingProvider: StreamingTranscriptionProvider, @unchecke
         }
 
         let finalText = try await manager.finish()
-        eventsContinuation?.yield(.committed(text: finalText))
+        eventsContinuation.yield(.committed(text: finalText))
     }
 
     func disconnect() async {
@@ -61,7 +61,7 @@ final class ParakeetStreamingProvider: StreamingTranscriptionProvider, @unchecke
         }
         streamingManager = nil
 
-        eventsContinuation?.finish()
+        eventsContinuation.finish()
         logger.notice("Parakeet streaming disconnected")
     }
 

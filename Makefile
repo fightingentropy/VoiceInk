@@ -1,21 +1,24 @@
 # VoiceInk build helpers
+-include Signing.local.mk
+
 LOCAL_BUILD_ROOT := $(CURDIR)/.codex-build/local-install
 LOCAL_DERIVED_DATA := $(LOCAL_BUILD_ROOT)/deriveddata
 LOCAL_SPM_DIR := $(LOCAL_BUILD_ROOT)/spm
 LOCAL_BUILD_CONFIGURATION := Release
 INSTALL_APP_PATH := /Applications/VoiceInk.app
-LOCAL_CODESIGN_IDENTITY ?= Apple Development: erlin.hx@icloud.com (476S656MHV)
+LOCAL_CODESIGN_IDENTITY ?=
+CHECK_DERIVED_DATA ?= $(CURDIR)/.codex-build/check
 
 # Distribution (Developer ID + notarization)
 DIST_BUILD_ROOT := $(CURDIR)/.codex-build/dist
 DIST_DERIVED_DATA := $(DIST_BUILD_ROOT)/deriveddata
 DIST_SPM_DIR := $(DIST_BUILD_ROOT)/spm
 DIST_OUTPUT_DIR := $(DIST_BUILD_ROOT)/out
-DIST_CODESIGN_IDENTITY ?= Developer ID Application: Erlin Hoxha (T29NU9NCA2)
-DIST_TEAM_ID ?= T29NU9NCA2
-NOTARY_PROFILE ?= VoiceInkNotary
+DIST_CODESIGN_IDENTITY ?=
+DIST_TEAM_ID ?=
+NOTARY_PROFILE ?=
 
-.PHONY: all clean build local install-local bump-version check healthcheck help dev run resolve-packages dist
+.PHONY: all clean build local install-local bump-version prerequisites test check healthcheck help dev run resolve-packages dist require-local-signing require-dist-signing
 
 all: check build
 
@@ -24,29 +27,51 @@ dev: build run
 bump-version:
 	@./scripts/bump_version.sh $(CURDIR)
 
-check:
+prerequisites:
 	@echo "Checking prerequisites..."
 	@command -v xcodebuild >/dev/null 2>&1 || { echo "xcodebuild is not installed (need Xcode)"; exit 1; }
 	@command -v swift >/dev/null 2>&1 || { echo "swift is not installed"; exit 1; }
 	@command -v rsync >/dev/null 2>&1 || { echo "rsync is not installed"; exit 1; }
 	@echo "Prerequisites OK"
 
-healthcheck: check
+test: prerequisites resolve-packages
+	xcodebuild -project VoiceInk.xcodeproj -scheme VoiceInk \
+		-destination 'platform=macOS' \
+		-derivedDataPath "$(CHECK_DERIVED_DATA)" \
+		CODE_SIGNING_ALLOWED=NO \
+		test \
+		-only-testing:VoiceInkTests/BenchmarkMetricsTests \
+		-only-testing:VoiceInkTests/CohereNativeFoundationTests \
+		-only-testing:VoiceInkTests/DictationFormattingTests \
+		-only-testing:VoiceInkTests/EphemeralTranscriptionPolicyTests \
+		-only-testing:VoiceInkTests/LocalTranscriptionHotPathTests \
+		-only-testing:VoiceInkTests/OpenAITranscriptionTests \
+		-only-testing:VoiceInkTests/StreamingTranscriptionServiceTests \
+		-only-testing:VoiceInkTests/TranscriptionModelManagerTests \
+		-only-testing:VoiceInkTests/VoiceInkTests
+
+check: test
+
+healthcheck: prerequisites
 
 resolve-packages:
 	xcodebuild -project VoiceInk.xcodeproj -resolvePackageDependencies
 
-build: check resolve-packages
+build: prerequisites resolve-packages
 	xcodebuild -project VoiceInk.xcodeproj -scheme VoiceInk -configuration Debug build
 
-install-local: bump-version check resolve-packages
-	@echo "Building VoiceInk for local use and installing to $(INSTALL_APP_PATH)..."
-	@security find-identity -v -p codesigning | grep -F '"$(LOCAL_CODESIGN_IDENTITY)"' >/dev/null || { \
-		echo "Missing local code signing identity: $(LOCAL_CODESIGN_IDENTITY)"; \
-		echo "Available identities:"; \
-		security find-identity -v -p codesigning; \
+require-local-signing:
+	@test -n "$(LOCAL_CODESIGN_IDENTITY)" || { \
+		echo "LOCAL_CODESIGN_IDENTITY is required. Copy Signing.example.mk to Signing.local.mk and configure it locally."; \
 		exit 1; \
 	}
+	@security find-identity -v -p codesigning | grep -F '"$(LOCAL_CODESIGN_IDENTITY)"' >/dev/null || { \
+		echo "The configured LOCAL_CODESIGN_IDENTITY is not available in the current keychain."; \
+		exit 1; \
+	}
+
+install-local: require-local-signing bump-version prerequisites resolve-packages
+	@echo "Building VoiceInk for local use and installing to $(INSTALL_APP_PATH)..."
 	@rm -rf "$(LOCAL_BUILD_ROOT)"
 	@mkdir -p "$(LOCAL_BUILD_ROOT)"
 	xcodebuild -project VoiceInk.xcodeproj -scheme VoiceInk -configuration $(LOCAL_BUILD_CONFIGURATION) \
@@ -99,14 +124,36 @@ run:
 		fi; \
 	fi
 
-dist: check resolve-packages
-	@echo "Building VoiceInk for distribution (Developer ID + hardened runtime)..."
-	@security find-identity -v -p codesigning | grep -F '"$(DIST_CODESIGN_IDENTITY)"' >/dev/null || { \
-		echo "Missing distribution signing identity: $(DIST_CODESIGN_IDENTITY)"; \
-		echo "Available identities:"; \
-		security find-identity -v -p codesigning; \
+require-dist-signing:
+	@test -n "$(DIST_CODESIGN_IDENTITY)" || { \
+		echo "DIST_CODESIGN_IDENTITY is required through Signing.local.mk or the CI environment."; \
 		exit 1; \
 	}
+	@test -n "$(DIST_TEAM_ID)" || { \
+		echo "DIST_TEAM_ID is required through Signing.local.mk or the CI environment."; \
+		exit 1; \
+	}
+	@test -n "$(NOTARY_PROFILE)" || { \
+		echo "NOTARY_PROFILE is required through Signing.local.mk or the CI environment."; \
+		exit 1; \
+	}
+	@command -v codesign >/dev/null 2>&1 || { echo "codesign is unavailable."; exit 1; }
+	@command -v ditto >/dev/null 2>&1 || { echo "ditto is unavailable."; exit 1; }
+	@command -v plutil >/dev/null 2>&1 || { echo "plutil is unavailable."; exit 1; }
+	@command -v spctl >/dev/null 2>&1 || { echo "spctl is unavailable."; exit 1; }
+	@security find-identity -v -p codesigning | grep -F '"$(DIST_CODESIGN_IDENTITY)"' >/dev/null || { \
+		echo "The configured DIST_CODESIGN_IDENTITY is not available in the current keychain."; \
+		exit 1; \
+	}
+	@xcrun --find notarytool >/dev/null 2>&1 || { echo "xcrun notarytool is unavailable."; exit 1; }
+	@xcrun --find stapler >/dev/null 2>&1 || { echo "xcrun stapler is unavailable."; exit 1; }
+	@xcrun notarytool history --keychain-profile "$(NOTARY_PROFILE)" >/dev/null 2>&1 || { \
+		echo "The configured NOTARY_PROFILE is unavailable or cannot authenticate."; \
+		exit 1; \
+	}
+
+dist: require-dist-signing prerequisites resolve-packages
+	@echo "Building VoiceInk for distribution (Developer ID + hardened runtime)..."
 	@rm -rf "$(DIST_BUILD_ROOT)"
 	@mkdir -p "$(DIST_OUTPUT_DIR)"
 	xcodebuild -project VoiceInk.xcodeproj -scheme VoiceInk -configuration Release \
@@ -122,32 +169,32 @@ dist: check resolve-packages
 		CODE_SIGN_ENTITLEMENTS=$(CURDIR)/VoiceInk/VoiceInk.dist.entitlements \
 		SWIFT_ACTIVE_COMPILATION_CONDITIONS='$$(inherited) OPEN_SOURCE_DISTRIBUTION' \
 		build
-	@APP_PATH="$(DIST_DERIVED_DATA)/Build/Products/Release/VoiceInk.app" && \
-	if [ ! -d "$$APP_PATH" ]; then echo "Error: built app not found at $$APP_PATH"; exit 1; fi && \
-	echo "Verifying signature..." && \
-	codesign --verify --deep --strict "$$APP_PATH" && \
+	@set -eu; \
+	APP_PATH="$(DIST_DERIVED_DATA)/Build/Products/Release/VoiceInk.app"; \
+	if [ ! -d "$$APP_PATH" ]; then echo "Error: built app not found at $$APP_PATH"; exit 1; fi; \
+	VERSION=$$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$$APP_PATH/Contents/Info.plist"); \
+	SUBMISSION_ZIP="$(DIST_BUILD_ROOT)/VoiceInk-$$VERSION.notary-submission.zip"; \
+	NOTARY_RESULT="$(DIST_BUILD_ROOT)/notary-result.json"; \
+	ZIP_PATH="$(DIST_OUTPUT_DIR)/VoiceInk-$$VERSION.zip"; \
+	cleanup_failed_distribution() { rm -f "$$SUBMISSION_ZIP" "$$NOTARY_RESULT" "$$ZIP_PATH"; rm -rf "$$APP_PATH"; }; \
+	trap cleanup_failed_distribution 0 HUP INT TERM; \
+	echo "Verifying Developer ID signature and hardened runtime..."; \
+	codesign --verify --deep --strict "$$APP_PATH"; \
 	codesign -d --verbose=2 "$$APP_PATH" 2>&1 | grep -q "flags=.*runtime" || { echo "Error: hardened runtime flag missing"; exit 1; }; \
-	APP_PATH="$(DIST_DERIVED_DATA)/Build/Products/Release/VoiceInk.app" && \
-	VERSION=$$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$$APP_PATH/Contents/Info.plist") && \
-	ZIP_PATH="$(DIST_OUTPUT_DIR)/VoiceInk-$$VERSION.zip" && \
-	ditto -c -k --keepParent "$$APP_PATH" "$$ZIP_PATH" && \
-	echo "Signed archive: $$ZIP_PATH" && \
-	if xcrun notarytool history --keychain-profile "$(NOTARY_PROFILE)" >/dev/null 2>&1; then \
-		echo "Submitting to Apple notary service (waits for verdict)..."; \
-		xcrun notarytool submit "$$ZIP_PATH" --keychain-profile "$(NOTARY_PROFILE)" --wait || exit 1; \
-		echo "Stapling ticket..."; \
-		xcrun stapler staple "$$APP_PATH" && \
-		ditto -c -k --keepParent "$$APP_PATH" "$$ZIP_PATH" && \
-		spctl --assess --type execute --verbose=2 "$$APP_PATH" && \
-		echo "" && \
-		echo "Distribution build ready: $$ZIP_PATH (notarized + stapled)"; \
-	else \
-		echo ""; \
-		echo "Notary credentials not found — produced a signed (NOT notarized) archive."; \
-		echo "One-time setup (needs an app-specific password from account.apple.com):"; \
-		echo "  xcrun notarytool store-credentials $(NOTARY_PROFILE) --apple-id erlin.hx@icloud.com --team-id $(DIST_TEAM_ID)"; \
-		echo "Then re-run: make dist"; \
-	fi
+	ditto -c -k --sequesterRsrc --keepParent "$$APP_PATH" "$$SUBMISSION_ZIP"; \
+	echo "Submitting to Apple notary service (waits for verdict)..."; \
+	xcrun notarytool submit "$$SUBMISSION_ZIP" --keychain-profile "$(NOTARY_PROFILE)" --wait --output-format json > "$$NOTARY_RESULT"; \
+	NOTARY_STATUS=$$(plutil -extract status raw -o - "$$NOTARY_RESULT"); \
+	if [ "$$NOTARY_STATUS" != "Accepted" ]; then echo "Notarization was not accepted (status: $$NOTARY_STATUS)."; exit 1; fi; \
+	echo "Stapling and validating the notarization ticket..."; \
+	xcrun stapler staple "$$APP_PATH"; \
+	xcrun stapler validate "$$APP_PATH"; \
+	codesign --verify --deep --strict "$$APP_PATH"; \
+	spctl --assess --type execute --verbose=2 "$$APP_PATH"; \
+	ditto -c -k --sequesterRsrc --keepParent "$$APP_PATH" "$$ZIP_PATH"; \
+	rm -f "$$SUBMISSION_ZIP" "$$NOTARY_RESULT"; \
+	trap - 0 HUP INT TERM; \
+	echo "Distribution build ready: $$ZIP_PATH (signed, notarized, and stapled)"
 
 clean:
 	@echo "Cleaning build artifacts..."
@@ -157,12 +204,15 @@ clean:
 
 help:
 	@echo "Available targets:"
-	@echo "  check/healthcheck  Check if required CLI tools are installed"
+	@echo "  prerequisites      Check if required CLI tools are installed"
+	@echo "  test               Run deterministic unit and streaming lifecycle tests"
+	@echo "  check              Run the mandatory local/CI test gate"
+	@echo "  healthcheck        Alias for prerequisites"
 	@echo "  resolve-packages   Resolve Swift package dependencies"
 	@echo "  build              Build the VoiceInk Xcode project"
 	@echo "  bump-version       Increment the app marketing/build versions"
 	@echo "  install-local      Build for local use and install a clean app to /Applications"
-	@echo "  dist               Developer ID build: sign, notarize (if credentials stored), staple, zip"
+	@echo "  dist               Developer ID build: require signing + notarization, staple, verify, zip"
 	@echo "  local              Alias for install-local"
 	@echo "  run                Launch the built VoiceInk app"
 	@echo "  dev                Build and run the app (for development)"
