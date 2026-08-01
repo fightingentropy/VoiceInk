@@ -2,24 +2,24 @@ import SwiftUI
 
 struct MiniRecorderView<S: RecorderStateProvider & ObservableObject>: View {
     @ObservedObject var stateProvider: S
-    @ObservedObject var recorder: Recorder
+    let recorder: Recorder
     @EnvironmentObject var windowManager: MiniWindowManager
 
     // MARK: - Design Constants
     private let mainContentHeight: CGFloat = 32
-    private let width: CGFloat = 76
+    private let width: CGFloat = 320
     private let cornerRadius: CGFloat = 16
 
     private var contentLayout: some View {
         HStack(spacing: 0) {
             RecorderStatusDisplay(
                 currentState: stateProvider.recordingState,
-                audioMeter: recorder.audioMeter,
+                partialTranscript: stateProvider.partialTranscript,
                 style: .compact
             )
         }
         .frame(height: mainContentHeight)
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 14)
     }
 
     private var recorderPill: some View {
