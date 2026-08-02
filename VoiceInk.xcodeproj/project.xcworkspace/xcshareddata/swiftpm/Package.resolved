@@ -11,14 +11,6 @@
       }
     },
     {
-      "identity" : "fluidaudio",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/FluidInference/FluidAudio",
-      "state" : {
-        "revision" : "b9d43724cbdb5a980e441fd54180964e94d470f7"
-      }
-    },
-    {
       "identity" : "keyboardshortcuts",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/sindresorhus/KeyboardShortcuts",
@@ -34,15 +26,6 @@
       "state" : {
         "branch" : "main",
         "revision" : "a04ec1c363be3627734f6dad757d82f5d4fa8fcc"
-      }
-    },
-    {
-      "identity" : "llmkit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Beingpax/LLMkit.git",
-      "state" : {
-        "branch" : "main",
-        "revision" : "5b67cd28862692c05210aeaf130cbe4775c5b381"
       }
     },
     {

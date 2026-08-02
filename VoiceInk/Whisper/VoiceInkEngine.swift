@@ -257,8 +257,6 @@ class VoiceInkEngine: NSObject, ObservableObject {
                                             self.logger.error("❌ Model loading failed: \(error.localizedDescription, privacy: .public)")
                                         }
                                     }
-                                } else if let parakeetModel = model as? ParakeetModel {
-                                    try? await self.serviceRegistry.parakeetTranscriptionService.loadModel(for: parakeetModel)
                                 } else if model.provider == .localVoxtral {
                                     _ = try? await VoxtralNativeRuntime.shared.warmupModel(
                                         modelReference: LocalVoxtralConfiguration.modelName,
@@ -407,10 +405,6 @@ class VoiceInkEngine: NSObject, ObservableObject {
             await whisperModelManager.cleanupResources()
         }
 
-        if model?.provider != .parakeet {
-            await serviceRegistry.parakeetTranscriptionService.cleanup()
-        }
-
         let keptVoxtralModels: Set<String> =
             model?.provider == .localVoxtral ? [LocalVoxtralConfiguration.modelName] : []
         await VoxtralNativeRuntime.shared.unloadAllUnusedPreparedStates(keeping: keptVoxtralModels)
@@ -452,9 +446,6 @@ class VoiceInkEngine: NSObject, ObservableObject {
             if whisperModelManager.loadedLocalModel?.name != localWhisperModel.name || !whisperModelManager.isModelLoaded {
                 try await whisperModelManager.loadModel(localWhisperModel)
             }
-        case .parakeet:
-            guard let parakeetModel = model as? ParakeetModel else { return }
-            try await serviceRegistry.parakeetTranscriptionService.loadModel(for: parakeetModel)
         case .localVoxtral:
             _ = try await VoxtralNativeRuntime.shared.warmupModel(
                 modelReference: LocalVoxtralConfiguration.modelName,

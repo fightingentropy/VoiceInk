@@ -3,7 +3,6 @@ import SwiftData
 
 struct ModelManagementView: View {
     @EnvironmentObject private var whisperModelManager: WhisperModelManager
-    @EnvironmentObject private var parakeetModelManager: ParakeetModelManager
     @EnvironmentObject private var transcriptionModelManager: TranscriptionModelManager
     @State private var customModelToEdit: CustomCloudModel?
     @StateObject private var customModelManager = CustomModelManager.shared
@@ -112,7 +111,6 @@ struct ModelManagementView: View {
                     ForEach(displayedModels, id: \.id) { model in
                         ModelCardRowView(
                             model: model,
-                            parakeetModelManager: parakeetModelManager,
                             transcriptionModelManager: transcriptionModelManager,
                             isDownloaded: whisperModelManager.availableModels.contains { $0.name == model.name },
                             isCurrent: transcriptionModelManager.currentTranscriptionModel?.name == model.name,
@@ -196,11 +194,7 @@ struct ModelManagementView: View {
         let preferredOrder = [
             "apple-speech",
             "cohere-transcribe-03-2026-local",
-            "whisper-large-v3-accuracy",
-            "whisper-large-v3-turbo",
-            "parakeet-tdt-0.6b-v2",
             "voxtral-mini-realtime-local",
-            "scribe_v2",
             "gpt-live-transcribe",
             "xai-stt"
         ]

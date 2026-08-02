@@ -171,7 +171,7 @@ class RecorderUIManager: ObservableObject {
         }
 
         switch model.provider {
-        case .local, .parakeet, .localVoxtral, .cohereTranscribe:
+        case .local, .localVoxtral, .cohereTranscribe:
             return model
         default:
             return nil

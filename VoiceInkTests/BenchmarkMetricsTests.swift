@@ -18,7 +18,6 @@ struct BenchmarkMetricsTests {
     func builtInLocalModelsRemainBenchmarkable() {
         let benchmarkableProviders: Set<ModelProvider> = [
             .local,
-            .parakeet,
             .nativeApple,
             .localVoxtral,
             .cohereTranscribe

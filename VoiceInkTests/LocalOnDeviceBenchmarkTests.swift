@@ -61,8 +61,8 @@ struct LocalOnDeviceBenchmarkTests {
             "Please schedule a follow up with Sarah for next Thursday at two PM.",
             "The quarterly revenue was one hundred twenty three point four million dollars.",
             "Mistral Voxtral runs locally on Apple Silicon.",
-            "Parakeet version two is fast, but Voxtral feels more accurate in practice.",
-            "Deepgram Nova three and ElevenLabs Scribe version two are cloud transcription models.",
+            "Cohere emphasizes accuracy while Voxtral emphasizes realtime latency.",
+            "OpenAI and xAI provide the cloud transcription models in this app.",
             "The benchmark compares speed against accuracy for every local model."
         ]
 
@@ -186,7 +186,6 @@ private struct LocalBenchmarkRunner {
     func run() async throws -> BenchmarkReport {
         var results: [ModelBenchmarkResult] = []
         results.append(try await benchmarkVoxtralNative())
-        results.append(try await benchmarkParakeet(named: "parakeet-tdt-0.6b-v2"))
         results.append(try await benchmarkAppleSpeech())
 
         return BenchmarkReport(
@@ -234,53 +233,6 @@ private struct LocalBenchmarkRunner {
             samples.append(makeSampleResult(item: item, transcript: transcript, elapsed: elapsed))
         }
 
-        return ModelBenchmarkResult(
-            displayName: model.displayName,
-            status: "ok",
-            detail: nil,
-            averageElapsedSeconds: samples.map(\.elapsedSeconds).average,
-            averageRealtimeFactor: samples.map(\.realtimeFactor).average,
-            averageWordErrorRate: samples.map(\.wordErrorRate).average,
-            averageCanonicalWordErrorRate: samples.map(\.canonicalWordErrorRate).average,
-            averageCanonicalExactMatchRate: samples.map(\.canonicalExactMatchRate).average,
-            samples: samples
-        )
-    }
-
-    private func benchmarkParakeet(named modelName: String) async throws -> ModelBenchmarkResult {
-        guard let model = PredefinedModels.models.first(where: { $0.name == modelName }) as? ParakeetModel else {
-            throw BenchmarkError.modelMissing(modelName)
-        }
-
-        let service = ParakeetTranscriptionService()
-        do {
-            _ = try await service.transcribe(audioURL: corpus[0].audioURL, model: model)
-        } catch {
-            await service.cleanup()
-            return ModelBenchmarkResult(
-                displayName: model.displayName,
-                status: "unavailable",
-                detail: error.localizedDescription,
-                averageElapsedSeconds: nil,
-                averageRealtimeFactor: nil,
-                averageWordErrorRate: nil,
-                averageCanonicalWordErrorRate: nil,
-                averageCanonicalExactMatchRate: nil,
-                samples: []
-            )
-        }
-
-        var samples: [BenchmarkSampleResult] = []
-        samples.reserveCapacity(corpus.count)
-
-        for item in corpus {
-            let start = CFAbsoluteTimeGetCurrent()
-            let transcript = try await service.transcribe(audioURL: item.audioURL, model: model)
-            let elapsed = CFAbsoluteTimeGetCurrent() - start
-            samples.append(makeSampleResult(item: item, transcript: transcript, elapsed: elapsed))
-        }
-
-        await service.cleanup()
         return ModelBenchmarkResult(
             displayName: model.displayName,
             status: "ok",

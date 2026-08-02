@@ -12,7 +12,6 @@ class TranscriptionServiceRegistry {
     )
     private(set) lazy var cloudTranscriptionService = CloudTranscriptionService()
     private(set) lazy var nativeAppleTranscriptionService = NativeAppleTranscriptionService()
-    private(set) lazy var parakeetTranscriptionService = ParakeetTranscriptionService()
     private(set) lazy var cohereTranscribeTranscriptionService = CohereTranscribeTranscriptionService()
 
     init(modelProvider: any LocalModelProvider) {
@@ -23,8 +22,6 @@ class TranscriptionServiceRegistry {
         switch model.provider {
         case .local:
             return localTranscriptionService
-        case .parakeet:
-            return parakeetTranscriptionService
         case .nativeApple:
             return nativeAppleTranscriptionService
         case .localVoxtral, .cohereTranscribe:
@@ -40,8 +37,6 @@ class TranscriptionServiceRegistry {
             return cohereTranscribeTranscriptionService
         case .local:
             return localTranscriptionService
-        case .parakeet:
-            return parakeetTranscriptionService
         case .nativeApple:
             return nativeAppleTranscriptionService
         case .localVoxtral:
@@ -59,7 +54,7 @@ class TranscriptionServiceRegistry {
         logger.debug("Transcribing with \(model.displayName, privacy: .public) using \(String(describing: type(of: service)), privacy: .public)")
         let text = try await service.transcribe(audioURL: audioURL, model: model)
 
-        if model.provider == .local || model.provider == .parakeet {
+        if model.provider == .local {
             NotificationCenter.default.post(name: .localModelDidUse, object: nil)
         }
 
@@ -87,8 +82,6 @@ class TranscriptionServiceRegistry {
         switch model.provider {
         case .localVoxtral:
             return model.name == "voxtral-mini-realtime-local"
-        case .elevenLabs:
-            return model.name == "scribe_v2"
         case .xAI:
             return model.name == "xai-stt"
         case .openAI:
@@ -101,10 +94,8 @@ class TranscriptionServiceRegistry {
     func cleanup() {
         // Both services are now actor-isolated, so fire their cleanups as
         // detached tasks. The registry's own callers don't await the result.
-        let parakeet = parakeetTranscriptionService
         let cohere = cohereTranscribeTranscriptionService
         Task {
-            await parakeet.cleanup()
             await cohere.cleanup()
         }
     }

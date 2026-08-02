@@ -198,9 +198,9 @@ actor BenchmarkCorpusManager {
         "Voice Ink is running a local benchmark suite on Apple Silicon.",
         "Please schedule a follow up with Sarah for next Thursday at two PM.",
         "The quarterly revenue was one hundred twenty three point four million dollars.",
-        "Whisper Large V3 Turbo should stay fast on a MacBook Pro with an M4 Pro chip.",
+        "Apple Speech should stay fast on a MacBook Pro with an M4 Pro chip.",
         "Voxtral and Cohere are local Apple Silicon transcription models in this app.",
-        "Parakeet version two is fast, but accuracy varies depending on the audio sample.",
+        "Cohere prioritizes accuracy while Voxtral prioritizes realtime latency.",
         "This benchmark compares speed and transcript quality for every supported local model."
     ]
 }

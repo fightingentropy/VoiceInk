@@ -13,7 +13,6 @@ final class APIKeyManager: @unchecked Sendable {
 
     /// Provider to Keychain identifier mapping (iOS compatible for iCloud sync).
     private static let providerToKeychainKey: [String: String] = [
-        "elevenlabs": "elevenLabsAPIKey",
         "huggingface": "huggingFaceAccessToken",
         "openai": "openAIAPIKey",
         "xai": "xAIAPIKey"
@@ -21,7 +20,6 @@ final class APIKeyManager: @unchecked Sendable {
 
     /// Legacy UserDefaults to Keychain key mapping for migration.
     private static let userDefaultsToKeychainMapping: [String: String] = [
-        "ElevenLabsAPIKey": "elevenLabsAPIKey",
         "OpenAIAPIKey": "openAIAPIKey",
         "XAIAPIKey": "xAIAPIKey",
         "xAIAPIKey": "xAIAPIKey"
@@ -193,8 +191,6 @@ final class APIKeyManager: @unchecked Sendable {
     /// Returns old UserDefaults key for provider (pre-Keychain format).
     private func oldUserDefaultsKey(forProvider provider: String) -> String {
         switch provider.lowercased() {
-        case "elevenlabs":
-            return "ElevenLabsAPIKey"
         case "openai":
             return "OpenAIAPIKey"
         case "xai":

@@ -131,23 +131,54 @@ private struct LiveTranscriptStatusDisplay: View {
     let isCompact: Bool
 
     private var displayText: String {
-        text.trimmingCharacters(in: .whitespacesAndNewlines)
+        MiniRecorderPillLayout.displayText(for: text)
     }
 
     private var hasTranscript: Bool {
-        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !displayText.isEmpty
+    }
+
+    private var transcriptText: some View {
+        Text(displayText)
+            .font(.system(size: isCompact ? 11.5 : 13, weight: .medium, design: .rounded))
+            .fontWidth(.condensed)
+            .foregroundStyle(.white.opacity(0.92))
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var transcriptContent: some View {
+        if isCompact {
+            ScrollViewReader { proxy in
+                ScrollView(.vertical) {
+                    VStack(spacing: 0) {
+                        transcriptText
+                        Color.clear
+                            .frame(height: 1)
+                            .id("live-transcript-bottom")
+                    }
+                }
+                .scrollIndicators(.never)
+                .onAppear {
+                    proxy.scrollTo("live-transcript-bottom", anchor: .bottom)
+                }
+                .onChange(of: displayText) { _, _ in
+                    DispatchQueue.main.async {
+                        proxy.scrollTo("live-transcript-bottom", anchor: .bottom)
+                    }
+                }
+            }
+        } else {
+            transcriptText
+        }
     }
 
     var body: some View {
         Group {
             if hasTranscript {
-                Text(displayText)
-                    .font(.system(size: isCompact ? 11.5 : 13, weight: .medium, design: .rounded))
-                    .fontWidth(.condensed)
-                    .foregroundStyle(.white.opacity(0.92))
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                transcriptContent
             } else {
                 Color.clear
             }

@@ -30,16 +30,14 @@ final class BenchmarkSuiteStore: ObservableObject {
 
     func runBenchmarks(
         models: [any TranscriptionModel],
-        whisperModelManager: WhisperModelManager,
-        parakeetModelManager: ParakeetModelManager
+        whisperModelManager: WhisperModelManager
     ) {
         guard !isRunning else { return }
 
         Task {
             await runBenchmarksTask(
                 models: models,
-                whisperModelManager: whisperModelManager,
-                parakeetModelManager: parakeetModelManager
+                whisperModelManager: whisperModelManager
             )
         }
     }
@@ -87,8 +85,7 @@ final class BenchmarkSuiteStore: ObservableObject {
 
     private func runBenchmarksTask(
         models: [any TranscriptionModel],
-        whisperModelManager: WhisperModelManager,
-        parakeetModelManager: ParakeetModelManager
+        whisperModelManager: WhisperModelManager
     ) async {
         isRunning = true
         lastErrorMessage = nil
@@ -108,8 +105,7 @@ final class BenchmarkSuiteStore: ObservableObject {
             let results = try await runModelBenchmarks(
                 benchmarkableModels,
                 corpus: corpus,
-                whisperModelManager: whisperModelManager,
-                parakeetModelManager: parakeetModelManager
+                whisperModelManager: whisperModelManager
             )
 
             let report = BenchmarkRunReport(
@@ -137,8 +133,7 @@ final class BenchmarkSuiteStore: ObservableObject {
     private func runModelBenchmarks(
         _ models: [any TranscriptionModel],
         corpus: [LoadedBenchmarkCorpusSample],
-        whisperModelManager: WhisperModelManager,
-        parakeetModelManager: ParakeetModelManager
+        whisperModelManager: WhisperModelManager
     ) async throws -> [BenchmarkModelResult] {
         var results: [BenchmarkModelResult] = []
         results.reserveCapacity(models.count)
@@ -148,8 +143,7 @@ final class BenchmarkSuiteStore: ObservableObject {
             let result = await benchmarkResult(
                 for: model,
                 corpus: corpus,
-                whisperModelManager: whisperModelManager,
-                parakeetModelManager: parakeetModelManager
+                whisperModelManager: whisperModelManager
             )
             results.append(result)
             completedModelCount += 1
@@ -161,8 +155,7 @@ final class BenchmarkSuiteStore: ObservableObject {
     private func benchmarkResult(
         for model: any TranscriptionModel,
         corpus: [LoadedBenchmarkCorpusSample],
-        whisperModelManager: WhisperModelManager,
-        parakeetModelManager: ParakeetModelManager
+        whisperModelManager: WhisperModelManager
     ) async -> BenchmarkModelResult {
         do {
             switch model.provider {
@@ -185,21 +178,12 @@ final class BenchmarkSuiteStore: ObservableObject {
                     return makeFailureResult(for: model, detail: "Unsupported Voxtral model.")
                 }
                 return try await benchmarkVoxtral(voxtralModel, corpus: corpus)
-            case .parakeet:
-                guard let parakeetModel = model as? ParakeetModel else {
-                    return makeFailureResult(for: model, detail: "Unsupported Parakeet model.")
-                }
-                return try await benchmarkParakeet(
-                    parakeetModel,
-                    corpus: corpus,
-                    parakeetModelManager: parakeetModelManager
-                )
             case .nativeApple:
                 guard let nativeAppleModel = model as? NativeAppleModel else {
                     return makeFailureResult(for: model, detail: "Unsupported Apple Speech model.")
                 }
                 return try await benchmarkAppleSpeech(nativeAppleModel, corpus: corpus)
-            case .elevenLabs, .openAI, .xAI, .custom:
+            case .openAI, .xAI, .custom:
                 return makeUnavailableResult(for: model, detail: "Cloud models are excluded from on-device benchmarks.")
             }
         } catch {
@@ -311,39 +295,6 @@ final class BenchmarkSuiteStore: ObservableObject {
         }
 
         return makeModelResult(for: model, status: .ok, detail: nil, samples: samples)
-    }
-
-    private func benchmarkParakeet(
-        _ model: ParakeetModel,
-        corpus: [LoadedBenchmarkCorpusSample],
-        parakeetModelManager: ParakeetModelManager
-    ) async throws -> BenchmarkModelResult {
-        guard parakeetModelManager.isParakeetModelDownloaded(named: model.name) else {
-            return makeUnavailableResult(for: model, detail: "Model is not downloaded.")
-        }
-
-        let service = ParakeetTranscriptionService()
-        // `service` is now an actor; `defer` cannot `await`, so wrap the
-        // cleanup call in a do/catch-style explicit release after the loop.
-        do {
-            _ = try await service.transcribe(audioURL: corpus[0].audioURL, model: model)
-
-            var samples: [BenchmarkSampleResult] = []
-            samples.reserveCapacity(corpus.count)
-
-            for sample in corpus {
-                let start = CFAbsoluteTimeGetCurrent()
-                let transcript = try await service.transcribe(audioURL: sample.audioURL, model: model)
-                let elapsed = CFAbsoluteTimeGetCurrent() - start
-                samples.append(makeSampleResult(sample: sample, transcript: transcript, elapsed: elapsed))
-            }
-
-            await service.cleanup()
-            return makeModelResult(for: model, status: .ok, detail: nil, samples: samples)
-        } catch {
-            await service.cleanup()
-            throw error
-        }
     }
 
     private func benchmarkAppleSpeech(

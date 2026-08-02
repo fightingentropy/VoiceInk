@@ -202,24 +202,6 @@ struct LocalTranscriptionHotPathTests {
     }
 
     @Test
-    func predefinedModelsExposeWhisperTurboPreset() {
-        let whisperTurbo = PredefinedModels.models.first { $0.name == "whisper-large-v3-turbo" }
-
-        #expect(whisperTurbo != nil)
-        #expect(whisperTurbo?.provider == .local)
-        #expect(whisperTurbo?.displayName == "Whisper Large v3 Turbo")
-        #expect((whisperTurbo as? LocalModel)?.whisperKitVariant == "openai_whisper-large-v3_turbo")
-    }
-
-    @Test
-    func predefinedModelsExposeCurrentLocalAccuracyPresets() {
-        let whisperAccuracy = PredefinedModels.models.first { $0.name == "whisper-large-v3-accuracy" }
-
-        #expect(whisperAccuracy?.provider == .local)
-        #expect((whisperAccuracy as? LocalModel)?.whisperKitVariant == "openai_whisper-large-v3-v20240930_626MB")
-    }
-
-    @Test
     @MainActor
     func fileTranscriptionSessionUsesPCMFastPathWhenServiceSupportsIt() async throws {
         let service = MockPCMBufferTranscriptionService()

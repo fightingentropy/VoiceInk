@@ -50,8 +50,34 @@ struct VoiceInkTests {
             for: "It's fine, no need for the custom",
             isTranscriptVisible: true
         )
+        let providerLineBreak = MiniRecorderPillLayout.size(
+            for: "This is\na test",
+            isTranscriptVisible: true
+        )
+        let normalizedShortPhrase = MiniRecorderPillLayout.size(
+            for: "This is a test",
+            isTranscriptVisible: true
+        )
+        let multilineProviderText = """
+        This is a test
+        But the blueberries have been shown to improve cognition.
+        Everyone has every reason to try at least one cup a day.
+        """
+        let normalizedProviderText = MiniRecorderPillLayout.displayText(for: multilineProviderText)
+        let multilineProviderSize = MiniRecorderPillLayout.size(
+            for: multilineProviderText,
+            isTranscriptVisible: true
+        )
+        let normalizedProviderSize = MiniRecorderPillLayout.size(
+            for: normalizedProviderText,
+            isTranscriptVisible: true
+        )
         let long = MiniRecorderPillLayout.size(
             for: String(repeating: "the complete live transcript remains visible ", count: 12),
+            isTranscriptVisible: true
+        )
+        let extremelyLong = MiniRecorderPillLayout.size(
+            for: String(repeating: "the live transcript stays inside its scrollable panel ", count: 100),
             isTranscriptVisible: true
         )
         let hidden = MiniRecorderPillLayout.size(for: "hello", isTranscriptVisible: false)
@@ -62,9 +88,15 @@ struct VoiceInkTests {
         #expect(sentence.width > short.width)
         #expect(reportedLayoutIssue.height <= MiniRecorderPillLayout.expandedHeight + 1)
         #expect(reportedLayoutIssue.width < 200)
+        #expect(MiniRecorderPillLayout.displayText(for: "This is\na test") == "This is a test")
+        #expect(providerLineBreak == normalizedShortPhrase)
+        #expect(providerLineBreak.height <= MiniRecorderPillLayout.expandedHeight + 1)
+        #expect(multilineProviderSize == normalizedProviderSize)
         #expect(long.width == MiniRecorderPillLayout.maximumWidth)
         #expect(MiniRecorderPillLayout.maximumWidth == 540)
         #expect(long.height > MiniRecorderPillLayout.expandedHeight)
+        #expect(long.height <= MiniRecorderPillLayout.maximumHeight)
+        #expect(extremelyLong.height == MiniRecorderPillLayout.maximumHeight)
     }
 
     @Test func immediateLiveTranscriptRequiresTheOptionAStreamingSessionAndVisibleText() {

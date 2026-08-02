@@ -3,7 +3,6 @@ import SwiftData
 import AppKit
 import OSLog
 import AppIntents
-import FluidAudio
 import Security
 
 @main
@@ -14,7 +13,6 @@ struct VoiceInkApp: App {
 
     @StateObject private var engine: VoiceInkEngine
     @StateObject private var whisperModelManager: WhisperModelManager
-    @StateObject private var parakeetModelManager: ParakeetModelManager
     @StateObject private var transcriptionModelManager: TranscriptionModelManager
     @StateObject private var recorderUIManager: RecorderUIManager
     @StateObject private var hotkeyManager: HotkeyManager
@@ -86,10 +84,8 @@ struct VoiceInkApp: App {
 
         // 1. Create model managers
         let whisperModelManager = WhisperModelManager()
-        let parakeetModelManager = ParakeetModelManager()
         let transcriptionModelManager = TranscriptionModelManager(
-            whisperModelManager: whisperModelManager,
-            parakeetModelManager: parakeetModelManager
+            whisperModelManager: whisperModelManager
         )
 
         // 2. Create UI manager
@@ -109,7 +105,6 @@ struct VoiceInkApp: App {
         // 5. Publish managers now; populate their caches asynchronously after the
         // window appears so disk enumeration doesn't block first paint.
         _whisperModelManager = StateObject(wrappedValue: whisperModelManager)
-        _parakeetModelManager = StateObject(wrappedValue: parakeetModelManager)
         _transcriptionModelManager = StateObject(wrappedValue: transcriptionModelManager)
         _recorderUIManager = StateObject(wrappedValue: recorderUIManager)
         _engine = StateObject(wrappedValue: engine)
@@ -282,7 +277,6 @@ struct VoiceInkApp: App {
                 ContentView()
                     .environmentObject(engine)
                     .environmentObject(whisperModelManager)
-                    .environmentObject(parakeetModelManager)
                     .environmentObject(transcriptionModelManager)
                     .environmentObject(recorderUIManager)
                     .environmentObject(hotkeyManager)
@@ -328,7 +322,6 @@ struct VoiceInkApp: App {
                     .environmentObject(hotkeyManager)
                     .environmentObject(engine)
                     .environmentObject(whisperModelManager)
-                    .environmentObject(parakeetModelManager)
                     .environmentObject(transcriptionModelManager)
                     .environmentObject(recorderUIManager)
                     .frame(minWidth: 880, minHeight: 780)
@@ -347,7 +340,6 @@ struct VoiceInkApp: App {
             MenuBarView()
                 .environmentObject(engine)
                 .environmentObject(whisperModelManager)
-                .environmentObject(parakeetModelManager)
                 .environmentObject(transcriptionModelManager)
                 .environmentObject(recorderUIManager)
                 .environmentObject(hotkeyManager)

@@ -41,7 +41,7 @@ enum SystemResourceGuard {
     /// Describes how aggressively a given transcription pipeline taxes the
     /// thermal envelope of an Apple Silicon Mac under sustained dictation.
     enum Workload: Sendable {
-        /// ANE-dominated, modest footprint (Parakeet, Apple native Speech).
+        /// ANE-dominated, modest footprint (Apple native Speech).
         case light
         /// Mixed ANE + GPU (WhisperKit large-v3 turbo full precision).
         case moderate
@@ -93,7 +93,7 @@ enum SystemResourceGuard {
 
         let message: String?
         if recommendedFallback {
-            message = "Your Mac is thermally stressed (\(severity.userFacingLabel)). Consider switching to Parakeet or Apple Speech for this session — they run cooler."
+            message = "Your Mac is thermally stressed (\(severity.userFacingLabel)). Consider switching to Apple Speech for this session — it runs cooler."
         } else if severity >= warnThreshold {
             message = "Mac thermal state is \(severity.userFacingLabel). Transcription latency may be elevated."
         } else if lowPowerMode {
@@ -131,13 +131,13 @@ enum SystemResourceGuard {
     /// provider into a workload class.
     static func workload(for provider: ModelProvider) -> Workload {
         switch provider {
-        case .nativeApple, .parakeet:
+        case .nativeApple:
             return .light
         case .local:
             return .moderate
         case .localVoxtral, .cohereTranscribe:
             return .heavy
-        case .elevenLabs, .openAI, .xAI, .custom:
+        case .openAI, .xAI, .custom:
             // Network-bound: negligible local thermal impact.
             return .light
         }

@@ -3,7 +3,6 @@ import AppKit
 
 struct ModelCardRowView: View {
     let model: any TranscriptionModel
-    let parakeetModelManager: ParakeetModelManager
     let transcriptionModelManager: TranscriptionModelManager
     let isDownloaded: Bool
     let isCurrent: Bool
@@ -29,14 +28,6 @@ struct ModelCardRowView: View {
                         deleteAction: deleteAction,
                         setDefaultAction: setDefaultAction,
                         downloadAction: downloadAction
-                    )
-                }
-            case .parakeet:
-                if let parakeetModel = model as? ParakeetModel {
-                    ParakeetModelCardRowView(
-                        model: parakeetModel,
-                        parakeetModelManager: parakeetModelManager,
-                        transcriptionModelManager: transcriptionModelManager
                     )
                 }
             case .nativeApple:
@@ -65,7 +56,7 @@ struct ModelCardRowView: View {
                         setDefaultAction: setDefaultAction
                     )
                 }
-            case .elevenLabs, .openAI, .xAI:
+            case .openAI, .xAI:
                 if let cloudModel = model as? CloudModel {
                     CloudModelCardView(
                         model: cloudModel,

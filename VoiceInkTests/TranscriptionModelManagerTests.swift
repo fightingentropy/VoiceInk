@@ -5,53 +5,31 @@ import Testing
 @MainActor
 struct TranscriptionModelManagerTests {
     @Test
-    func selectsElevenLabsAsDefaultWhenConfigured() {
-        let defaults = UserDefaults.standard
-        let currentModelKey = "CurrentTranscriptionModel"
-        let localKeychainKey = "LocalKeychain_elevenLabsAPIKey"
-
-        let previousModelValue = defaults.object(forKey: currentModelKey)
-        let previousAPIKeyValue = defaults.object(forKey: localKeychainKey)
-
-        defer {
-            restore(defaults: defaults, value: previousModelValue, forKey: currentModelKey)
-            restore(defaults: defaults, value: previousAPIKeyValue, forKey: localKeychainKey)
-        }
-
-        defaults.removeObject(forKey: currentModelKey)
-        defaults.set(Data("test-elevenlabs-key".utf8), forKey: localKeychainKey)
+    func selectsOpenAIAsDefaultWhenConfigured() {
+        let (defaults, suiteName) = makeIsolatedDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
 
         let manager = TranscriptionModelManager(
             whisperModelManager: WhisperModelManager(),
-            parakeetModelManager: ParakeetModelManager()
+            userDefaults: defaults,
+            hasAPIKey: { $0.lowercased() == "openai" }
         )
 
         manager.refreshAllAvailableModels()
         manager.loadCurrentTranscriptionModel()
 
-        #expect(manager.currentTranscriptionModel?.name == "scribe_v2")
+        #expect(manager.currentTranscriptionModel?.name == "gpt-live-transcribe")
     }
 
     @Test
-    func doesNotSelectElevenLabsWithoutConfiguredKey() {
-        let defaults = UserDefaults.standard
-        let currentModelKey = "CurrentTranscriptionModel"
-        let localKeychainKey = "LocalKeychain_elevenLabsAPIKey"
-
-        let previousModelValue = defaults.object(forKey: currentModelKey)
-        let previousAPIKeyValue = defaults.object(forKey: localKeychainKey)
-
-        defer {
-            restore(defaults: defaults, value: previousModelValue, forKey: currentModelKey)
-            restore(defaults: defaults, value: previousAPIKeyValue, forKey: localKeychainKey)
-        }
-
-        defaults.removeObject(forKey: currentModelKey)
-        defaults.removeObject(forKey: localKeychainKey)
+    func doesNotSelectOpenAIWithoutConfiguredKey() {
+        let (defaults, suiteName) = makeIsolatedDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
 
         let manager = TranscriptionModelManager(
             whisperModelManager: WhisperModelManager(),
-            parakeetModelManager: ParakeetModelManager()
+            userDefaults: defaults,
+            hasAPIKey: { _ in false }
         )
 
         manager.refreshAllAvailableModels()
@@ -60,11 +38,27 @@ struct TranscriptionModelManagerTests {
         #expect(manager.currentTranscriptionModel == nil)
     }
 
-    private func restore(defaults: UserDefaults, value: Any?, forKey key: String) {
-        if let value {
-            defaults.set(value, forKey: key)
-        } else {
-            defaults.removeObject(forKey: key)
-        }
+    @Test
+    func fallsBackToXAIWhenOpenAIIsNotConfigured() {
+        let (defaults, suiteName) = makeIsolatedDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let manager = TranscriptionModelManager(
+            whisperModelManager: WhisperModelManager(),
+            userDefaults: defaults,
+            hasAPIKey: { $0.lowercased() == "xai" }
+        )
+
+        manager.refreshAllAvailableModels()
+        manager.loadCurrentTranscriptionModel()
+
+        #expect(manager.currentTranscriptionModel?.name == "xai-stt")
+    }
+
+    private func makeIsolatedDefaults() -> (UserDefaults, String) {
+        let suiteName = "VoiceInk.TranscriptionModelManagerTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        return (defaults, suiteName)
     }
 }

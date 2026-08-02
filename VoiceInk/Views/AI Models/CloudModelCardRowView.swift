@@ -1,6 +1,5 @@
 import SwiftUI
 import AppKit
-import LLMkit
 
 // MARK: - Cloud Model Card View
 struct CloudModelCardView: View {
@@ -28,20 +27,16 @@ struct CloudModelCardView: View {
         model.provider.apiKeyProviderName
     }
 
-    private var verifiesAPIKeyRemotely: Bool {
-        model.provider == .elevenLabs
-    }
-
     private var primaryConfigurationButtonTitle: String {
         if isVerifying {
-            return "Verifying..."
+            return "Saving..."
         }
 
-        return verifiesAPIKeyRemotely ? "Verify" : "Save"
+        return "Save"
     }
 
     private var successMessage: String {
-        verifiesAPIKeyRemotely ? "API key verified successfully!" : "API key saved."
+        "API key saved."
     }
     
     var body: some View {
@@ -263,39 +258,13 @@ struct CloudModelCardView: View {
     private func saveOrVerifyAPIKey() {
         guard !apiKey.isEmpty else { return }
 
-        if !verifiesAPIKeyRemotely {
-            APIKeyManager.shared.saveAPIKey(apiKey, forProvider: providerKey)
-            verificationStatus = .success
-            verificationError = nil
-            isConfiguredState = true
+        APIKeyManager.shared.saveAPIKey(apiKey, forProvider: providerKey)
+        verificationStatus = .success
+        verificationError = nil
+        isConfiguredState = true
 
-            withAnimation(.easeInOut(duration: 0.3)) {
-                isExpanded = false
-            }
-            return
-        }
-        
-        isVerifying = true
-        verificationStatus = .verifying
-
-        Task {
-            let result = await ElevenLabsClient.verifyAPIKey(apiKey)
-            await MainActor.run {
-                isVerifying = false
-                if result.isValid {
-                    verificationStatus = .success
-                    verificationError = nil
-                    APIKeyManager.shared.saveAPIKey(apiKey, forProvider: providerKey)
-                    isConfiguredState = true
-
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        isExpanded = false
-                    }
-                } else {
-                    verificationStatus = .failure
-                    verificationError = result.errorMessage
-                }
-            }
+        withAnimation(.easeInOut(duration: 0.3)) {
+            isExpanded = false
         }
     }
     

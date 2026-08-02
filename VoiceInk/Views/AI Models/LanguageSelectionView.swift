@@ -34,13 +34,6 @@ struct LanguageSelectionView: View {
         return currentModel.isMultilingualModel
     }
 
-    private func languageSelectionDisabled() -> Bool {
-        guard let provider = transcriptionModelManager.currentTranscriptionModel?.provider else {
-            return false
-        }
-        return provider == .parakeet
-    }
-
     private func defaultLanguage(for model: any TranscriptionModel) -> String {
         if model.supportedLanguages["en"] != nil {
             return "en"
@@ -51,13 +44,6 @@ struct LanguageSelectionView: View {
 
     private func ensureSupportedLanguageSelection() {
         guard let currentModel = transcriptionModelManager.currentTranscriptionModel else {
-            return
-        }
-
-        if languageSelectionDisabled() {
-            if selectedLanguage != "auto" {
-                updateLanguage("auto")
-            }
             return
         }
 
@@ -120,11 +106,7 @@ struct LanguageSelectionView: View {
             Spacer()
 
             if let currentModel = transcriptionModelManager.currentTranscriptionModel {
-                if languageSelectionDisabled() {
-                    Text("Autodetected")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .fontWidth(.condensed)
-                } else if isMultilingualModel() {
+                if isMultilingualModel() {
                     Picker("", selection: $selectedLanguage) {
                         ForEach(
                             currentModel.supportedLanguages.sorted(by: {
@@ -171,15 +153,7 @@ struct LanguageSelectionView: View {
     // New compact view for menu bar
     private var menuItemView: some View {
         Group {
-            if languageSelectionDisabled() {
-                Button {
-                    // Do nothing, just showing info
-                } label: {
-                    Text("Language: Autodetected")
-                        .foregroundColor(.secondary)
-                }
-                .disabled(true)
-            } else if isMultilingualModel() {
+            if isMultilingualModel() {
                 Menu {
                     ForEach(
                         getCurrentModelLanguages().sorted(by: {

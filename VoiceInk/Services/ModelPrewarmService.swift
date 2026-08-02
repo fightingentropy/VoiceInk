@@ -172,7 +172,7 @@ final class ModelPrewarmService: ObservableObject {
         }
 
         switch model.provider {
-        case .local, .parakeet, .localVoxtral, .cohereTranscribe:
+        case .local, .localVoxtral, .cohereTranscribe:
             return true
         default:
             logger.notice("Skipping prewarm - cloud models don't need it")
@@ -261,7 +261,7 @@ final class ModelPrewarmService: ObservableObject {
 
     private func isLocalModel(_ model: any TranscriptionModel) -> Bool {
         switch model.provider {
-        case .local, .parakeet, .localVoxtral, .cohereTranscribe:
+        case .local, .localVoxtral, .cohereTranscribe:
             return true
         default:
             return false

@@ -5,24 +5,39 @@ struct MiniRecorderPillLayout {
     static let collapsedSize = CGSize(width: 48, height: 20)
     static let expandedHeight: CGFloat = 30
     static let maximumWidth: CGFloat = 540
+    static let maximumHeight: CGFloat = 116
 
     private static let horizontalPadding: CGFloat = 24
-    private static let verticalPadding: CGFloat = 11
+    private static let verticalPadding: CGFloat = 16
+
+    private static func transcriptFont() -> NSFont {
+        let baseFont = NSFont.systemFont(ofSize: 11.5, weight: .medium, width: .condensed)
+        guard let roundedDescriptor = baseFont.fontDescriptor.withDesign(.rounded) else {
+            return baseFont
+        }
+        return NSFont(descriptor: roundedDescriptor, size: 11.5) ?? baseFont
+    }
+
+    static func displayText(for transcript: String) -> String {
+        transcript
+            .split(whereSeparator: \Character.isWhitespace)
+            .joined(separator: " ")
+    }
 
     static func size(
         for transcript: String,
         isTranscriptVisible: Bool,
         maximumWidth: CGFloat = maximumWidth
     ) -> CGSize {
-        let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard isTranscriptVisible, !trimmed.isEmpty else {
+        let displayText = displayText(for: transcript)
+        guard isTranscriptVisible, !displayText.isEmpty else {
             return collapsedSize
         }
 
         let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 11.5, weight: .medium, width: .condensed)
+            .font: transcriptFont()
         ]
-        let attributedText = NSAttributedString(string: trimmed, attributes: attributes)
+        let attributedText = NSAttributedString(string: displayText, attributes: attributes)
         let totalHorizontalInset = horizontalPadding
         let constrainedMaximumWidth = max(collapsedSize.width, maximumWidth)
         let maximumTextWidth = max(1, constrainedMaximumWidth - totalHorizontalInset)
@@ -36,7 +51,8 @@ struct MiniRecorderPillLayout {
             with: CGSize(width: max(1, pillWidth - totalHorizontalInset), height: 100_000),
             options: [.usesLineFragmentOrigin, .usesFontLeading]
         )
-        let pillHeight = max(expandedHeight, ceil(wrappedTextBounds.height) + verticalPadding)
+        let naturalHeight = max(expandedHeight, ceil(wrappedTextBounds.height) + verticalPadding)
+        let pillHeight = min(maximumHeight, naturalHeight)
 
         return CGSize(width: pillWidth, height: pillHeight)
     }
@@ -66,21 +82,24 @@ struct MiniRecorderView<S: RecorderStateProvider & ObservableObject>: View {
                 style: .compact
             )
         }
-        .frame(height: pillSize.height)
+        .frame(height: max(0, pillSize.height - (hasVisibleTranscript ? 16 : 0)))
         .padding(.horizontal, hasVisibleTranscript ? 12 : 0)
+        .padding(.vertical, hasVisibleTranscript ? 8 : 0)
     }
 
     private func recorderPill(pillSize: CGSize) -> some View {
-        let shape = RoundedRectangle(cornerRadius: pillSize.height / 2, style: .continuous)
+        let cornerRadius = hasVisibleTranscript ? 10.0 : pillSize.height / 2
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
 
         return contentLayout(pillSize: pillSize)
             .frame(width: pillSize.width, height: pillSize.height)
             .background {
                 shape
                     .fill(.regularMaterial)
-                    .overlay(shape.fill(Color.white.opacity(0.08)))
+                    .overlay(shape.fill(Color.black.opacity(0.24)))
             }
-            .overlay(shape.stroke(.white.opacity(0.18), lineWidth: 0.75))
+            .clipShape(shape)
+            .overlay(shape.stroke(.white.opacity(0.14), lineWidth: 0.75))
             .shadow(color: .black.opacity(0.26), radius: 12, y: 4)
     }
 

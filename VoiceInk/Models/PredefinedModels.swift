@@ -138,40 +138,6 @@ import Foundation
             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .nativeApple)
         ),
         
-        // Parakeet Models
-        ParakeetModel(
-            name: "parakeet-tdt-0.6b-v2",
-            displayName: "Parakeet V2",
-            description: "NVIDIA's Parakeet V2 model optimized for lightning-fast English-only transcription",
-            size: "474 MB",
-            speed: 0.99,
-            accuracy: 0.94,
-            ramUsage: 0.8,
-            supportedLanguages: getLanguageDictionary(isMultilingual: false, provider: .parakeet)
-        ),
-        LocalModel(
-            name: "whisper-large-v3-accuracy",
-            displayName: "Whisper Large v3 (Accuracy)",
-            size: "626 MB",
-            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .local),
-            description: "Higher-accuracy WhisperKit preset using the compressed large-v3 v20240930 Core ML build.",
-            speed: 0.82,
-            accuracy: 0.96,
-            ramUsage: 2.2,
-            whisperKitVariant: "openai_whisper-large-v3-v20240930_626MB"
-        ),
-        LocalModel(
-            name: "whisper-large-v3-turbo",
-            displayName: "Whisper Large v3 Turbo",
-            size: "2.8 GB",
-            supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .local),
-            description: "Fast local Whisper preset using WhisperKit and Core ML on Apple Silicon.",
-            speed: 0.96,
-            accuracy: 0.95,
-            ramUsage: 2.4,
-            whisperKitVariant: "openai_whisper-large-v3_turbo"
-        ),
-
         LocalVoxtralModel(
             name: "voxtral-mini-realtime-local",
             displayName: "Voxtral Realtime (Local MLX)",
@@ -193,16 +159,6 @@ import Foundation
             supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .cohereTranscribe)
         ),
         // Cloud Models
-       CloudModel(
-           name: "scribe_v2",
-           displayName: "Scribe V2 Realtime (ElevenLabs)",
-           description: "ElevenLabs' Scribe V2 Realtime model for the most accurate transcription",
-           provider: .elevenLabs,
-           speed: 0.99,
-           accuracy: 0.98,
-           isMultilingual: true,
-           supportedLanguages: getLanguageDictionary(isMultilingual: true, provider: .elevenLabs)
-       ),
        CloudModel(
            name: "gpt-live-transcribe",
            displayName: "GPT Live Transcribe (OpenAI)",

@@ -297,8 +297,6 @@ final class StreamingTranscriptionService: NSObject {
         switch model.provider {
         case .localVoxtral:
             return VoxtralNativeStreamingProvider()
-        case .elevenLabs:
-            return ElevenLabsStreamingProvider()
         case .xAI:
             return XAIStreamingProvider()
         case .openAI:

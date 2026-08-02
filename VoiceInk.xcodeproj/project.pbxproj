@@ -10,9 +10,7 @@
 		E15110012F90000100790A2C /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = E15110022F90000100790A2C /* WhisperKit */; };
 		E15000012F7A000100000001 /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = E15000042F7A000100000001 /* MLX */; };
 		E15000022F7A000100000001 /* MLXNN in Frameworks */ = {isa = PBXBuildFile; productRef = E15000052F7A000100000001 /* MLXNN */; };
-		E11BBA4E2E5DC555000AB839 /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = E11BBA4D2E5DC555000AB839 /* FluidAudio */; };
 		E1342C1F2EB4844800CED8A2 /* Atomics in Frameworks */ = {isa = PBXBuildFile; productRef = E1342C1E2EB4844800CED8A2 /* Atomics */; };
-		E1438ED22F3F3D5E00DBE2A1 /* LLMkit in Frameworks */ = {isa = PBXBuildFile; productRef = E1438ED12F3F3D5E00DBE2A1 /* LLMkit */; };
 		E161D4A12F41ECB90086F83D /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E161D4A02F41ECB90086F83D /* CloudKit.framework */; };
 		E1A261122CC143AC00B233D1 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = E1A261112CC143AC00B233D1 /* KeyboardShortcuts */; };
 		E1ADD45A2CC5352A00303ECB /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = E1ADD4592CC5352A00303ECB /* LaunchAtLogin */; };
@@ -99,8 +97,6 @@
 				E15000022F7A000100000001 /* MLXNN in Frameworks */,
 				E1342C1F2EB4844800CED8A2 /* Atomics in Frameworks */,
 				E1ADD45A2CC5352A00303ECB /* LaunchAtLogin in Frameworks */,
-				E11BBA4E2E5DC555000AB839 /* FluidAudio in Frameworks */,
-				E1438ED22F3F3D5E00DBE2A1 /* LLMkit in Frameworks */,
 				E1D7EF992E35E16C00640029 /* MediaRemoteAdapter in Frameworks */,
 				E161D4A12F41ECB90086F83D /* CloudKit.framework in Frameworks */,
 				E1A261122CC143AC00B233D1 /* KeyboardShortcuts in Frameworks */,
@@ -178,9 +174,7 @@
 				E1A261112CC143AC00B233D1 /* KeyboardShortcuts */,
 				E1ADD4592CC5352A00303ECB /* LaunchAtLogin */,
 				E1D7EF982E35E16C00640029 /* MediaRemoteAdapter */,
-				E11BBA4D2E5DC555000AB839 /* FluidAudio */,
 				E1342C1E2EB4844800CED8A2 /* Atomics */,
-				E1438ED12F3F3D5E00DBE2A1 /* LLMkit */,
 				E15000042F7A000100000001 /* MLX */,
 				E15000052F7A000100000001 /* MLXNN */,
 			);
@@ -271,9 +265,7 @@
 				E1A261102CC143AC00B233D1 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
 				E1ADD4582CC5352A00303ECB /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
 				E1D7EF972E35E16C00640029 /* XCRemoteSwiftPackageReference "mediaremote-adapter" */,
-				E11BBA4C2E5DC555000AB839 /* XCRemoteSwiftPackageReference "FluidAudio" */,
 				E1342C1D2EB4844800CED8A2 /* XCRemoteSwiftPackageReference "swift-atomics" */,
-				E1438ED02F3F3D5E00DBE2A1 /* XCRemoteSwiftPackageReference "LLMkit" */,
 				E15000032F7A000100000001 /* XCRemoteSwiftPackageReference "mlx-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -483,7 +475,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 219;
+				CURRENT_PROJECT_VERSION = 223;
 				DEVELOPMENT_ASSET_PATHS = "\"VoiceInk/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -498,7 +490,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.4;
-				MARKETING_VERSION = 1.70.49;
+				MARKETING_VERSION = 1.70.53;
 				PRODUCT_BUNDLE_IDENTIFIER = com.fightingentropy.VoiceInk;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 					SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG LOCAL_BUILD ENABLE_NATIVE_SPEECH_ANALYZER $(inherited)";
@@ -517,7 +509,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 219;
+				CURRENT_PROJECT_VERSION = 223;
 				DEVELOPMENT_ASSET_PATHS = "\"VoiceInk/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -532,7 +524,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.4;
-				MARKETING_VERSION = 1.70.49;
+				MARKETING_VERSION = 1.70.53;
 				PRODUCT_BUNDLE_IDENTIFIER = com.fightingentropy.VoiceInk;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "ENABLE_NATIVE_SPEECH_ANALYZER $(inherited)";
@@ -547,7 +539,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 219;
+				CURRENT_PROJECT_VERSION = 223;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.4;
@@ -565,7 +557,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 219;
+				CURRENT_PROJECT_VERSION = 223;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.4;
@@ -583,7 +575,7 @@
 			buildSettings = {
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 219;
+				CURRENT_PROJECT_VERSION = 223;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.4;
@@ -600,7 +592,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 219;
+				CURRENT_PROJECT_VERSION = 223;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.4;
@@ -671,28 +663,12 @@
 				minimumVersion = 0.31.3;
 			};
 		};
-		E11BBA4C2E5DC555000AB839 /* XCRemoteSwiftPackageReference "FluidAudio" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/FluidInference/FluidAudio";
-			requirement = {
-				kind = revision;
-				revision = b9d43724cbdb5a980e441fd54180964e94d470f7;
-			};
-		};
 		E1342C1D2EB4844800CED8A2 /* XCRemoteSwiftPackageReference "swift-atomics" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-atomics.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.3.0;
-			};
-		};
-		E1438ED02F3F3D5E00DBE2A1 /* XCRemoteSwiftPackageReference "LLMkit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Beingpax/LLMkit.git";
-			requirement = {
-				branch = main;
-				kind = branch;
 			};
 		};
 		E1A261102CC143AC00B233D1 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
@@ -737,20 +713,10 @@
 			package = E15000032F7A000100000001 /* XCRemoteSwiftPackageReference "mlx-swift" */;
 			productName = MLXNN;
 		};
-		E11BBA4D2E5DC555000AB839 /* FluidAudio */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E11BBA4C2E5DC555000AB839 /* XCRemoteSwiftPackageReference "FluidAudio" */;
-			productName = FluidAudio;
-		};
 		E1342C1E2EB4844800CED8A2 /* Atomics */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = E1342C1D2EB4844800CED8A2 /* XCRemoteSwiftPackageReference "swift-atomics" */;
 			productName = Atomics;
-		};
-		E1438ED12F3F3D5E00DBE2A1 /* LLMkit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E1438ED02F3F3D5E00DBE2A1 /* XCRemoteSwiftPackageReference "LLMkit" */;
-			productName = LLMkit;
 		};
 		E1A261112CC143AC00B233D1 /* KeyboardShortcuts */ = {
 			isa = XCSwiftPackageProductDependency;

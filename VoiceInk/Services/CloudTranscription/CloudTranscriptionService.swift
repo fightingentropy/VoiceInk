@@ -1,5 +1,4 @@
 import Foundation
-import LLMkit
 
 enum CloudTranscriptionError: Error, LocalizedError {
     case unsupportedProvider
@@ -47,16 +46,6 @@ final class CloudTranscriptionService: TranscriptionService, @unchecked Sendable
 
         do {
             switch model.provider {
-            case .elevenLabs:
-                let apiKey = try requireAPIKey(forProvider: model.provider.apiKeyProviderName)
-                return try await ElevenLabsClient.transcribe(
-                    audioData: audioData,
-                    fileName: fileName,
-                    apiKey: apiKey,
-                    model: model.name,
-                    language: language
-                )
-
             case .xAI:
                 let apiKey = try requireAPIKey(forProvider: model.provider.apiKeyProviderName)
                 return try await xAITranscriptionService.transcribe(
@@ -86,8 +75,6 @@ final class CloudTranscriptionService: TranscriptionService, @unchecked Sendable
             }
         } catch let error as CloudTranscriptionError {
             throw error
-        } catch let error as LLMKitError {
-            throw mapLLMKitError(error)
         } catch {
             throw CloudTranscriptionError.networkError(error)
         }
@@ -119,20 +106,4 @@ final class CloudTranscriptionService: TranscriptionService, @unchecked Sendable
         return prompt.isEmpty ? nil : prompt
     }
 
-    private func mapLLMKitError(_ error: LLMKitError) -> CloudTranscriptionError {
-        switch error {
-        case .missingAPIKey:
-            return .missingAPIKey
-        case .httpError(let statusCode, let message):
-            return .apiRequestFailed(statusCode: statusCode, message: message)
-        case .noResultReturned:
-            return .noTranscriptionReturned
-        case .encodingError:
-            return .dataEncodingError
-        case .networkError(let detail):
-            return .networkError(NSError(domain: "LLMkit", code: -1, userInfo: [NSLocalizedDescriptionKey: detail]))
-        case .invalidURL, .decodingError, .timeout:
-            return .networkError(error)
-        }
-    }
 }

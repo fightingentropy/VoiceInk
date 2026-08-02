@@ -5,8 +5,6 @@ enum ModelProvider: String, Codable, Hashable, CaseIterable, Sendable {
     case local = "Local"
     case localVoxtral = "Local Voxtral"
     case cohereTranscribe = "Cohere Transcribe"
-    case parakeet = "Parakeet"
-    case elevenLabs = "ElevenLabs"
     case openAI = "OpenAI"
     case xAI = "xAI"
     case custom = "Custom"
@@ -17,8 +15,6 @@ enum ModelProvider: String, Codable, Hashable, CaseIterable, Sendable {
 extension ModelProvider {
     var apiKeyProviderName: String {
         switch self {
-        case .elevenLabs:
-            return "ElevenLabs"
         case .openAI:
             return "OpenAI"
         case .xAI:
@@ -67,13 +63,13 @@ extension TranscriptionModel {
         switch provider {
         case .local:
             return .recorderPCM
-        case .parakeet, .nativeApple:
+        case .nativeApple:
             return .audioFile
         case .localVoxtral:
             return .streamingPCM
         case .cohereTranscribe:
             return .recorderPCM
-        case .elevenLabs, .openAI, .xAI, .custom:
+        case .openAI, .xAI, .custom:
             return nil
         }
     }
@@ -117,23 +113,6 @@ struct NativeAppleModel: TranscriptionModel {
     let description: String
     let provider: ModelProvider = .nativeApple
     let isMultilingualModel: Bool
-    let supportedLanguages: [String: String]
-}
-
-// A new struct for Parakeet models
-struct ParakeetModel: TranscriptionModel {
-    let id = UUID()
-    let name: String
-    let displayName: String
-    let description: String
-    let provider: ModelProvider = .parakeet
-    let size: String
-    let speed: Double
-    let accuracy: Double
-    let ramUsage: Double
-    var isMultilingualModel: Bool {
-        supportedLanguages.count > 1
-    }
     let supportedLanguages: [String: String]
 }
 
