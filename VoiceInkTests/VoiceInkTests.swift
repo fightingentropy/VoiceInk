@@ -57,6 +57,7 @@ struct VoiceInkTests {
         #expect(short.width > collapsed.width)
         #expect(sentence.width > short.width)
         #expect(long.width == MiniRecorderPillLayout.maximumWidth)
+        #expect(MiniRecorderPillLayout.maximumWidth == 540)
         #expect(long.height > MiniRecorderPillLayout.expandedHeight)
     }
 

@@ -108,7 +108,7 @@ struct RecorderStatusDisplay: View {
 
         Group {
             if currentState == .transcribing && !hasTranscript {
-                ProcessingStatusDisplay(mode: .transcribing, color: .white, isCompact: style == .compact)
+                ProcessingStatusDisplay(mode: .transcribing, color: .white.opacity(0.9), isCompact: style == .compact)
                     .transition(.opacity)
             } else {
                 LiveTranscriptStatusDisplay(
@@ -145,8 +145,9 @@ private struct LiveTranscriptStatusDisplay: View {
             if hasTranscript {
                 HStack(alignment: .bottom, spacing: 4) {
                     Text(displayText)
-                        .font(.system(size: isCompact ? 12 : 13, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.96))
+                        .font(.system(size: isCompact ? 11.5 : 13, weight: .medium, design: .rounded))
+                        .fontWidth(.condensed)
+                        .foregroundStyle(.white.opacity(0.92))
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)

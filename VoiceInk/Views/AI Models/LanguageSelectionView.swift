@@ -12,6 +12,7 @@ struct LanguageSelectionView: View {
     // Add display mode parameter with full as the default
     var displayMode: LanguageDisplayMode = .full
     @ObservedObject var whisperPrompt: WhisperPrompt
+    var showsBackground = true
 
     private func updateLanguage(_ language: String) {
         // Update UI state - the UserDefaults updating is now automatic with @AppStorage
@@ -113,15 +114,16 @@ struct LanguageSelectionView: View {
     private var languageSelectionSection: some View {
         HStack(spacing: 8) {
             Text("Language")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(.system(size: 13, weight: .regular, design: .rounded))
+                .fontWidth(.condensed)
+                .foregroundStyle(.secondary)
             Spacer()
 
             if let currentModel = transcriptionModelManager.currentTranscriptionModel {
                 if languageSelectionDisabled() {
                     Text("Autodetected")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .fontWidth(.condensed)
                 } else if isMultilingualModel() {
                     Picker("", selection: $selectedLanguage) {
                         ForEach(
@@ -136,26 +138,34 @@ struct LanguageSelectionView: View {
                     }
                     .labelsHidden()
                     .pickerStyle(MenuPickerStyle())
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .fontWidth(.condensed)
+                    .controlSize(.small)
                     .fixedSize()
                     .onChange(of: selectedLanguage) { oldValue, newValue in
                         updateLanguage(newValue)
                     }
                 } else {
                     Text("English")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .fontWidth(.condensed)
                         .onAppear { updateLanguage("en") }
                 }
             } else {
                 Text("No model selected")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 13, weight: .regular, design: .rounded))
+                    .fontWidth(.condensed)
+                    .foregroundStyle(.secondary)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, showsBackground ? 14 : 16)
+        .frame(minHeight: 48)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(CardBackground(isSelected: false))
+        .background {
+            if showsBackground {
+                CardBackground(isSelected: false)
+            }
+        }
     }
 
     // New compact view for menu bar

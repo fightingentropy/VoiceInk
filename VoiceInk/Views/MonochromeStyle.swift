@@ -80,7 +80,8 @@ struct MonochromeSettingsSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             Text(title)
-                .font(.subheadline.weight(.semibold))
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .fontWidth(.condensed)
                 .foregroundStyle(.secondary)
                 .padding(.leading, 4)
 
@@ -105,7 +106,8 @@ struct MonochromeToggleRow<Label: View>: View {
     var body: some View {
         HStack(spacing: 12) {
             label()
-                .font(.body)
+                .font(.system(size: 13, weight: .regular, design: .rounded))
+                .fontWidth(.condensed)
                 .foregroundStyle(MonochromeStyle.primaryText)
 
             Spacer(minLength: 16)

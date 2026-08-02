@@ -174,7 +174,8 @@ struct SettingsView: View {
             HStack(spacing: 10) {
                 HStack(spacing: 5) {
                     Text("Paste live text immediately")
-                        .font(.body)
+                        .font(.system(size: 13, weight: .regular, design: .rounded))
+                        .fontWidth(.condensed)
 
                     InfoTip(
                         "Pastes exactly the live words shown when you release the shortcut. This skips the provider's final correction, so the last word or punctuation may be incomplete. If no live text is available yet, VoiceInk waits for the final result instead."
@@ -214,7 +215,8 @@ struct SettingsView: View {
     private var applicationSection: some View {
         MonochromeSettingsSection(title: "App") {
             LaunchAtLogin.Toggle("Launch at login")
-                .font(.body)
+                .font(.system(size: 13, weight: .regular, design: .rounded))
+                .fontWidth(.condensed)
                 .foregroundStyle(MonochromeStyle.primaryText)
                 .toggleStyle(.switch)
                 .controlSize(.small)
@@ -225,7 +227,8 @@ struct SettingsView: View {
 
             HStack {
                 Text("Onboarding")
-                    .font(.body)
+                    .font(.system(size: 13, weight: .regular, design: .rounded))
+                    .fontWidth(.condensed)
                     .foregroundStyle(MonochromeStyle.primaryText)
 
                 Spacer()
@@ -249,7 +252,8 @@ struct SettingsView: View {
             } label: {
                 HStack {
                     Text("Backup & diagnostics")
-                        .font(.body)
+                        .font(.system(size: 13, weight: .regular, design: .rounded))
+                        .fontWidth(.condensed)
                         .foregroundStyle(MonochromeStyle.primaryText)
 
                     Spacer()
@@ -307,7 +311,8 @@ struct SettingsView: View {
     ) -> some View {
         HStack(spacing: 12) {
             Text(title)
-                .font(.body)
+                .font(.system(size: 13, weight: .regular, design: .rounded))
+                .fontWidth(.condensed)
                 .foregroundStyle(MonochromeStyle.primaryText)
 
             Spacer(minLength: 16)
@@ -363,7 +368,8 @@ struct ExpandableSettingsRow<Content: View>: View {
             HStack(spacing: 10) {
                 HStack(spacing: 5) {
                     Text(label)
-                        .font(.body)
+                        .font(.system(size: 13, weight: .regular, design: .rounded))
+                        .fontWidth(.condensed)
 
                     if let infoMessage {
                         if let infoURL {

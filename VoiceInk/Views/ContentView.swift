@@ -63,6 +63,8 @@ struct ContentView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 760, minHeight: 540)
+        .fontDesign(.rounded)
+        .fontWidth(.condensed)
         .preferredColorScheme(.dark)
         .onReceive(NotificationCenter.default.publisher(for: .navigateToDestination)) { notification in
             guard let destination = notification.userInfo?["destination"] as? String else {
@@ -93,11 +95,17 @@ struct ContentView: View {
                     Text(viewType.rawValue)
                 } icon: {
                     Image(systemName: viewType.icon)
-                        .symbolRenderingMode(.hierarchical)
+                        .symbolRenderingMode(.monochrome)
                         .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(
+                            selectedView == viewType
+                                ? MonochromeStyle.primaryText.opacity(0.72)
+                                : MonochromeStyle.secondaryText
+                        )
                         .frame(width: 22)
                 }
-                .font(.system(size: 16, weight: selectedView == viewType ? .semibold : .regular))
+                .font(.system(size: 14, weight: selectedView == viewType ? .semibold : .regular, design: .rounded))
+                .fontWidth(.condensed)
                 .foregroundStyle(selectedView == viewType ? .primary : .secondary)
                 .padding(.vertical, 6)
                 .padding(.horizontal, 2)
@@ -105,6 +113,7 @@ struct ContentView: View {
                 .accessibilityIdentifier("sidebar.\(viewType.id)")
             }
             .listStyle(.sidebar)
+            .tint(Color(nsColor: .secondaryLabelColor))
             .scrollContentBackground(.hidden)
             .safeAreaPadding(.horizontal, 7)
         }
@@ -128,7 +137,8 @@ struct ContentView: View {
             .frame(width: 34, height: 34)
 
             Text("VoiceInk")
-                .font(.system(size: 17, weight: .semibold))
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .fontWidth(.condensed)
 
             Spacer(minLength: 0)
         }
@@ -141,11 +151,13 @@ struct ContentView: View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(currentView.rawValue)
-                    .font(.title2.weight(.semibold))
+                    .font(.system(size: 21, weight: .semibold, design: .rounded))
+                    .fontWidth(.condensed)
                     .foregroundStyle(.primary)
 
                 Text(currentView.subtitle)
-                    .font(.subheadline)
+                    .font(.system(size: 13, weight: .regular, design: .rounded))
+                    .fontWidth(.condensed)
                     .foregroundStyle(.secondary)
             }
 

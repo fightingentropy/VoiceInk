@@ -20,11 +20,14 @@ struct ModelManagementView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                defaultModelSection
-                languageSelectionSection
+                modelPreferencesSection
                 availableModelsSection
             }
-            .padding(24)
+            .padding(.horizontal, 28)
+            .padding(.top, 24)
+            .padding(.bottom, 32)
+            .frame(maxWidth: 760)
+            .frame(maxWidth: .infinity, alignment: .center)
         }
         .frame(minWidth: 600, minHeight: 500)
         .alert(isPresented: $isShowingDeleteAlert) {
@@ -37,31 +40,55 @@ struct ModelManagementView: View {
         }
     }
     
+    private var modelPreferencesSection: some View {
+        VStack(spacing: 0) {
+            defaultModelSection
+
+            MonochromeDivider()
+                .padding(.horizontal, 14)
+
+            languageSelectionSection
+        }
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.75)
+        }
+        .shadow(color: .black.opacity(0.08), radius: 10, y: 4)
+    }
+
     private var defaultModelSection: some View {
         HStack(spacing: 8) {
             Text("Default Model")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(.system(size: 13, weight: .regular, design: .rounded))
+                .fontWidth(.condensed)
+                .foregroundStyle(.secondary)
             Spacer()
             Text(transcriptionModelManager.currentTranscriptionModel?.displayName ?? "No model selected")
-                .font(.subheadline)
-                .fontWeight(.semibold)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .fontWidth(.condensed)
+                .lineLimit(1)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 16)
+        .frame(minHeight: 48)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(CardBackground(isSelected: false))
     }
 
     private var languageSelectionSection: some View {
-        LanguageSelectionView(transcriptionModelManager: transcriptionModelManager, displayMode: .full, whisperPrompt: whisperPrompt)
+        LanguageSelectionView(
+            transcriptionModelManager: transcriptionModelManager,
+            displayMode: .full,
+            whisperPrompt: whisperPrompt,
+            showsBackground: false
+        )
     }
     
     private var availableModelsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("Models")
-                    .font(.headline)
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .fontWidth(.condensed)
                 
                 Spacer()
                 

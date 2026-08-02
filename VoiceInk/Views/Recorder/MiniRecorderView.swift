@@ -3,12 +3,12 @@ import AppKit
 
 struct MiniRecorderPillLayout {
     static let collapsedSize = CGSize(width: 48, height: 20)
-    static let expandedHeight: CGFloat = 32
-    static let maximumWidth: CGFloat = 720
+    static let expandedHeight: CGFloat = 30
+    static let maximumWidth: CGFloat = 540
 
-    private static let horizontalPadding: CGFloat = 28
-    private static let caretAllowance: CGFloat = 5
-    private static let verticalPadding: CGFloat = 12
+    private static let horizontalPadding: CGFloat = 24
+    private static let caretAllowance: CGFloat = 4
+    private static let verticalPadding: CGFloat = 11
 
     static func size(
         for transcript: String,
@@ -21,7 +21,7 @@ struct MiniRecorderPillLayout {
         }
 
         let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 12, weight: .medium)
+            .font: NSFont.systemFont(ofSize: 11.5, weight: .medium, width: .condensed)
         ]
         let attributedText = NSAttributedString(string: trimmed, attributes: attributes)
         let totalHorizontalInset = horizontalPadding + caretAllowance
@@ -76,9 +76,13 @@ struct MiniRecorderView<S: RecorderStateProvider & ObservableObject>: View {
 
         return contentLayout(pillSize: pillSize)
             .frame(width: pillSize.width, height: pillSize.height)
-            .background(Color(red: 0.025, green: 0.025, blue: 0.03).opacity(0.98), in: shape)
-            .overlay(shape.stroke(.white.opacity(0.14), lineWidth: 0.75))
-            .shadow(color: .black.opacity(0.48), radius: 8, y: 3)
+            .background {
+                shape
+                    .fill(.regularMaterial)
+                    .overlay(shape.fill(Color.white.opacity(0.08)))
+            }
+            .overlay(shape.stroke(.white.opacity(0.18), lineWidth: 0.75))
+            .shadow(color: .black.opacity(0.26), radius: 12, y: 4)
     }
 
     var body: some View {
