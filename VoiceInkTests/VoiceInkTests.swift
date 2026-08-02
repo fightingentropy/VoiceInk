@@ -46,6 +46,10 @@ struct VoiceInkTests {
             for: "hello this sentence should remain visible as the live transcript grows",
             isTranscriptVisible: true
         )
+        let reportedLayoutIssue = MiniRecorderPillLayout.size(
+            for: "It's fine, no need for the custom",
+            isTranscriptVisible: true
+        )
         let long = MiniRecorderPillLayout.size(
             for: String(repeating: "the complete live transcript remains visible ", count: 12),
             isTranscriptVisible: true
@@ -54,8 +58,10 @@ struct VoiceInkTests {
 
         #expect(collapsed == MiniRecorderPillLayout.collapsedSize)
         #expect(hidden == MiniRecorderPillLayout.collapsedSize)
-        #expect(short.width > collapsed.width)
+        #expect(short.width >= collapsed.width)
         #expect(sentence.width > short.width)
+        #expect(reportedLayoutIssue.height <= MiniRecorderPillLayout.expandedHeight + 1)
+        #expect(reportedLayoutIssue.width < 200)
         #expect(long.width == MiniRecorderPillLayout.maximumWidth)
         #expect(MiniRecorderPillLayout.maximumWidth == 540)
         #expect(long.height > MiniRecorderPillLayout.expandedHeight)

@@ -7,7 +7,6 @@ struct MiniRecorderPillLayout {
     static let maximumWidth: CGFloat = 540
 
     private static let horizontalPadding: CGFloat = 24
-    private static let caretAllowance: CGFloat = 4
     private static let verticalPadding: CGFloat = 11
 
     static func size(
@@ -24,7 +23,7 @@ struct MiniRecorderPillLayout {
             .font: NSFont.systemFont(ofSize: 11.5, weight: .medium, width: .condensed)
         ]
         let attributedText = NSAttributedString(string: trimmed, attributes: attributes)
-        let totalHorizontalInset = horizontalPadding + caretAllowance
+        let totalHorizontalInset = horizontalPadding
         let constrainedMaximumWidth = max(collapsedSize.width, maximumWidth)
         let maximumTextWidth = max(1, constrainedMaximumWidth - totalHorizontalInset)
         let singleLineBounds = attributedText.boundingRect(
@@ -68,7 +67,7 @@ struct MiniRecorderView<S: RecorderStateProvider & ObservableObject>: View {
             )
         }
         .frame(height: pillSize.height)
-        .padding(.horizontal, hasVisibleTranscript ? 14 : 0)
+        .padding(.horizontal, hasVisibleTranscript ? 12 : 0)
     }
 
     private func recorderPill(pillSize: CGSize) -> some View {

@@ -130,8 +130,6 @@ private struct LiveTranscriptStatusDisplay: View {
     let isListening: Bool
     let isCompact: Bool
 
-    @State private var isCaretVisible = true
-
     private var displayText: String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -143,29 +141,15 @@ private struct LiveTranscriptStatusDisplay: View {
     var body: some View {
         Group {
             if hasTranscript {
-                HStack(alignment: .bottom, spacing: 4) {
-                    Text(displayText)
-                        .font(.system(size: isCompact ? 11.5 : 13, weight: .medium, design: .rounded))
-                        .fontWidth(.condensed)
-                        .foregroundStyle(.white.opacity(0.92))
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    if isListening {
-                        RoundedRectangle(cornerRadius: 0.5)
-                            .fill(.white.opacity(0.9))
-                            .frame(width: 1, height: isCompact ? 12 : 14)
-                            .opacity(isCaretVisible ? 1 : 0.18)
-                    }
-                }
+                Text(displayText)
+                    .font(.system(size: isCompact ? 11.5 : 13, weight: .medium, design: .rounded))
+                    .fontWidth(.condensed)
+                    .foregroundStyle(.white.opacity(0.92))
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Color.clear
-            }
-        }
-        .onAppear {
-            withAnimation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true)) {
-                isCaretVisible = false
             }
         }
         .accessibilityElement(children: .ignore)
