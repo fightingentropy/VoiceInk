@@ -93,6 +93,65 @@ private final class StreamingAudioRouter: @unchecked Sendable {
     }
 }
 
+/// Builds one stable live transcript from providers that emit a mixture of
+/// finalized segments and replaceable partial text. Some providers send only
+/// the newest phrase while others repeat the full transcript, so composition
+/// also removes prefix/suffix overlap.
+enum StreamingTranscriptComposer {
+    static func compose(committedSegments: [String], partial: String? = nil) -> String {
+        var result = ""
+        for segment in committedSegments {
+            result = merge(result, normalized(segment))
+        }
+        if let partial {
+            result = merge(result, normalized(partial))
+        }
+        return result
+    }
+
+    private static func normalized(_ text: String) -> String {
+        text
+            .split(whereSeparator: \Character.isWhitespace)
+            .joined(separator: " ")
+    }
+
+    private static func merge(_ existing: String, _ incoming: String) -> String {
+        guard !incoming.isEmpty else { return existing }
+        guard !existing.isEmpty else { return incoming }
+
+        let existingWords = existing.split(separator: " ").map(String.init)
+        let incomingWords = incoming.split(separator: " ").map(String.init)
+        let existingComparison = existingWords.map(comparisonToken)
+        let incomingComparison = incomingWords.map(comparisonToken)
+
+        if incomingComparison.starts(with: existingComparison) {
+            return incoming
+        }
+        if existingComparison.suffix(incomingComparison.count).elementsEqual(incomingComparison) {
+            return existing
+        }
+
+        let maximumOverlap = min(existingWords.count, incomingWords.count)
+        if maximumOverlap > 0 {
+            for overlap in stride(from: maximumOverlap, through: 1, by: -1) {
+                let existingSuffix = existingComparison.suffix(overlap)
+                let incomingPrefix = incomingComparison.prefix(overlap)
+                if existingSuffix.elementsEqual(incomingPrefix) {
+                    return (existingWords + incomingWords.dropFirst(overlap)).joined(separator: " ")
+                }
+            }
+        }
+
+        return "\(existing) \(incoming)"
+    }
+
+    private static func comparisonToken(_ token: String) -> String {
+        token
+            .lowercased()
+            .trimmingCharacters(in: .punctuationCharacters)
+    }
+}
+
 /// Manages a streaming transcription lifecycle: buffers audio chunks, sends them to the provider, and collects the final text.
 @MainActor
 final class StreamingTranscriptionService: NSObject {
@@ -112,6 +171,7 @@ final class StreamingTranscriptionService: NSObject {
     private var eventConsumerTask: Task<Void, Never>?
     private var state: StreamingState = .idle
     private var committedSegments: [String] = []
+    private var currentPartialTranscript = ""
     private var providerDidFinalize = false
     private var streamingFailure: Error?
 
@@ -167,6 +227,7 @@ final class StreamingTranscriptionService: NSObject {
         self.provider = provider
         streamingFailure = nil
         committedSegments = []
+        currentPartialTranscript = ""
         providerDidFinalize = false
         state = .connecting
         audioRouter.install(pipe)
@@ -258,6 +319,7 @@ final class StreamingTranscriptionService: NSObject {
         audioPipe = nil
         streamingFailure = nil
         committedSegments = []
+        currentPartialTranscript = ""
         providerDidFinalize = false
         state = .idle
 
@@ -359,10 +421,24 @@ final class StreamingTranscriptionService: NSObject {
                     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
                     if !trimmed.isEmpty {
                         self.committedSegments.append(trimmed)
+                        self.currentPartialTranscript = ""
+                        if self.state == .streaming {
+                            self.onPartialTranscript?(
+                                StreamingTranscriptComposer.compose(
+                                    committedSegments: self.committedSegments
+                                )
+                            )
+                        }
                     }
                 case .partial(let text):
                     if self.state == .streaming {
-                        self.onPartialTranscript?(text)
+                        self.currentPartialTranscript = text
+                        self.onPartialTranscript?(
+                            StreamingTranscriptComposer.compose(
+                                committedSegments: self.committedSegments,
+                                partial: self.currentPartialTranscript
+                            )
+                        )
                     }
                 case .finalized:
                     self.providerDidFinalize = true
@@ -430,7 +506,7 @@ final class StreamingTranscriptionService: NSObject {
             logger.warning("No transcript received from streaming")
         }
 
-        return committedSegments.joined(separator: " ")
+        return StreamingTranscriptComposer.compose(committedSegments: committedSegments)
     }
 
     private func cleanupStreaming(sessionID: UUID, finalState: StreamingState) async {
@@ -444,6 +520,7 @@ final class StreamingTranscriptionService: NSObject {
         audioPipe = nil
         streamingFailure = nil
         committedSegments = []
+        currentPartialTranscript = ""
         providerDidFinalize = false
 
         sendTask?.cancel()

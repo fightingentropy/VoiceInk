@@ -79,6 +79,49 @@ struct StreamingTranscriptionServiceTests {
     }
 
     @Test
+    func liveTranscriptKeepsCommittedWordsBeforeTheNewestPartial() async throws {
+        let provider = FakeStreamingProvider(committedSegments: [])
+        let updates = TranscriptUpdateRecorder()
+        let service = StreamingTranscriptionService(
+            onPartialTranscript: { updates.record($0) },
+            providerFactory: { _ in provider }
+        )
+
+        try await service.startStreaming(model: model)
+        provider.emitPartial("These words came first")
+        try await waitUntil { updates.last == "These words came first" }
+
+        provider.emitCommitted("These words came first")
+        provider.emitPartial("and these are the last few words")
+        try await waitUntil {
+            updates.last == "These words came first and these are the last few words"
+        }
+
+        service.cancel()
+    }
+
+    @Test
+    func transcriptCompositionHandlesSegmentedAndCumulativeProviderUpdates() {
+        #expect(
+            StreamingTranscriptComposer.compose(
+                committedSegments: ["These words came first"],
+                partial: "and these are the last few words"
+            ) == "These words came first and these are the last few words"
+        )
+        #expect(
+            StreamingTranscriptComposer.compose(
+                committedSegments: ["These words came first"],
+                partial: "These words came first and these are the last few words"
+            ) == "These words came first and these are the last few words"
+        )
+        #expect(
+            StreamingTranscriptComposer.compose(
+                committedSegments: ["one two", "two three", "three four"]
+            ) == "one two three four"
+        )
+    }
+
+    @Test
     func providerFinalizationSignalSkipsTrailingQuietPeriod() async throws {
         let provider = FakeStreamingProvider(
             committedSegments: ["ready"],
@@ -388,5 +431,26 @@ private actor FakeStreamingProvider: StreamingTranscriptionProvider {
     func failConnection(_ message: String) {
         continuation.yield(.error(StreamingTranscriptionError.connectionFailed(message)))
         continuation.finish()
+    }
+
+    nonisolated func emitPartial(_ text: String) {
+        continuation.yield(.partial(text: text))
+    }
+
+    nonisolated func emitCommitted(_ text: String) {
+        continuation.yield(.committed(text: text))
+    }
+}
+
+private final class TranscriptUpdateRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var updates: [String] = []
+
+    var last: String? {
+        lock.withLock { updates.last }
+    }
+
+    func record(_ text: String) {
+        lock.withLock { updates.append(text) }
     }
 }

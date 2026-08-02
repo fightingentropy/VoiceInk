@@ -1,9 +1,13 @@
 import SwiftUI
 
+/// A compact voice waveform driven by the microphone meter while recording.
+/// During final transcription it settles into a subtle travelling pulse, so the
+/// same visual communicates both states without labels or transcript text.
 struct AudioVisualizer: View {
     let audioMeter: AudioMeter
     let color: Color
     let isActive: Bool
+    let isProcessing: Bool
 
     private let barCount: Int
     private let barWidth: CGFloat
@@ -12,141 +16,96 @@ struct AudioVisualizer: View {
     private let maxHeight: CGFloat
     private let opacity: Double
 
-    private let phases: [Double]
-
     init(
         audioMeter: AudioMeter,
         color: Color,
         isActive: Bool,
-        barCount: Int = 15,
-        barWidth: CGFloat = 3,
-        barSpacing: CGFloat = 2,
-        minHeight: CGFloat = 4,
-        maxHeight: CGFloat = 28,
-        opacity: Double = 0.85
+        isProcessing: Bool = false,
+        barCount: Int = 19,
+        barWidth: CGFloat = 2.25,
+        barSpacing: CGFloat = 2.25,
+        minHeight: CGFloat = 2.5,
+        maxHeight: CGFloat = 20,
+        opacity: Double = 0.92
     ) {
         self.audioMeter = audioMeter
         self.color = color
         self.isActive = isActive
+        self.isProcessing = isProcessing
         self.barCount = barCount
         self.barWidth = barWidth
         self.barSpacing = barSpacing
         self.minHeight = minHeight
         self.maxHeight = maxHeight
         self.opacity = opacity
-
-        // Create smooth wave phases
-        self.phases = (0..<barCount).map { Double($0) * 0.4 }
     }
 
     var body: some View {
-        // TimelineView with 60Hz updates (native approach recommended by Apple WWDC 2021+)
-        TimelineView(.animation(minimumInterval: 0.016)) { context in
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
             HStack(spacing: barSpacing) {
                 ForEach(0..<barCount, id: \.self) { index in
-                    RoundedRectangle(cornerRadius: barWidth / 2)
-                        .fill(color.opacity(opacity))
-                        .frame(width: barWidth, height: calculateHeight(for: index, at: context.date))
+                    Capsule(style: .continuous)
+                        .fill(color.opacity(barOpacity(for: index, at: context.date)))
+                        .frame(
+                            width: barWidth,
+                            height: barHeight(for: index, at: context.date)
+                        )
                 }
             }
+            .frame(maxHeight: maxHeight)
         }
+        .animation(.snappy(duration: 0.12), value: audioMeter)
     }
 
-    private func calculateHeight(for index: Int, at date: Date) -> CGFloat {
+    private func barHeight(for index: Int, at date: Date) -> CGFloat {
+        if isProcessing {
+            return processingHeight(for: index, at: date)
+        }
+
         guard isActive else { return minHeight }
 
-        let time = date.timeIntervalSince1970
-        let level = audioMeter.averagePower
-        let amplitude = max(0, min(1, level))
+        let average = clamped(audioMeter.averagePower)
+        let peak = clamped(audioMeter.peakPower)
+        let boostedLevel = pow((average * 0.72) + (peak * 0.28), 0.62)
+        let position = normalizedPosition(for: index)
 
-        // Boost lower levels for better visibility
-        let boosted = pow(amplitude, 0.7)
+        // A soft centre envelope makes the meter read as one coherent waveform.
+        let envelope = 0.58 + (1 - abs(position)) * 0.42
+        let time = date.timeIntervalSinceReferenceDate
+        let detail = 0.72
+            + 0.18 * sin(time * 12 + Double(index) * 1.37)
+            + 0.10 * sin(time * 7 - Double(index) * 0.81)
+        let amplitude = boostedLevel * envelope * max(0.42, detail)
 
-        // Wave calculation
-        let wave = sin(time * 8 + phases[index]) * 0.5 + 0.5
-        let centerDistance = abs(Double(index) - Double(barCount) / 2) / Double(barCount / 2)
-        let centerBoost = 1.0 - (centerDistance * 0.4)
-
-        let height = minHeight + CGFloat(boosted * wave * centerBoost) * (maxHeight - minHeight)
-        return max(minHeight, height)
-    }
-}
-
-struct StaticVisualizer: View {
-    private let barCount: Int
-    private let barWidth: CGFloat
-    private let staticHeight: CGFloat
-    private let barSpacing: CGFloat
-    private let opacity: Double
-    let color: Color
-
-    init(
-        color: Color,
-        barCount: Int = 15,
-        barWidth: CGFloat = 3,
-        staticHeight: CGFloat = 4,
-        barSpacing: CGFloat = 2,
-        opacity: Double = 0.5
-    ) {
-        self.color = color
-        self.barCount = barCount
-        self.barWidth = barWidth
-        self.staticHeight = staticHeight
-        self.barSpacing = barSpacing
-        self.opacity = opacity
+        return minHeight + CGFloat(amplitude) * (maxHeight - minHeight)
     }
 
-    var body: some View {
-        HStack(spacing: barSpacing) {
-            ForEach(0..<barCount, id: \.self) { _ in
-                RoundedRectangle(cornerRadius: barWidth / 2)
-                    .fill(color.opacity(opacity))
-                    .frame(width: barWidth, height: staticHeight)
-            }
+    private func processingHeight(for index: Int, at date: Date) -> CGFloat {
+        let time = date.timeIntervalSinceReferenceDate
+        let position = normalizedPosition(for: index)
+        let travellingWave = (sin(time * 5.5 - position * 5.2) + 1) / 2
+        let centreEnvelope = 0.65 + (1 - abs(position)) * 0.35
+        let amplitude = 0.12 + travellingWave * centreEnvelope * 0.26
+
+        return minHeight + CGFloat(amplitude) * (maxHeight - minHeight)
+    }
+
+    private func barOpacity(for index: Int, at date: Date) -> Double {
+        guard isProcessing else {
+            return isActive ? opacity : opacity * 0.45
         }
-    }
-}
 
-// MARK: - Processing Status Display
-struct ProcessingStatusDisplay: View {
-    enum Mode {
-        case transcribing
+        let position = normalizedPosition(for: index)
+        let pulse = (sin(date.timeIntervalSinceReferenceDate * 5.5 - position * 5.2) + 1) / 2
+        return opacity * (0.50 + pulse * 0.42)
     }
 
-    let mode: Mode
-    let color: Color
-    let isCompact: Bool
-
-    init(mode: Mode, color: Color, isCompact: Bool = false) {
-        self.mode = mode
-        self.color = color
-        self.isCompact = isCompact
+    private func normalizedPosition(for index: Int) -> Double {
+        guard barCount > 1 else { return 0 }
+        return (Double(index) / Double(barCount - 1)) * 2 - 1
     }
 
-    private var label: String {
-        "Transcribing"
-    }
-
-    private var animationSpeed: Double {
-        0.18
-    }
-
-    var body: some View {
-        Group {
-            if isCompact {
-                ProgressAnimation(color: color.opacity(0.8), animationSpeed: animationSpeed)
-            } else {
-                VStack(spacing: 4) {
-                    Text(label)
-                        .foregroundColor(color)
-                        .font(.system(size: 11, weight: .medium))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.5)
-
-                    ProgressAnimation(color: color, animationSpeed: animationSpeed)
-                }
-            }
-        }
-        .frame(height: isCompact ? 18 : 28)
+    private func clamped(_ value: Double) -> Double {
+        min(max(value, 0), 1)
     }
 }
