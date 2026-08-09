@@ -100,6 +100,10 @@ class TranscriptionPipeline {
             logger.notice("📝 Word replacement completed")
             finalPastedText = text
 
+        } catch is CancellationError {
+            logger.notice("Transcription cancelled")
+            await onCleanup()
+            return
         } catch {
             let errorDescription = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             let recoverySuggestion = (error as? LocalizedError)?.recoverySuggestion ?? ""
@@ -110,17 +114,21 @@ class TranscriptionPipeline {
         if shouldCancel() { await onCleanup(); return }
 
         if let textToPaste = finalPastedText {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                let appendSpace = UserDefaults.standard.bool(forKey: "AppendTrailingSpace")
-                var pasteText = textToPaste + (appendSpace ? " " : "")
-                if UserDefaults.standard.bool(forKey: "ConvertLiteralDictationTokens") {
-                    pasteText = DictationLiteralFormatter.applyTerminalLiteralAutocompleteSpacing(
-                        pasteText,
-                        frontmostAppContext: Self.frontmostAppContext()
-                    )
-                }
-                CursorPaster.pasteAtCursor(pasteText)
+            try? await Task.sleep(nanoseconds: 50_000_000)
+            if shouldCancel() {
+                await onCleanup()
+                return
             }
+
+            let appendSpace = UserDefaults.standard.bool(forKey: "AppendTrailingSpace")
+            var pasteText = textToPaste + (appendSpace ? " " : "")
+            if UserDefaults.standard.bool(forKey: "ConvertLiteralDictationTokens") {
+                pasteText = DictationLiteralFormatter.applyTerminalLiteralAutocompleteSpacing(
+                    pasteText,
+                    frontmostAppContext: Self.frontmostAppContext()
+                )
+            }
+            CursorPaster.pasteAtCursor(pasteText)
         }
 
         await onDismiss()

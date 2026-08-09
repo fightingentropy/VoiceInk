@@ -295,4 +295,24 @@ struct DictationFormattingTests {
             ) == "Run /status and @Paul"
         )
     }
+
+    // MARK: - Dictionary replacements
+
+    @Test func dictionaryReplacementsPreserveLiteralTemplateCharacters() {
+        #expect(
+            WordReplacementService.replacing("price", with: "$5", in: "The price")
+                == "The $5"
+        )
+        #expect(
+            WordReplacementService.replacing("price", with: "cost $1", in: "PRICE")
+                == "cost $1"
+        )
+        #expect(
+            WordReplacementService.replacing(
+                "folder",
+                with: "C:\\temp\\file",
+                in: "Open folder"
+            ) == "Open C:\\temp\\file"
+        )
+    }
 }

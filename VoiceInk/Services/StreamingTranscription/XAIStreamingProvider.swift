@@ -193,7 +193,9 @@ actor XAIStreamingProvider: StreamingTranscriptionProvider {
                 eventsContinuation.yield(.partial(text: text))
             }
         case "transcript.done":
-            eventsContinuation.yield(.committed(text: event.text ?? ""))
+            // xAI's done event is the authoritative full-session transcript,
+            // unlike transcript.partial, which describes the current segment.
+            eventsContinuation.yield(.committedSnapshot(text: event.text ?? ""))
             if isAwaitingFinalization {
                 isAwaitingFinalization = false
                 eventsContinuation.yield(.finalized)

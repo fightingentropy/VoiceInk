@@ -5,6 +5,7 @@ extension Notification.Name {
     static let languageDidChange = Notification.Name("languageDidChange")
     static let toggleMiniRecorder = Notification.Name("toggleMiniRecorder")
     static let dismissMiniRecorder = Notification.Name("dismissMiniRecorder")
+    static let cancelMiniRecorder = Notification.Name("cancelMiniRecorder")
     static let didChangeModel = Notification.Name("didChangeModel")
     static let navigateToDestination = Notification.Name("navigateToDestination")
     static let transcriptionCreated = Notification.Name("transcriptionCreated")

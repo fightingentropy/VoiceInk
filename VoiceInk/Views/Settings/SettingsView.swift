@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import KeyboardShortcuts
 import LaunchAtLogin
 

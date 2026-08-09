@@ -29,31 +29,41 @@ final class WordReplacementService: @unchecked Sendable {
                 .filter { !$0.isEmpty }
 
             for original in variants {
-                let usesBoundaries = usesWordBoundaries(for: original)
-
-                if usesBoundaries {
-                    // Word-boundary regex for full original string
-                    let pattern = "\\b\(NSRegularExpression.escapedPattern(for: original))\\b"
-                    if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
-                        let range = NSRange(modifiedText.startIndex..., in: modifiedText)
-                        modifiedText = regex.stringByReplacingMatches(
-                            in: modifiedText,
-                            options: [],
-                            range: range,
-                            withTemplate: replacementText
-                        )
-                    }
-                } else {
-                    // Fallback substring replace for non-spaced scripts
-                    modifiedText = modifiedText.replacingOccurrences(of: original, with: replacementText, options: .caseInsensitive)
-                }
+                modifiedText = Self.replacing(
+                    original,
+                    with: replacementText,
+                    in: modifiedText
+                )
             }
         }
 
         return modifiedText
     }
 
-    private func usesWordBoundaries(for text: String) -> Bool {
+    static func replacing(_ original: String, with replacement: String, in text: String) -> String {
+        guard usesWordBoundaries(for: original) else {
+            return text.replacingOccurrences(
+                of: original,
+                with: replacement,
+                options: .caseInsensitive
+            )
+        }
+
+        let pattern = "\\b\(NSRegularExpression.escapedPattern(for: original))\\b"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+            return text
+        }
+
+        let range = NSRange(text.startIndex..., in: text)
+        return regex.stringByReplacingMatches(
+            in: text,
+            options: [],
+            range: range,
+            withTemplate: NSRegularExpression.escapedTemplate(for: replacement)
+        )
+    }
+
+    private static func usesWordBoundaries(for text: String) -> Bool {
         // Returns false for languages without spaces (CJK, Thai), true for spaced languages
         let nonSpacedScripts: [ClosedRange<UInt32>] = [
             0x3040...0x309F, // Hiragana

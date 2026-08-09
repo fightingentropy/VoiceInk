@@ -653,12 +653,12 @@ private actor BenchmarkEventRecorder {
 
     func record(_ event: StreamingTranscriptionEvent) {
         switch event {
-        case .committed(let text):
+        case .committed(let text), .committedSnapshot(let text):
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty {
                 committedTexts.append(trimmed)
             }
-        case .partial(let text):
+        case .partial(let text), .partialSnapshot(let text):
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty {
                 partialTexts.append(trimmed)

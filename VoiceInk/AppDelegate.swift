@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     weak var menuBarManager: MenuBarManager?
+    @MainActor weak var engine: VoiceInkEngine?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         menuBarManager?.applyActivationPolicy()
@@ -37,8 +38,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return response == .alertSecondButtonReturn ? .terminateNow : .terminateCancel
     }
 
+    @MainActor
     func applicationWillTerminate(_ notification: Notification) {
         _ = notification
+        engine?.prepareForTermination()
     }
 
     // Stash URL when app cold-starts to avoid spawning a new window/tab

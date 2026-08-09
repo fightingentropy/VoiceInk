@@ -71,7 +71,7 @@ class RecorderUIManager: ObservableObject {
         }
     }
 
-    func dismissMiniRecorder() async {
+    func dismissMiniRecorder(discardStoppedRecording: Bool = true) async {
         guard let engine = engine, let recorder = recorder else { return }
         logger.notice("dismissMiniRecorder called – state=\(String(describing: engine.recordingState), privacy: .public)")
 
@@ -80,18 +80,21 @@ class RecorderUIManager: ObservableObject {
             return
         }
 
-        let wasRecording = engine.recordingState == .recording
+        let shouldStopRecorder = engine.recordingState == .recording
+            || engine.isRecordingStartupInProgress
 
         await MainActor.run {
             engine.recordingState = .busy
         }
 
         // Cancel and release any active streaming session to prevent resource leaks.
-        engine.currentSession?.cancel()
-        engine.currentSession = nil
+        engine.cancelTranscriptionSessions()
 
-        if wasRecording {
+        if shouldStopRecorder {
             await recorder.stopRecording()
+        }
+        if discardStoppedRecording {
+            engine.discardRecordedFile()
         }
 
         hideRecorderPanel()
@@ -116,6 +119,7 @@ class RecorderUIManager: ObservableObject {
         guard let engine = engine, let recorder = recorder else { return }
         logger.notice("Resetting recording state on launch")
         await recorder.stopRecording()
+        engine.discardRecordedFile()
         hideRecorderPanel()
         await MainActor.run {
             isMiniRecorderVisible = false
@@ -130,8 +134,8 @@ class RecorderUIManager: ObservableObject {
         guard let engine = engine else { return }
         logger.notice("cancelRecording called")
         SoundManager.shared.playEscSound()
-        engine.shouldCancelRecording = true
-        await dismissMiniRecorder()
+        engine.requestCancellation()
+        await dismissMiniRecorder(discardStoppedRecording: true)
     }
 
     // MARK: - Notification Handling
@@ -149,6 +153,12 @@ class RecorderUIManager: ObservableObject {
             name: .dismissMiniRecorder,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleCancelMiniRecorder),
+            name: .cancelMiniRecorder,
+            object: nil
+        )
     }
 
     @objc public func handleToggleMiniRecorder() {
@@ -161,7 +171,16 @@ class RecorderUIManager: ObservableObject {
     @objc public func handleDismissMiniRecorder() {
         logger.notice("handleDismissMiniRecorder: .dismissMiniRecorder notification received")
         Task {
-            await dismissMiniRecorder()
+            // A user-facing dismiss request is cancellation, even for legacy
+            // callers still posting the older notification name.
+            await cancelRecording()
+        }
+    }
+
+    @objc public func handleCancelMiniRecorder() {
+        logger.notice("handleCancelMiniRecorder: .cancelMiniRecorder notification received")
+        Task {
+            await cancelRecording()
         }
     }
 

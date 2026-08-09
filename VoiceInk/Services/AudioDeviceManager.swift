@@ -3,6 +3,24 @@ import CoreAudio
 import AVFoundation
 import os
 
+private func audioDevicePropertyListener(
+    _ objectID: AudioObjectID,
+    _ addressCount: UInt32,
+    _ addresses: UnsafePointer<AudioObjectPropertyAddress>,
+    _ userData: UnsafeMutableRawPointer?
+) -> OSStatus {
+    _ = objectID
+    _ = addressCount
+    _ = addresses
+    guard let userData else { return noErr }
+
+    let manager = Unmanaged<AudioDeviceManager>.fromOpaque(userData).takeUnretainedValue()
+    DispatchQueue.main.async {
+        manager.handleDeviceListChange()
+    }
+    return noErr
+}
+
 struct PrioritizedDevice: Codable, Identifiable {
     let id: String
     let name: String
@@ -165,14 +183,16 @@ final class AudioDeviceManager: ObservableObject, @unchecked Sendable {
         
         var deviceIDs = [AudioDeviceID](repeating: 0, count: deviceCount)
         
-        result = AudioObjectGetPropertyData(
-            AudioObjectID(kAudioObjectSystemObject),
-            &address,
-            0,
-            nil,
-            &propertySize,
-            &deviceIDs
-        )
+        result = deviceIDs.withUnsafeMutableBytes { buffer in
+            AudioObjectGetPropertyData(
+                AudioObjectID(kAudioObjectSystemObject),
+                &address,
+                0,
+                nil,
+                &propertySize,
+                buffer.baseAddress!
+            )
+        }
         
         if result != noErr {
             logger.error("Error getting audio devices: \(result, privacy: .public)")
@@ -206,9 +226,10 @@ final class AudioDeviceManager: ObservableObject, @unchecked Sendable {
     }
     
     func getDeviceName(deviceID: AudioDeviceID) -> String? {
-        let name: CFString? = getDeviceProperty(deviceID: deviceID,
-                                              selector: kAudioDevicePropertyDeviceNameCFString)
-        return name as String?
+        getDeviceStringProperty(
+            deviceID: deviceID,
+            selector: kAudioDevicePropertyDeviceNameCFString
+        )
     }
     
     private func isValidInputDevice(deviceID: AudioDeviceID) -> Bool {
@@ -409,13 +430,7 @@ final class AudioDeviceManager: ObservableObject, @unchecked Sendable {
         let status = AudioObjectAddPropertyListener(
             systemObjectID,
             &address,
-            { (_, _, _, userData) -> OSStatus in
-                let manager = Unmanaged<AudioDeviceManager>.fromOpaque(userData!).takeUnretainedValue()
-                DispatchQueue.main.async {
-                    manager.handleDeviceListChange()
-                }
-                return noErr
-            },
+            audioDevicePropertyListener,
             UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
         )
         
@@ -424,7 +439,7 @@ final class AudioDeviceManager: ObservableObject, @unchecked Sendable {
         }
     }
     
-    private func handleDeviceListChange() {
+    fileprivate func handleDeviceListChange() {
         logger.notice("🎙️ Device list change detected")
 
         loadAvailableDevices { [weak self] in
@@ -484,9 +499,10 @@ final class AudioDeviceManager: ObservableObject, @unchecked Sendable {
     }
     
     private func getDeviceUID(deviceID: AudioDeviceID) -> String? {
-        let uid: CFString? = getDeviceProperty(deviceID: deviceID,
-                                             selector: kAudioDevicePropertyDeviceUID)
-        return uid as String?
+        getDeviceStringProperty(
+            deviceID: deviceID,
+            selector: kAudioDevicePropertyDeviceUID
+        )
     }
     
     deinit {
@@ -499,9 +515,7 @@ final class AudioDeviceManager: ObservableObject, @unchecked Sendable {
         AudioObjectRemovePropertyListener(
             AudioObjectID(kAudioObjectSystemObject),
             &address,
-            { (_, _, _, userData) -> OSStatus in
-                return noErr
-            },
+            audioDevicePropertyListener,
             UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
         )
     }
@@ -516,30 +530,37 @@ final class AudioDeviceManager: ObservableObject, @unchecked Sendable {
         )
     }
     
-    private func getDeviceProperty<T>(deviceID: AudioDeviceID,
-                                    selector: AudioObjectPropertySelector,
-                                    scope: AudioObjectPropertyScope = kAudioObjectPropertyScopeGlobal) -> T? {
+    private func getDeviceStringProperty(
+        deviceID: AudioDeviceID,
+        selector: AudioObjectPropertySelector,
+        scope: AudioObjectPropertyScope = kAudioObjectPropertyScopeGlobal
+    ) -> String? {
         guard deviceID != 0 else { return nil }
-        
+
         var address = createPropertyAddress(selector: selector, scope: scope)
-        var propertySize = UInt32(MemoryLayout<T>.size)
-        var property: T? = nil
-        
+        var propertySize = UInt32(MemoryLayout<CFString>.size)
+        let property = UnsafeMutablePointer<Unmanaged<CFString>?>.allocate(capacity: 1)
+        property.initialize(to: nil)
+        defer { property.deallocate() }
+
         let status = AudioObjectGetPropertyData(
             deviceID,
             &address,
             0,
             nil,
             &propertySize,
-            &property
+            property
         )
-        
+
+        let unmanagedValue = property.move()
         if status != noErr {
+            unmanagedValue?.release()
             logger.error("Failed to get device property \(selector, privacy: .public) for device \(deviceID, privacy: .public): \(status, privacy: .public)")
             return nil
         }
-        
-        return property
+
+        guard let unmanagedValue else { return nil }
+        return unmanagedValue.takeRetainedValue() as String
     }
     
     private func notifyDeviceChange() {

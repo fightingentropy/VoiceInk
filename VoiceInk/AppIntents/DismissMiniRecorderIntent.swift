@@ -7,10 +7,11 @@ struct DismissMiniRecorderIntent: AppIntent {
     static let description = IntentDescription("Dismiss the VoiceInk mini recorder and cancel any active recording.")
     
     static let openAppWhenRun: Bool = false
+    static let cancellationNotification = Notification.Name.cancelMiniRecorder
     
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        NotificationCenter.default.post(name: .dismissMiniRecorder, object: nil)
+        NotificationCenter.default.post(name: Self.cancellationNotification, object: nil)
         
         let dialog = IntentDialog(stringLiteral: "VoiceInk recorder dismissed")
         return .result(dialog: dialog)

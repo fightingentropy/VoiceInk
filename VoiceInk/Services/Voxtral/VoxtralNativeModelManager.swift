@@ -231,9 +231,9 @@ final class VoxtralNativeModelManager: ObservableObject {
         progressKey: String?
     ) async throws -> (URL, URLResponse) {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<(URL, URLResponse), Error>) in
-            var progressObservation: NSKeyValueObservation?
+            let progressObservation = VoxtralDownloadProgressObservation()
             let task = urlSession.downloadTask(with: request) { tempURL, response, error in
-                progressObservation?.invalidate()
+                progressObservation.invalidate()
                 if let error {
                     continuation.resume(throwing: error)
                     return
@@ -253,12 +253,14 @@ final class VoxtralNativeModelManager: ObservableObject {
             }
 
             if let progressKey {
-                progressObservation = task.progress.observe(\.fractionCompleted, options: [.new]) { progress, _ in
-                    let fraction = progress.fractionCompleted
-                    Task { @MainActor in
-                        VoxtralNativeModelManager.shared.downloadProgress[progressKey] = max(0, min(1, fraction))
+                progressObservation.store(
+                    task.progress.observe(\.fractionCompleted, options: [.new]) { progress, _ in
+                        let fraction = progress.fractionCompleted
+                        Task { @MainActor in
+                            VoxtralNativeModelManager.shared.downloadProgress[progressKey] = max(0, min(1, fraction))
+                        }
                     }
-                }
+                )
             }
 
             task.resume()
@@ -329,6 +331,30 @@ final class VoxtralNativeModelManager: ObservableObject {
         }
 
         try FileManager.default.moveItem(at: temporaryURL, to: destinationURL)
+    }
+}
+
+private final class VoxtralDownloadProgressObservation: @unchecked Sendable {
+    private let lock = NSLock()
+    private var observation: NSKeyValueObservation?
+
+    func store(_ observation: NSKeyValueObservation) {
+        lock.withLock {
+            self.observation = observation
+        }
+    }
+
+    func invalidate() {
+        let observation = lock.withLock {
+            let observation = self.observation
+            self.observation = nil
+            return observation
+        }
+        observation?.invalidate()
+    }
+
+    deinit {
+        invalidate()
     }
 }
 

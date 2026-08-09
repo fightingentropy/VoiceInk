@@ -65,6 +65,85 @@ struct StreamingTranscriptionServiceTests {
     }
 
     @Test
+    func cancelledStreamingSessionDoesNotFallBackOrReturnText() async throws {
+        let provider = FakeStreamingProvider(committedSegments: [])
+        let streamingService = StreamingTranscriptionService(providerFactory: { _ in provider })
+        let fallback = RecordingFallbackTranscriptionService()
+        let session = StreamingTranscriptionSession(
+            streamingService: streamingService,
+            fallbackService: fallback
+        )
+
+        _ = try await session.prepare(model: model)
+        session.cancel()
+
+        do {
+            _ = try await session.transcribe(
+                audioURL: FileManager.default.temporaryDirectory.appendingPathComponent("cancelled.wav")
+            )
+            Issue.record("Expected the cancelled session to throw")
+        } catch {
+            #expect(error is CancellationError)
+        }
+        #expect(fallback.callCount == 0)
+    }
+
+    @Test
+    func cancellingDuringBatchFallbackCancelsTheFallbackTask() async throws {
+        let provider = FakeStreamingProvider(
+            committedSegments: [],
+            sendError: .serverError("stream failed")
+        )
+        let streamingService = StreamingTranscriptionService(providerFactory: { _ in provider })
+        let fallback = RecordingFallbackTranscriptionService(delayNanoseconds: 5_000_000_000)
+        let session = StreamingTranscriptionSession(
+            streamingService: streamingService,
+            fallbackService: fallback
+        )
+
+        _ = try await session.prepare(model: model)
+        streamingService.sendAudioChunk(Data([0x01, 0x02]))
+        let transcription = Task {
+            try await session.transcribe(
+                audioURL: FileManager.default.temporaryDirectory.appendingPathComponent("fallback.wav")
+            )
+        }
+        try await waitUntil { fallback.callCount == 1 }
+
+        session.cancel()
+
+        do {
+            _ = try await transcription.value
+            Issue.record("Expected cancellation to stop the batch fallback")
+        } catch {
+            #expect(error is CancellationError)
+        }
+    }
+
+    @Test
+    func cancellingFileTranscriptionCancelsTheActiveRequest() async throws {
+        let service = RecordingFallbackTranscriptionService(delayNanoseconds: 5_000_000_000)
+        let session = FileTranscriptionSession(service: service)
+
+        _ = try await session.prepare(model: model)
+        let transcription = Task {
+            try await session.transcribe(
+                audioURL: FileManager.default.temporaryDirectory.appendingPathComponent("batch.wav")
+            )
+        }
+        try await waitUntil { service.callCount == 1 }
+
+        session.cancel()
+
+        do {
+            _ = try await transcription.value
+            Issue.record("Expected cancellation to stop file transcription")
+        } catch {
+            #expect(error is CancellationError)
+        }
+    }
+
+    @Test
     func waitsForTrailingCommittedSegments() async throws {
         let provider = FakeStreamingProvider(
             committedSegments: ["hello", "world"],
@@ -101,7 +180,7 @@ struct StreamingTranscriptionServiceTests {
     }
 
     @Test
-    func transcriptCompositionHandlesSegmentedAndCumulativeProviderUpdates() {
+    func transcriptCompositionPreservesSequentialProviderSegments() {
         #expect(
             StreamingTranscriptComposer.compose(
                 committedSegments: ["These words came first"],
@@ -110,15 +189,81 @@ struct StreamingTranscriptionServiceTests {
         )
         #expect(
             StreamingTranscriptComposer.compose(
-                committedSegments: ["These words came first"],
-                partial: "These words came first and these are the last few words"
-            ) == "These words came first and these are the last few words"
+                committedSegments: ["very", "very"]
+            ) == "very very"
         )
         #expect(
             StreamingTranscriptComposer.compose(
-                committedSegments: ["one two", "two three", "three four"]
-            ) == "one two three four"
+                committedSegments: ["I said hello", "hello again"]
+            ) == "I said hello hello again"
         )
+        #expect(
+            StreamingTranscriptComposer.compose(snapshot: "  These words came first   and these are last  ")
+                == "These words came first and these are last"
+        )
+    }
+
+    @Test
+    func cumulativeProviderSnapshotsReplaceEarlierLiveText() async throws {
+        let provider = FakeStreamingProvider(committedSegments: [])
+        let updates = TranscriptUpdateRecorder()
+        let service = StreamingTranscriptionService(
+            onPartialTranscript: { updates.record($0) },
+            providerFactory: { _ in provider }
+        )
+
+        try await service.startStreaming(model: model)
+        provider.emitPartialSnapshot("These words came first")
+        try await waitUntil { updates.last == "These words came first" }
+
+        provider.emitCommittedSnapshot("These words came first")
+        provider.emitPartialSnapshot("These words came first and these are the last few words")
+        try await waitUntil {
+            updates.last == "These words came first and these are the last few words"
+        }
+
+        service.cancel()
+    }
+
+    @Test
+    func finalTranscriptUsesTheAuthoritativeProviderSnapshot() async throws {
+        let provider = FakeStreamingProvider(committedSegments: [])
+        let updates = TranscriptUpdateRecorder()
+        let service = StreamingTranscriptionService(
+            onPartialTranscript: { updates.record($0) },
+            providerFactory: { _ in provider }
+        )
+
+        try await service.startStreaming(model: model)
+        provider.emitCommitted("very")
+        provider.emitCommitted("very")
+        try await waitUntil { updates.last == "very very" }
+
+        provider.emitCommittedSnapshot("very very")
+        try await waitUntil { updates.last == "very very" }
+        service.sendAudioChunk(Data([0x01, 0x02]))
+
+        #expect(try await service.stopAndGetFinalText() == "very very")
+    }
+
+    @Test
+    func emptyAuthoritativeSnapshotClearsSpeculativeTranscript() async throws {
+        let provider = FakeStreamingProvider(committedSegments: [])
+        let updates = TranscriptUpdateRecorder()
+        let service = StreamingTranscriptionService(
+            onPartialTranscript: { updates.record($0) },
+            providerFactory: { _ in provider }
+        )
+
+        try await service.startStreaming(model: model)
+        provider.emitCommitted("speculative words")
+        try await waitUntil { updates.last == "speculative words" }
+
+        provider.emitCommittedSnapshot("")
+        try await waitUntil { updates.last == "" }
+        service.sendAudioChunk(Data([0x01, 0x02]))
+
+        #expect(try await service.stopAndGetFinalText().isEmpty)
     }
 
     @Test
@@ -440,6 +585,14 @@ private actor FakeStreamingProvider: StreamingTranscriptionProvider {
     nonisolated func emitCommitted(_ text: String) {
         continuation.yield(.committed(text: text))
     }
+
+    nonisolated func emitPartialSnapshot(_ text: String) {
+        continuation.yield(.partialSnapshot(text: text))
+    }
+
+    nonisolated func emitCommittedSnapshot(_ text: String) {
+        continuation.yield(.committedSnapshot(text: text))
+    }
 }
 
 private final class TranscriptUpdateRecorder: @unchecked Sendable {
@@ -452,5 +605,29 @@ private final class TranscriptUpdateRecorder: @unchecked Sendable {
 
     func record(_ text: String) {
         lock.withLock { updates.append(text) }
+    }
+}
+
+private final class RecordingFallbackTranscriptionService: TranscriptionService, @unchecked Sendable {
+    private let lock = NSLock()
+    private let delayNanoseconds: UInt64
+    private var calls = 0
+
+    init(delayNanoseconds: UInt64 = 0) {
+        self.delayNanoseconds = delayNanoseconds
+    }
+
+    var callCount: Int {
+        lock.withLock { calls }
+    }
+
+    func transcribe(audioURL: URL, model: any TranscriptionModel) async throws -> String {
+        _ = audioURL
+        _ = model
+        lock.withLock { calls += 1 }
+        if delayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: delayNanoseconds)
+        }
+        return "fallback"
     }
 }

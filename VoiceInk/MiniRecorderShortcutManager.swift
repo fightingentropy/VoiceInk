@@ -46,7 +46,7 @@ class MiniRecorderShortcutManager: ObservableObject {
         KeyboardShortcuts.onKeyDown(for: .escapeRecorder) { [weak self] in
             Task { @MainActor in
                 guard let self,
-                      await self.recorderUIManager.isMiniRecorderVisible else { return }
+                      self.recorderUIManager.isMiniRecorderVisible else { return }
 
                 guard KeyboardShortcuts.getShortcut(for: .cancelRecorder) == nil else { return }
 
@@ -86,7 +86,7 @@ class MiniRecorderShortcutManager: ObservableObject {
         KeyboardShortcuts.onKeyDown(for: .cancelRecorder) { [weak self] in
             Task { @MainActor in
                 guard let self,
-                      await self.recorderUIManager.isMiniRecorderVisible,
+                      self.recorderUIManager.isMiniRecorderVisible,
                       KeyboardShortcuts.getShortcut(for: .cancelRecorder) != nil else { return }
 
                 await self.recorderUIManager.cancelRecording()

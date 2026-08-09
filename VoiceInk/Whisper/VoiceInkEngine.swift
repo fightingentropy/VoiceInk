@@ -25,6 +25,13 @@ class VoiceInkEngine: NSObject, ObservableObject {
     @Published var shouldCancelRecording = false
     @Published var partialTranscript: String = ""
     var currentSession: TranscriptionSession?
+    private var activePipelineSession: TranscriptionSession?
+    private var activePipelineRecordings: Set<URL> = []
+    private var recordingStartupGeneration: UInt64?
+
+    var isRecordingStartupInProgress: Bool {
+        recordingStartupGeneration != nil
+    }
 
     let recorder = Recorder()
     var recordedFile: URL? = nil
@@ -107,16 +114,14 @@ class VoiceInkEngine: NSObject, ObservableObject {
                 if !shouldCancelRecording {
                     await runPipeline(audioURL: recordedFile, recordedAt: Date())
                 } else {
-                    currentSession?.cancel()
-                    currentSession = nil
-                    try? FileManager.default.removeItem(at: recordedFile)
+                    cancelTranscriptionSessions()
+                    discardRecordedFile()
                     recordingState = .idle
                     await cleanupResources()
                 }
             } else {
                 logger.error("❌ No recorded file found after stopping recording")
-                currentSession?.cancel()
-                currentSession = nil
+                cancelTranscriptionSessions()
                 recordingState = .idle
                 await cleanupResources()
             }
@@ -147,6 +152,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
             // Start of a fresh recording — invalidate any pending idle-unload
             // so we don't race against ourselves while the user is recording.
             activityGeneration &+= 1
+            let startupGeneration = activityGeneration
             idleUnloadTask?.cancel()
             idleUnloadTask = nil
 
@@ -154,6 +160,19 @@ class VoiceInkEngine: NSObject, ObservableObject {
                 if granted {
                     Task {
                         do {
+                            guard self.activityGeneration == startupGeneration,
+                                  !self.shouldCancelRecording,
+                                  self.recorderUIManager?.isMiniRecorderVisible ?? false else {
+                                return
+                            }
+
+                            if self.recordedFile != nil {
+                                self.discardRecordedFile()
+                                guard self.recordedFile == nil else {
+                                    throw VoiceInkEngineError.transcriptionFailed
+                                }
+                            }
+
                             let fileName = "\(UUID().uuidString).wav"
                             let permanentURL = self.recordingsDirectory.appendingPathComponent(fileName)
                             self.recordedFile = permanentURL
@@ -193,15 +212,41 @@ class VoiceInkEngine: NSObject, ObservableObject {
                                 startupForwarder.send(data)
                             }
 
+                            self.recordingStartupGeneration = startupGeneration
                             try await self.recorder.startRecording(toOutputFile: permanentURL)
+                            if self.recordingStartupGeneration == startupGeneration {
+                                self.recordingStartupGeneration = nil
+                            }
 
-                            guard self.recorderUIManager?.isMiniRecorderVisible ?? false, !self.shouldCancelRecording else {
-                                await self.recorder.stopRecording()
+                            let isCurrentSession = self.currentSession.map {
+                                ObjectIdentifier($0 as AnyObject) == sessionIdentity
+                            } ?? false
+
+                            guard self.activityGeneration == startupGeneration,
+                                  self.recordedFile == permanentURL,
+                                  isCurrentSession,
+                                  self.recorderUIManager?.isMiniRecorderVisible ?? false,
+                                  !self.shouldCancelRecording else {
                                 session.cancel()
                                 prepareTask.cancel()
                                 startupForwarder.finish()
-                                self.currentSession = nil
-                                self.recordedFile = nil
+                                if isCurrentSession {
+                                    self.currentSession = nil
+                                }
+
+                                if self.activityGeneration == startupGeneration {
+                                    await self.recorder.stopRecording()
+                                    if self.recordedFile == permanentURL {
+                                        self.discardRecordedFile()
+                                    } else {
+                                        _ = EphemeralTranscriptionPolicy.discardRecording(at: permanentURL)
+                                    }
+                                } else {
+                                    if self.recordedFile == permanentURL {
+                                        self.recordedFile = nil
+                                    }
+                                    _ = EphemeralTranscriptionPolicy.discardRecording(at: permanentURL)
+                                }
                                 return
                             }
 
@@ -269,13 +314,22 @@ class VoiceInkEngine: NSObject, ObservableObject {
                             }
 
                         } catch {
+                            if self.recordingStartupGeneration == startupGeneration {
+                                self.recordingStartupGeneration = nil
+                            }
+
+                            guard self.activityGeneration == startupGeneration else {
+                                self.logger.notice("Ignoring failure from a superseded recording startup")
+                                return
+                            }
+
                             self.logger.error("❌ Failed to start recording: \(error.localizedDescription, privacy: .public)")
-                            self.currentSession?.cancel()
-                            self.currentSession = nil
+                            self.cancelTranscriptionSessions()
+                            await self.recorder.stopRecording()
+                            self.discardRecordedFile()
                             NotificationManager.shared.showNotification(title: "Recording failed to start", type: .error)
                             self.logger.notice("toggleRecord: calling dismissMiniRecorder from error handler")
                             await self.recorderUIManager?.dismissMiniRecorder()
-                            self.recordedFile = nil
                         }
                     }
                 } else {
@@ -313,10 +367,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
         await recorder.stopRecording()
 
-        if let recordedFile {
-            _ = EphemeralTranscriptionPolicy.discardRecording(at: recordedFile)
-            self.recordedFile = nil
-        }
+        discardRecordedFile()
 
         if let recorderUIManager {
             await recorderUIManager.dismissMiniRecorder()
@@ -334,34 +385,77 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
     private func runPipeline(audioURL: URL, recordedAt: Date) async {
         guard let model = transcriptionModelManager.currentTranscriptionModel else {
+            cancelTranscriptionSessions()
+            discardRecordedFile()
             recordingState = .idle
+            if let recorderUIManager {
+                await recorderUIManager.dismissMiniRecorder()
+            } else {
+                await cleanupResources()
+            }
             return
         }
 
         activityGeneration &+= 1
+        let pipelineGeneration = activityGeneration
         idleUnloadTask?.cancel()
         idleUnloadTask = nil
 
         let session = currentSession
         currentSession = nil
+        activePipelineSession = session
+        activePipelineRecordings.insert(audioURL)
+        let sessionIdentity = session.map { ObjectIdentifier($0) }
+        if recordedFile == audioURL {
+            // The pipeline owns this URL until its defer completes. Releasing
+            // the recorder slot lets a newly started recording use its own URL
+            // without an older cancelled pipeline deleting it later.
+            recordedFile = nil
+        }
 
         await pipeline.run(
             audioURL: audioURL,
             recordedAt: recordedAt,
             model: model,
             session: session,
-            onStateChange: { [weak self] state in self?.recordingState = state },
-            shouldCancel: { [weak self] in self?.shouldCancelRecording ?? false },
-            onCleanup: { [weak self] in await self?.cleanupResources() },
-            onDismiss: { [weak self] in await self?.recorderUIManager?.dismissMiniRecorder() }
+            onStateChange: { [weak self] state in
+                guard let self, self.activityGeneration == pipelineGeneration else { return }
+                self.recordingState = state
+            },
+            shouldCancel: { [weak self] in
+                guard let self else { return true }
+                return self.shouldCancelRecording || self.activityGeneration != pipelineGeneration
+            },
+            onCleanup: { [weak self] in
+                guard let self, self.activityGeneration == pipelineGeneration else { return }
+                await self.cleanupResources()
+            },
+            onDismiss: { [weak self] in
+                guard let self, self.activityGeneration == pipelineGeneration else { return }
+                await self.recorderUIManager?.dismissMiniRecorder()
+            }
         )
 
-        shouldCancelRecording = false
-        if recordingState != .idle {
-            recordingState = .idle
+        if activePipelineSession.map({ ObjectIdentifier($0) }) == sessionIdentity {
+            activePipelineSession = nil
         }
 
-        scheduleIdleUnloadIfNeeded()
+        // The pipeline discards in a defer. Retry the same URL once if the
+        // first filesystem removal failed; never touch a newer recording.
+        let discarded = EphemeralTranscriptionPolicy.discardRecording(at: audioURL)
+        if !discarded, FileManager.default.fileExists(atPath: audioURL.path) {
+            logger.error("Could not discard the temporary recording")
+        } else {
+            activePipelineRecordings.remove(audioURL)
+        }
+
+        if activityGeneration == pipelineGeneration {
+            shouldCancelRecording = false
+            if recordingState != .idle {
+                recordingState = .idle
+            }
+            scheduleIdleUnloadIfNeeded()
+        }
     }
 
     /// Schedules a one-shot task that unloads large local models after the
@@ -393,6 +487,50 @@ class VoiceInkEngine: NSObject, ObservableObject {
     }
 
     // MARK: - Resource Cleanup
+
+    func requestCancellation() {
+        shouldCancelRecording = true
+        activityGeneration &+= 1
+        idleUnloadTask?.cancel()
+        idleUnloadTask = nil
+    }
+
+    @discardableResult
+    func discardRecordedFile(fileManager: FileManager = .default) -> Bool {
+        let recordingURL = recordedFile
+        let discarded = EphemeralTranscriptionPolicy.discardRecording(
+            referencedBy: &recordedFile,
+            fileManager: fileManager
+        )
+
+        if let recordingURL,
+           !discarded,
+           fileManager.fileExists(atPath: recordingURL.path) {
+            logger.error("Could not discard the temporary recording")
+        }
+        return discarded
+    }
+
+    func cancelTranscriptionSessions(fileManager: FileManager = .default) {
+        currentSession?.cancel()
+        currentSession = nil
+        activePipelineSession?.cancel()
+        activePipelineSession = nil
+
+        if !activePipelineRecordings.isEmpty,
+           !EphemeralTranscriptionPolicy.discardRecordings(
+               referencedBy: &activePipelineRecordings,
+               fileManager: fileManager
+           ) {
+            logger.error("Could not discard every active pipeline recording")
+        }
+    }
+
+    func prepareForTermination(fileManager: FileManager = .default) {
+        requestCancellation()
+        cancelTranscriptionSessions(fileManager: fileManager)
+        discardRecordedFile(fileManager: fileManager)
+    }
 
     func cleanupResources() async {
         logger.notice("cleanupResources: releasing model resources")

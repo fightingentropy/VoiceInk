@@ -24,6 +24,8 @@ final class FileTranscriptionSession: TranscriptionSession {
     private let service: any RecorderTranscriptionService
     private var model: (any TranscriptionModel)?
     private let pcmAccumulator = RecordedPCMAccumulator()
+    private var isCancelled = false
+    private var transcriptionTask: Task<String, Error>?
 
     init(service: any RecorderTranscriptionService) {
         self.service = service
@@ -31,6 +33,7 @@ final class FileTranscriptionSession: TranscriptionSession {
 
     func prepare(model: any TranscriptionModel) async throws -> (@Sendable (Data) -> Void)? {
         self.model = model
+        isCancelled = false
         pcmAccumulator.reset()
 
         guard service is PCMBufferTranscriptionService else {
@@ -43,6 +46,9 @@ final class FileTranscriptionSession: TranscriptionSession {
     }
 
     func transcribe(audioURL: URL) async throws -> String {
+        guard !isCancelled else {
+            throw CancellationError()
+        }
         guard let model = model else {
             throw VoiceInkEngineError.transcriptionFailed
         }
@@ -53,21 +59,38 @@ final class FileTranscriptionSession: TranscriptionSession {
                 throw VoiceInkEngineError.transcriptionFailed
             }
 
-            return try await optimizedService.transcribe(
-                recordedPCMBuffer: recordedPCMBuffer,
-                sampleRate: Self.recorderChunkSampleRate,
-                model: model
-            )
+            let task = Task {
+                try await optimizedService.transcribe(
+                    recordedPCMBuffer: recordedPCMBuffer,
+                    sampleRate: Self.recorderChunkSampleRate,
+                    model: model
+                )
+            }
+            transcriptionTask = task
+            defer { transcriptionTask = nil }
+            let text = try await task.value
+            guard !isCancelled else { throw CancellationError() }
+            return text
         }
 
         guard let fileService = service as? TranscriptionService else {
             throw VoiceInkEngineError.transcriptionFailed
         }
 
-        return try await fileService.transcribe(audioURL: audioURL, model: model)
+        let task = Task {
+            try await fileService.transcribe(audioURL: audioURL, model: model)
+        }
+        transcriptionTask = task
+        defer { transcriptionTask = nil }
+        let text = try await task.value
+        guard !isCancelled else { throw CancellationError() }
+        return text
     }
 
     func cancel() {
+        isCancelled = true
+        transcriptionTask?.cancel()
+        transcriptionTask = nil
         pcmAccumulator.reset()
     }
 }
@@ -81,6 +104,8 @@ final class StreamingTranscriptionSession: TranscriptionSession {
     private let fallbackService: (any TranscriptionService)?
     private var model: (any TranscriptionModel)?
     private var streamingFailed = false
+    private var isCancelled = false
+    private var fallbackTask: Task<String, Error>?
     private let logger = Logger(subsystem: "com.fightingentropy.voiceink", category: "StreamingTranscriptionSession")
 
     init(
@@ -93,6 +118,7 @@ final class StreamingTranscriptionSession: TranscriptionSession {
 
     func prepare(model: any TranscriptionModel) async throws -> (@Sendable (Data) -> Void)? {
         self.model = model
+        isCancelled = false
         do {
             try await streamingService.startStreaming(model: model)
             logger.notice("Streaming connected for \(model.displayName, privacy: .public)")
@@ -109,6 +135,9 @@ final class StreamingTranscriptionSession: TranscriptionSession {
     }
 
     func transcribe(audioURL: URL) async throws -> String {
+        guard !isCancelled else {
+            throw CancellationError()
+        }
         guard let model = model else {
             throw VoiceInkEngineError.transcriptionFailed
         }
@@ -122,6 +151,9 @@ final class StreamingTranscriptionSession: TranscriptionSession {
                 }
                 return text
             } catch {
+                if isCancelled || error is CancellationError {
+                    throw CancellationError()
+                }
                 logger.error("❌ Streaming failed, falling back to batch: \(error.localizedDescription, privacy: .public)")
                 streamingService.cancel()
             }
@@ -129,14 +161,27 @@ final class StreamingTranscriptionSession: TranscriptionSession {
             streamingService.cancel()
         }
 
+        guard !isCancelled else {
+            throw CancellationError()
+        }
         guard let fallbackService else {
             throw StreamingTranscriptionSessionError.batchFallbackUnavailable(modelName: model.displayName)
         }
         logger.notice("Using file-based fallback for \(model.displayName, privacy: .public)")
-        return try await fallbackService.transcribe(audioURL: audioURL, model: model)
+        let task = Task {
+            try await fallbackService.transcribe(audioURL: audioURL, model: model)
+        }
+        fallbackTask = task
+        defer { fallbackTask = nil }
+        let text = try await task.value
+        guard !isCancelled else { throw CancellationError() }
+        return text
     }
 
     func cancel() {
+        isCancelled = true
+        fallbackTask?.cancel()
+        fallbackTask = nil
         streamingService.cancel()
     }
 }

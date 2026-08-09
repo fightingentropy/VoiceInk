@@ -3,8 +3,14 @@ import Foundation
 /// Events emitted by a streaming transcription provider
 enum StreamingTranscriptionEvent {
     case sessionStarted
+    /// Text for the provider's current segment only.
     case partial(text: String)
+    /// A replaceable snapshot containing the complete transcript so far.
+    case partialSnapshot(text: String)
+    /// A finalized segment that follows any previously committed segments.
     case committed(text: String)
+    /// A finalized snapshot containing the complete transcript so far.
+    case committedSnapshot(text: String)
     /// The provider has definitively finished emitting transcript segments for
     /// the most recent manual audio commit.
     case finalized

@@ -44,6 +44,11 @@ struct VoiceInkTests {
         #expect(MiniRecorderWaveformLayout.panelSize == CGSize(width: 120, height: 50))
     }
 
+    @Test func dismissIntentRoutesThroughRecorderCancellation() {
+        #expect(DismissMiniRecorderIntent.cancellationNotification == .cancelMiniRecorder)
+        #expect(DismissMiniRecorderIntent.cancellationNotification != .dismissMiniRecorder)
+    }
+
     @Test func immediateLiveTranscriptRequiresTheOptionAStreamingSessionAndVisibleText() {
         #expect(
             LiveTranscriptReleasePolicy.immediateText(

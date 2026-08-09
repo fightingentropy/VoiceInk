@@ -133,7 +133,7 @@ final class NativeAppleTranscriptionService: TranscriptionService, @unchecked Se
             transcript += result.text
         }
         
-        var finalTranscription = String(transcript.characters).trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalTranscription = String(transcript.characters).trimmingCharacters(in: .whitespacesAndNewlines)
 
         logger.notice("Native transcription successful. Length: \(finalTranscription.count, privacy: .public) characters.")
         return finalTranscription
